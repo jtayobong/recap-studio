@@ -154,7 +154,7 @@ MSVC; Visual Studio Build Tools and WebView2 were already present).
   16:9 starter exported and downloaded, project still there after restarting the app).
   Decision record: D34.
 
-### 1c. 60 fps export (added 2026-11-25, not started)
+### 1c. 60 fps export (added 2026-11-25; chosen as next, not started)
 
 **Goal:** the Export dialog offers 60 fps as well as 30 fps, for smoother motion (count-ups,
 carousels, transitions, Ken Burns zooms), in both 9:16 and 16:9.
@@ -190,18 +190,20 @@ dialog only offer 60 fps where the browser can encode it. `npm run check`, `npm 
   comparison at frame-aligned 60 fps times, duration, packet count, audio sync), the WebM/VP9
   fallback at 60 fps, the desktop smoke test unchanged.
 
-**Open questions (to ask before starting):**
+**Decisions (confirmed with the user, 2026-11-25):**
 
-- Export option in the dialog, or a project setting?
-- Which quality presets at 60 fps: the same three (bitrates scaled up), or 60 fps only for
-  Standard/High?
-- Default stays 30 fps?
+- **Export option:** 30 / 60 fps is chosen in the Export dialog per export; the project stays at
+  30 fps (`format.fps` unchanged, nothing to migrate or undo).
+- **All three presets** at 60 fps, bitrates scaled by √2 (Standard ~11.3, High ~17, Smaller ~7
+  Mbps for 1080×1920 / 1920×1080).
+- **30 fps stays the default.**
 
 ### 2. Project bundles (deferred from M8 by the user)
 
 Save a project with its media as one file (e.g. `.recap.zip`) to back up or move to another
 computer, and import it back.
 
+- Purpose (user decision): backup and moving your own projects, not sharing.
 - Strip EXIF/GPS from photos that were stored byte-for-byte (≤ 2160 px).
 - Validate everything on import: Zod for the document (with migrations), unknown templates,
   asset ids, magic bytes for every file, size caps and zip-bomb limits.
@@ -221,8 +223,8 @@ Project cards use a static tile instead of a rendered frame; text can look sligh
 between operating systems (system fonts); the preview's clip playback is approximate (the export is
 exact); audio tiles have no waveform.
 
-## Open questions for the user
+## Decisions on what's next (user, 2026-11-25)
 
-- Which candidate comes next (landscape output and the desktop app are done; 60 fps export is
-  planned in 1c), or something else?
-- If project bundles: backup only (same app, another computer), or also for sharing?
+- **Next: 60 fps export** (1c).
+- **Project bundles**, when built, are for **backup and moving** your own projects (between the
+  browser, the desktop app and computers), not for sharing; imports are still fully validated.
