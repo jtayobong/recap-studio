@@ -179,6 +179,13 @@ One music track per story, in sync in the preview and mixed into the export.
 - **Transitions:** cut, fade, slide up, push left, zoom, wipe and flash; the first scene
   transitions in from the background.
 
+## Storage (M8)
+
+Everything is stored in this browser. A warning appears on the Projects page and in the editor when
+storage is almost full (under 1 GB free, or 85 % of what the browser allows). The **Storage** page
+shows what takes space (per project, and media largest first, marked *Unused* or *In use*) and can
+delete single items or all unused media; scenes that used deleted media show an empty slot.
+
 ## Next: M8 (hardening)
 
 Clear errors and recoverable failures end to end, plus the rough edges collected so far. See

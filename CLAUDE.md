@@ -108,7 +108,8 @@ src/
                 media: record → plan → prepare → free), videoReader.ts, presets.ts, target.ts,
                 testing/inspectExport.ts (decode + compare, e2e only), exportStore.ts (UI-only
                 export state), mediaRefs.ts, index.ts (useExportStore; exporter lazy-loaded)
-  pages/        ProjectsPage, EditorPage, SystemPage, NotFoundPage
+  storage/      mediaUsage.ts (what media takes space; delete one / all unused, via repositories)
+  pages/        ProjectsPage, EditorPage, StoragePage, SystemPage, NotFoundPage
   lib/          capabilities, storage, format, debounce, keyboard, ids, errors
 e2e/            Playwright specs: projects, preview, editor, media-import, media-library, media-slot,
                 media-preview (reads canvas pixels), media-project, export (decodes the output), export-ui,

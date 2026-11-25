@@ -32,6 +32,13 @@ Design notes; the open questions are settled (see **Decisions** at the end).
     carousel reveals one slot at a time; filled slots always stay visible.
   - *Bug found:* `Modal` reported its own programmatic close (an async `close` event) as a user
     close, which could instantly dismiss a dialog reopened right after (the Back-button prompt).
+- **Step 3 done (2026-11-25): storage care.** `isStorageLow` (< 1 GB free or ≥ 85 % of the quota)
+  drives a warning on the Projects page and in the editor's media panel, re-checked whenever media
+  is added or removed. New **Storage** page (`/storage`, in the main nav): usage vs quota, media
+  per project, media largest first with Unused / In use, per-item delete (scenes/music that used
+  it are emptied in the saved project) and "Delete unused media". Logic in
+  `storage/mediaUsage.ts`, through the repositories only; media of unreadable projects counts as
+  in use. `assetRepository.listAll()` added.
 
 ## Collected for M8 (from earlier milestones)
 
@@ -41,8 +48,7 @@ Design notes; the open questions are settled (see **Decisions** at the end).
 - ~~Export speed with media~~ (step 2: encoder-bound; fast with hardware encoding).
 - ~~Leaving the editor discards a finished, undownloaded export~~ (step 2: asks first).
 - ~~Inspector noise~~ (step 2: `visibleWhen`).
-- **Storage**: quota warnings before it's full (System page already estimates usage), and a way to
-  see/clean large media.
+- ~~**Storage**~~ (step 3: warnings + Storage page).
 - ~~**Project bundle export/import**~~ deferred past M8 (user decision): zip of the project JSON +
   media; strip EXIF/GPS from photos kept byte-for-byte; validate everything on import (Zod,
   unknown templates, size caps / zip bombs).

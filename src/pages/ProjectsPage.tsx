@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { NewProjectDialog } from '../components/NewProjectDialog';
 import { ProjectCard } from '../components/ProjectCard';
+import { StorageWarning } from '../components/StorageWarning';
 import { projectRepository, sweepOrphanedMediaOnce } from '../db';
 import { describeError } from '../lib/errors';
 
@@ -59,6 +60,8 @@ export function ProjectsPage() {
         </div>
         {newProjectButton}
       </div>
+
+      <StorageWarning />
 
       {actionError && (
         <p className="form-error" role="alert">

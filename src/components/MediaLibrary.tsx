@@ -8,6 +8,7 @@ import { assetStatus, importer, mediaCache } from '../media';
 import { hasFiles as transferHasFiles } from '../media/dragData';
 import type { ImportPhase, ImportResult } from '../media/importAsset';
 import { AssetTile } from './AssetTile';
+import { StorageWarning } from './StorageWarning';
 import { ConfirmDialog } from './ConfirmDialog';
 
 /** For the file picker only; the importer checks real content regardless. */
@@ -184,6 +185,8 @@ export function MediaLibrary({ project }: { project: Project }) {
           }}
         />
       </div>
+
+      <StorageWarning compact />
 
       <p id={hintId} className="media-library__hint">
         Drop photos, clips or music here. JPEG, PNG, WebP, GIF · MP4, MOV, WebM · MP3, M4A, WAV, OGG, FLAC.

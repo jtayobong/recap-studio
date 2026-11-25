@@ -5,6 +5,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { EditorPage } from './pages/EditorPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { ProjectsPage } from './pages/ProjectsPage';
+import { StoragePage } from './pages/StoragePage';
 import { SystemPage } from './pages/SystemPage';
 
 /** Every route sits behind the capability check. */
@@ -28,6 +29,7 @@ const router = createBrowserRouter([
         element: <AppShell />,
         children: [
           { index: true, element: <ProjectsPage /> },
+          { path: 'storage', element: <StoragePage /> },
           { path: 'system', element: <SystemPage /> },
           { path: '*', element: <NotFoundPage /> },
         ],

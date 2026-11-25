@@ -115,6 +115,12 @@ export function createAssetRepository(
     return rows.map(parseRow).filter((asset): asset is Asset => asset !== undefined);
   }
 
+  /** Every valid asset of every project (for the Storage page). */
+  async function listAll(): Promise<Asset[]> {
+    const rows = await database.assets.toArray();
+    return rows.map(parseRow).filter((asset): asset is Asset => asset !== undefined);
+  }
+
   /** The stored binary, or undefined if the file is missing (e.g. cleared by the browser). */
   async function readFile(id: string): Promise<File | undefined> {
     return store.read(ASSETS_DIR, id);
@@ -203,6 +209,7 @@ export function createAssetRepository(
     add,
     get,
     listForProject,
+    listAll,
     readFile,
     readThumbnail,
     remove,

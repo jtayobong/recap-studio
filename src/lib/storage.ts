@@ -31,3 +31,20 @@ export async function requestPersistentStorage(): Promise<boolean> {
     return false;
   }
 }
+
+/** Warn when less than this is free… */
+export const LOW_FREE_BYTES = 1024 ** 3;
+/** …or when this share of the quota is used. */
+export const LOW_USED_SHARE = 0.85;
+
+export function freeBytes(info: StorageInfo): number | null {
+  if (info.usageBytes === null || info.quotaBytes === null) return null;
+  return Math.max(0, info.quotaBytes - info.usageBytes);
+}
+
+/** Whether storage is getting tight (unknown estimates never warn). */
+export function isStorageLow(info: StorageInfo): boolean {
+  const free = freeBytes(info);
+  if (free === null || info.quotaBytes === null || info.quotaBytes <= 0) return false;
+  return free < LOW_FREE_BYTES || (info.usageBytes ?? 0) / info.quotaBytes >= LOW_USED_SHARE;
+}
