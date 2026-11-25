@@ -1,38 +1,6 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
-
-/**
- * Content Security Policy for the production preview server (reviewed in M8).
- * Everything is local: no third-party scripts, fonts or network calls.
- * - `blob:` only where media object URLs are used (thumbnails, previews, the export download).
- * - The export worker is a same-origin file, so workers need no `blob:`.
- * - Inline style *attributes* set by React go through the CSSOM, which CSP doesn't block, so
- *   `style-src` stays `'self'`.
- * - Trusted Types: the app never assigns HTML strings to the DOM (lint bans
- *   `dangerouslySetInnerHTML`), so every script sink is refused except the export worker's URL,
- *   which goes through the single allowed policy (src/export/workerUrl.ts).
- * Not applied to the dev server, because React Fast Refresh injects an inline script.
- */
-const contentSecurityPolicy = [
-  "default-src 'self'",
-  "script-src 'self'",
-  "style-src 'self'",
-  "img-src 'self' blob:",
-  "media-src 'self' blob:",
-  "font-src 'self'",
-  "worker-src 'self'",
-  "connect-src 'self'",
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-  "require-trusted-types-for 'script'",
-  // One policy, which only accepts the bundled export worker's URL (src/export/workerUrl.ts).
-  'trusted-types recap-export-worker',
-].join('; ');
-
-/** Browser features the app never uses, switched off. */
-const permissionsPolicy = 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=(), display-capture=()';
+import { CONTENT_SECURITY_POLICY, PERMISSIONS_POLICY } from './src/security/policy';
 
 export default defineConfig({
   plugins: [react()],
@@ -54,8 +22,8 @@ export default defineConfig({
     port: 4173,
     strictPort: true,
     headers: {
-      'Content-Security-Policy': contentSecurityPolicy,
-      'Permissions-Policy': permissionsPolicy,
+      'Content-Security-Policy': CONTENT_SECURITY_POLICY,
+      'Permissions-Policy': PERMISSIONS_POLICY,
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Resource-Policy': 'same-origin',
       'X-Content-Type-Options': 'nosniff',

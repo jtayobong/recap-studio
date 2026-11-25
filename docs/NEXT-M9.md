@@ -127,6 +127,33 @@ test in both formats); the editor UI (preview, strip, focus picker) handles both
   selectable) and the grid layouts are 2 side by side, 1 big + 2 stacked, and 2 × 2.
 - Portrait (9:16) output must not change.
 
+### 1b. Desktop app (Tauri, Windows), started 2026-11-25
+
+The user chose Tauri from four options (PWA, Tauri, Electron, a small launcher), with an NSIS
+setup.exe (per-user, no admin). Rust was installed with `winget install Rustlang.Rustup` (stable
+MSVC; Visual Studio Build Tools and WebView2 were already present).
+
+- `src-tauri/`: a thin shell, one window showing the bundled `dist/` in WebView2 (Edge's engine,
+  so WebCodecs and OPFS behave as in desktop Edge). No plugins, no IPC, no permissions
+  (`withGlobalTauri: false`, empty capability), so the page can't reach native APIs.
+- Origin `https://tauri.localhost` (`useHttpsScheme: true`): a fixed secure origin. **Don't change
+  it later**: storage is per origin, so a different origin would hide every saved project.
+  Projects made in the browser (`localhost:5173`/`:4173`) don't appear in the app, and vice
+  versa, until project bundles exist.
+- Security: the same CSP and Permissions-Policy as `vite preview`, from one source
+  (`src/security/policy.ts`); `policy.test.ts` fails if `tauri.conf.json` drifts.
+- `npm run desktop:dev` (window on the Vite dev server), `npm run desktop:build` (setup.exe in
+  `src-tauri/target/release/bundle/nsis/`), `npm run test:desktop` (smoke test of the built .exe
+  over CDP with a throwaway WebView2 data folder: origin, Trusted Types, capability check, 16:9
+  export and download, projects kept across restarts).
+- App data lives in `%LOCALAPPDATA%\local.recapstudio.desktop\EBWebView` (WebView2 user data).
+- Not done: code signing (Windows SmartScreen will warn on an unsigned setup.exe), auto-update,
+  macOS/Linux builds (their system WebViews lack reliable WebCodecs H.264 encoding).
+- Result (2026-11-25): `npm run desktop:build` gives a 3.4 MB `recap-studio.exe` and a 1.4 MB
+  setup.exe; `npm run test:desktop` passes (origin, Trusted Types active, MP4 export available,
+  16:9 starter exported and downloaded, project still there after restarting the app).
+  Decision record: D34.
+
 ### 2. Project bundles (deferred from M8 by the user)
 
 Save a project with its media as one file (e.g. `.recap.zip`) to back up or move to another
@@ -142,8 +169,7 @@ computer, and import it back.
 
 CSV/manual stats import (Spotify-style data without an API), beat detection to sync cuts to music,
 keyframes / a multi-track timeline, a template builder, WebGL effects, square (1:1) output,
-GIF/WebM/4K/60 fps exports, Firefox/Safari support, mobile layout, desktop packaging (an
-installable PWA or a Tauri/Electron app; discussed after M8, not started).
+GIF/WebM/4K/60 fps exports, Firefox/Safari support, mobile layout. (Desktop packaging: see 1b.)
 
 ### 4. Known gaps (CLAUDE.md)
 

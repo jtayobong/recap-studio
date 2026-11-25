@@ -264,3 +264,16 @@ Crop shapes for the focus picker stay plain data in the field descriptors, now p
 Switching format is a normal undoable project edit that keeps scenes and focus points. The
 capability check requires the encoder at both sizes, so "can export" holds for either shape.
 Square (1:1) stays "Later"; the same helpers make it a smaller job.
+
+### D34. Desktop app: a thin Tauri shell around the unchanged web app
+Of four options (installable PWA, Tauri, Electron, a small launcher), the user chose Tauri with a
+per-user NSIS installer. On Windows, Tauri shows the bundled `dist/` in WebView2, which is Edge's
+Chromium, so WebCodecs (H.264 export) and OPFS work as in desktop Edge, in a ~1.4 MB installer
+instead of Electron's bundled Chromium (~100 MB). The shell has no plugins, no IPC and no
+permissions: the web app stays the whole product and keeps working in the browser. The origin is
+fixed to `https://tauri.localhost` (`useHttpsScheme`), a secure origin that must never change,
+because storage is per origin. The same CSP/Permissions-Policy as the production web build comes
+from one module (`src/security/policy.ts`) with a test against `tauri.conf.json`. The packaged app
+is tested by attaching Playwright to WebView2 over CDP with a throwaway user-data folder
+(`npm run test:desktop`). macOS/Linux builds are out: their system WebViews (WebKit) don't
+reliably encode H.264 with WebCodecs. Not done: code signing and auto-update.

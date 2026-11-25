@@ -24,6 +24,9 @@ npm run dev                       # http://localhost:5173
 | `npm run test:e2e` | End-to-end tests (Playwright, starts the dev server) |
 | `npm run build && npm run preview` | Production build served with a strict CSP |
 | `npm run test:e2e:prod` | Build, then run the e2e flows against the production server |
+| `npm run desktop:dev` | Desktop app window (Tauri) on the dev server |
+| `npm run desktop:build` | Windows installer (`src-tauri/target/release/bundle/nsis/*-setup.exe`) |
+| `npm run test:desktop` | Smoke test of the built desktop app |
 
 ## Project structure
 
@@ -211,6 +214,20 @@ delete single items or all unused media; scenes that used deleted media show an 
   record, and again after to compare.
 - Export works the same in both shapes (same bitrates: the pixel count is equal). The browser check
   (System page) requires the encoder to accept both 1080×1920 and 1920×1080.
+
+## Desktop app (Windows)
+
+Recap Studio can also be installed as a normal Windows app: a Tauri shell showing the same web app
+in WebView2 (the engine of Microsoft Edge), fully offline.
+
+- **Build once:** install Rust (`winget install Rustlang.Rustup`, then `rustup default
+  stable-msvc`) and the Visual Studio C++ Build Tools; then `npm run desktop:build`. The installer
+  is `src-tauri/target/release/bundle/nsis/Recap Studio_<version>_x64-setup.exe` (per user, no
+  admin rights).
+- **Your data:** the app keeps its own projects and media (in
+  `%LOCALAPPDATA%\local.recapstudio.desktop`), separate from projects made in the browser.
+- The installer isn't code-signed, so Windows SmartScreen may warn the first time
+  (*More info → Run anyway*).
 
 ## What's next
 

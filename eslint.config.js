@@ -8,7 +8,7 @@ import tseslint from 'typescript-eslint';
 const reactHooksRecommended = reactHooks.configs.flat?.recommended ?? reactHooks.configs.recommended;
 
 export default defineConfig([
-  { ignores: ['dist', 'playwright-report', 'test-results'] },
+  { ignores: ['dist', 'playwright-report', 'test-results', 'src-tauri'] },
   {
     files: ['**/*.{ts,tsx}'],
     extends: [js.configs.recommended, tseslint.configs.recommended],

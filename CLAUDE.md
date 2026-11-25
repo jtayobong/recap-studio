@@ -52,6 +52,9 @@ npm run test:e2e     # Playwright (Chromium); starts the dev server itself
 npm run test:e2e:prod # builds, then runs the e2e flows against `vite preview` (strict CSP, headers)
 npm run build        # tsc --noEmit && vite build
 npm run preview      # production build on :4173 with a strict CSP
+npm run desktop:dev  # desktop app (Tauri) window on the dev server; needs Rust (rustup, stable-msvc)
+npm run desktop:build # Windows NSIS setup.exe in src-tauri/target/release/bundle/nsis/
+npm run test:desktop # smoke test of the built desktop .exe (run desktop:build first)
 npx playwright install chromium   # once per machine
 ```
 
