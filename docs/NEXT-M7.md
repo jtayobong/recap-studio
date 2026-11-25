@@ -37,6 +37,11 @@ Design notes; the open questions are settled (see **Decisions** at the end).
   (filled ones in order; three placeholders when empty) on a strip that scrolls continuously from
   the first card centred to the last, left or up. `MediaField.focus.aspect` lets the focus picker
   outline the real cell/card shape per layout/direction.
+- **Step 3 done (2026-11-25): style.** 6 new palettes (Sunset Grape, Bubblegum, Ocean Glass, Lava
+  Lamp, Mono Ink, Electric Night; 10 total) with a unit test enforcing WCAG AA text contrast and
+  visible primary/accent on every palette. 2 new system-font pairs (Editorial Serif: Georgia;
+  Typewriter Mono: Consolas/SF Mono/Menlo), each stack ending in a generic family. A Font picker
+  in the project panel (the app had none). The fonts export test covers all three pairs.
 
 ## Suggested breakdown
 

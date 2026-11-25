@@ -67,3 +67,19 @@ test('system page reports browser support', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Browser support' })).toBeVisible();
   await expect(page.getByText('IndexedDB')).toBeVisible();
 });
+
+test('the story font can be chosen and is saved', async ({ page }) => {
+  await createProject(page, 'Font Test');
+  await expect(page.getByRole('radio', { name: 'Heavy Grotesk' })).toBeChecked();
+  await page.getByText('Editorial Serif').click();
+  await expect(page.getByRole('radio', { name: 'Editorial Serif' })).toBeChecked();
+  await page.getByText('Electric Night').click();
+  await expect(page.getByRole('status').filter({ hasText: 'All changes saved' })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('radio', { name: 'Editorial Serif' })).toBeChecked();
+  await expect(page.getByRole('radio', { name: 'Electric Night' })).toBeChecked();
+  // Undo goes back to the previous font.
+  await page.getByText('Typewriter Mono').click();
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(page.getByRole('radio', { name: 'Editorial Serif' })).toBeChecked();
+});

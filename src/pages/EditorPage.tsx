@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
 import { ExportControl } from '../components/ExportControl';
+import { FontPicker } from '../components/FontPicker';
 import { MediaLibrary } from '../components/MediaLibrary';
 import { MusicSection } from '../components/MusicSection';
 import { PalettePicker } from '../components/PalettePicker';
@@ -181,6 +182,13 @@ function ProjectPanel({ project, durationMs }: { project: Project; durationMs: n
         value={project.style.paletteId}
         onChange={(paletteId) =>
           update((p) => (p.style.paletteId === paletteId ? p : { ...p, style: { ...p.style, paletteId } }))
+        }
+      />
+
+      <FontPicker
+        value={project.style.fontPairId}
+        onChange={(fontPairId) =>
+          update((p) => (p.style.fontPairId === fontPairId ? p : { ...p, style: { ...p.style, fontPairId } }))
         }
       />
 

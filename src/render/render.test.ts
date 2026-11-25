@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Scene } from '../domain/project';
 import { clamp01, easeInOutCubic, easeOutBack, easeOutCubic, easeOutExpo, lerp, progress, seededRandom } from './easing';
 import { defaultFields, fieldsEditedBySlots, resolveFields, type FieldDefs } from './fields';
+import { PALETTES } from '../domain/stylePresets';
 import { NO_MEDIA, type MediaResolver } from './media';
 import { renderFrame, type RenderableProject } from './renderFrame';
 import { kenBurnsZoom, KEN_BURNS_MAX_ZOOM } from './templates/photo';
@@ -358,7 +359,7 @@ describe('renderFrame', () => {
     });
     const total = scenes.reduce((sum, s) => sum + s.durationMs, 0);
     for (const media of [NO_MEDIA, fakeMedia]) {
-      for (const paletteId of ['neon-pulse', 'citrus-pop', 'midnight-wave', 'mint-riot']) {
+      for (const paletteId of PALETTES.map((p) => p.id)) {
         const p = project(scenes, paletteId);
         for (let t = 0; t <= total; t += 250) {
           const { ctx, texts, calls } = createMockContext();

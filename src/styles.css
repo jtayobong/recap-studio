@@ -216,6 +216,49 @@ legend {
   gap: 0.6rem;
 }
 
+.font-picker {
+  margin: 1rem 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.font-picker__options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 0.5rem;
+}
+
+.font-option {
+  display: grid;
+  gap: 0.25rem;
+  justify-items: center;
+  padding: 0.5rem 0.4rem;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.font-option:has(input:checked) {
+  border-color: var(--accent);
+}
+
+.font-option:has(input:focus-visible) {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.font-option__sample {
+  font-size: 1.3rem;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.font-option__name {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
 .palette-option,
 .format-option {
   display: grid;
