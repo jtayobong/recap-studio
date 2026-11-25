@@ -151,3 +151,14 @@ OffscreenCanvas exports at about the same speed as the main thread (~200 fps at 
 machine) while keeping the UI free, so export runs in a worker. Bitrates must be passed as
 `new Quality({ bitrate })` (a bare number is a 0–1 quality level). `mediabunny` is listed in Vite's
 `optimizeDeps.include` so its lazy import doesn't trigger a dev reload.
+
+### D23. Export plans every frame's media up front
+Export is deterministic, so before encoding it draws every frame once with a recording
+`MediaResolver` (no decoding; a few ms for a whole story) and builds a plan: which images each frame
+needs, and per video "stream" (the nth use of a clip within a frame) the full ordered list of clip
+times. Then, per frame, exactly that media is decoded before the frame is drawn, and anything past
+its last use is freed. Templates stay unaware of export. The plan is required, not just tidy:
+Mediabunny's `canvasesAtTimestamps` reads timestamps ahead, so supplying them one frame at a time
+deadlocked. Missing/undecodable media draws the placeholder and is reported (`mediaFailures`) so the
+UI can warn instead of failing the export. In the worker, `self.fonts.ready` never resolved, so it
+isn't awaited (system fonts need no loading; self-hosted fonts must use explicit `FontFace.load()`).

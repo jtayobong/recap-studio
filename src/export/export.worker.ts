@@ -1,22 +1,28 @@
 /// <reference lib="webworker" />
-import { encodeStory, type EncodeOptions } from './encodeStory';
+import { encodeStory, type EncodeOptions, type EncodeResult } from './encodeStory';
+import { createExportMedia, type ExportAsset } from './exportMedia';
+import { MediabunnyVideoReader } from './videoReader';
 
 /**
- * Export worker. Protocol (spike version):
- *   → { type: 'start', options }   (options without signal/onProgress/media)
+ * Export worker: renders and encodes off the main thread, so the editor stays responsive.
+ *
+ *   → { type: 'start', options, assets }  options: the encode settings and a snapshot of the project;
+ *                                          assets: asset id → { kind, file } (Blobs pass by reference)
  *   → { type: 'cancel' }
- *   ← { type: 'progress', frame, totalFrames }
- *   ← { type: 'done', result }     (result.data is transferred, not copied)
+ *   ← { type: 'progress', frame, totalFrames }   (throttled to ~10/s, plus the last frame)
+ *   ← { type: 'done', result }                    (result.data is transferred, not copied)
  *   ← { type: 'error', message, cancelled }
  */
 
 export type WorkerEncodeOptions = Omit<EncodeOptions, 'signal' | 'onProgress' | 'media'>;
 
-export type ExportRequest = { type: 'start'; options: WorkerEncodeOptions } | { type: 'cancel' };
+export type ExportRequest =
+  | { type: 'start'; options: WorkerEncodeOptions; assets: Record<string, ExportAsset> }
+  | { type: 'cancel' };
 
 export type ExportResponse =
   | { type: 'progress'; frame: number; totalFrames: number }
-  | { type: 'done'; result: Awaited<ReturnType<typeof encodeStory>> }
+  | { type: 'done'; result: EncodeResult }
   | { type: 'error'; message: string; cancelled: boolean };
 
 const scope = self as unknown as DedicatedWorkerGlobalScope;
@@ -34,11 +40,21 @@ scope.onmessage = async (event: MessageEvent<ExportRequest>) => {
   if (controller) return; // one export per worker at a time
   controller = new AbortController();
   try {
+    // Fonts: the app uses system font stacks, which need no loading. Don't await
+    // `self.fonts.ready` here: in a dedicated worker it never resolved (Chromium, M5 step 2).
+    // Self-hosted fonts must be added with `new FontFace(...)` and an explicit `await face.load()`.
+    const media = createExportMedia(request.assets, {
+      decodeImage: async (file) => {
+        const bitmap = await createImageBitmap(file);
+        return { source: bitmap, width: bitmap.width, height: bitmap.height, close: () => bitmap.close() };
+      },
+      openVideo: (file, timestampsS) => MediabunnyVideoReader.open(file, timestampsS),
+    });
     const result = await encodeStory({
       ...request.options,
+      media,
       signal: controller.signal,
       onProgress: ({ frame, totalFrames }) => {
-        // Throttle progress messages to ~10 per second (plus the last frame).
         const now = performance.now();
         if (frame === totalFrames || now - lastProgressAt > 100) {
           lastProgressAt = now;

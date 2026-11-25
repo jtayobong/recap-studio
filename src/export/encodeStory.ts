@@ -7,20 +7,20 @@ import {
   WebMOutputFormat,
   type VideoCodec,
 } from 'mediabunny';
-import { NO_MEDIA, type MediaResolver } from '../render/media';
 import { renderFrame, type RenderableProject } from '../render/renderFrame';
 import { frameToMs, getSceneSpans, totalDurationMs } from '../render/timeline';
+import type { ExportMedia } from './exportMedia';
+import type { ExportContainer } from './target';
 
 /**
  * The export frame loop: draw every output frame with the same `renderFrame` the preview uses,
  * onto an OffscreenCanvas, and encode it with Mediabunny (WebCodecs). Works in a worker or on the
  * main thread.
  *
- * M5 spike status: no media yet (scenes draw placeholders). The real exporter must make sure every
- * asset a frame needs is decoded *before* drawing it (see docs/NEXT-M5.md).
+ * With `media`, a planning pass first draws every frame with a recording resolver to learn which
+ * media each frame needs; then each frame's media is decoded exactly before it is drawn. So no
+ * frame ever shows a placeholder for media that was merely still loading (see exportMedia.ts).
  */
-
-export type ExportContainer = 'mp4' | 'webm';
 
 export interface EncodeOptions {
   project: RenderableProject;
@@ -30,7 +30,8 @@ export interface EncodeOptions {
   bitrate: number;
   /** Render only up to this time (default: the whole story). */
   endMs?: number;
-  media?: MediaResolver;
+  /** Without it, media slots draw placeholders. */
+  media?: ExportMedia;
   signal?: AbortSignal;
   onProgress?: (progress: { frame: number; totalFrames: number }) => void;
 }
@@ -43,6 +44,8 @@ export interface EncodeResult {
   drawMs: number;
   /** Wall-clock time for the whole export, in ms. */
   totalMs: number;
+  /** Assets that couldn't be drawn (missing or undecodable) → reason. Those slots show placeholders. */
+  mediaFailures: Record<string, string>;
 }
 
 export const KEY_FRAME_INTERVAL_S = 2;
@@ -77,13 +80,25 @@ export async function encodeStory(options: EncodeOptions): Promise<EncodeResult>
   output.addVideoTrack(source, { frameRate: fps });
 
   let drawMs = 0;
+  const media = options.media;
   try {
+    if (media) {
+      // Planning pass: learn which media every frame needs (cheap; nothing is decoded).
+      for (let frame = 0; frame < totalFrames; frame += 1) {
+        media.planFrame(frame);
+        renderFrame(ctx, project, frameToMs(frame, fps), media.recorder);
+      }
+      media.finishPlanning();
+    }
+
     await output.start();
     for (let frame = 0; frame < totalFrames; frame += 1) {
       if (signal?.aborted) throw signal.reason ?? new DOMException('Export cancelled', 'AbortError');
+      if (media) await media.prepare(frame);
       const drawStart = performance.now();
-      renderFrame(ctx, project, frameToMs(frame, fps), options.media ?? NO_MEDIA);
+      renderFrame(ctx, project, frameToMs(frame, fps), media?.resolver);
       drawMs += performance.now() - drawStart;
+      media?.endFrame(frame);
       // Awaiting respects encoder backpressure, so memory stays flat for long stories.
       await source.add(frame / fps, 1 / fps);
       options.onProgress?.({ frame: frame + 1, totalFrames });
@@ -92,6 +107,8 @@ export async function encodeStory(options: EncodeOptions): Promise<EncodeResult>
   } catch (error) {
     if (output.state !== 'finalized' && output.state !== 'canceled') await output.cancel().catch(() => undefined);
     throw error;
+  } finally {
+    media?.dispose();
   }
 
   const data = output.target.buffer;
@@ -102,5 +119,6 @@ export async function encodeStory(options: EncodeOptions): Promise<EncodeResult>
     totalFrames,
     drawMs,
     totalMs: performance.now() - started,
+    mediaFailures: Object.fromEntries(options.media?.failures() ?? []),
   };
 }

@@ -90,12 +90,14 @@ src/
                 usePlaybackShortcuts.ts
   components/   UI pieces (SceneStrip, SceneInspector, FieldEditor, TemplateGallery, SceneThumbnail,
                 MediaLibrary, AssetTile, MediaSlotField, Modal, ConfirmDialog, ProjectCard, …)
-  export/       encodeStory.ts (frame loop → Mediabunny), export.worker.ts, spike.ts (M5 spike
-                harness + inspectExport, used by e2e/export-spike.spec.ts)
+  export/       exportStory.ts (main-thread API: snapshot, target, assets, worker), export.worker.ts,
+                encodeStory.ts (plan pass + frame loop → Mediabunny), exportMedia.ts (frame-exact
+                media: record → plan → prepare → free), videoReader.ts, presets.ts, target.ts,
+                testing/inspectExport.ts (decode + compare, e2e only)
   pages/        ProjectsPage, EditorPage, SystemPage, NotFoundPage
   lib/          capabilities, storage, format, debounce, keyboard, ids, errors
 e2e/            Playwright specs: projects, preview, editor, media-import, media-library, media-slot,
-                media-preview (reads canvas pixels);
+                media-preview (reads canvas pixels), media-project, export (decodes the output);
                 helpers/media.ts generates test images/video in the page (no binary fixtures)
 ```
 

@@ -15,8 +15,7 @@ Design notes; the open questions are settled (see **Decisions** at the end).
   `MediaResolver` (`render/media.ts`) and draw a placeholder when it answers `undefined`.
   **The exporter must never draw a frame with media still missing.** For each frame, collect the
   asset ids it needs, wait until every one is decoded, then call `renderFrame`. Templates don't
-  report what they need yet, so either add `assetsAt(project, timeMs)` (every `media` field of the
-  active and outgoing scene) or do a dry run with a recording resolver.
+  report what they need, so the exporter does a dry run with a recording resolver (done in step 2).
 - Video in the preview is approximate (`<video>` seeking). Export needs exact frames: decode with
   Mediabunny (`VideoSampleSink` / `CanvasSink`), with the same clip-time rule as the preview:
   `clipMs = scene localMs`, clamped to the clip length (the last frame holds).
@@ -30,7 +29,7 @@ Design notes; the open questions are settled (see **Decisions** at the end).
 ## Spike results (2026-11-25) ✅
 
 `src/export/encodeStory.ts` (frame loop), `src/export/export.worker.ts` (worker + protocol),
-`src/export/spike.ts` (harness + `inspectExport`), `e2e/export-spike.spec.ts`. Mediabunny 1.65.2.
+`src/export/spike.ts` (harness; folded into `exportStory.ts` and `testing/inspectExport.ts` in step 2), `e2e/export-spike.spec.ts` (now `e2e/export.spec.ts`). Mediabunny 1.65.2.
 Starter story (8.5 s, 1080×1920 @ 30 fps, 8 Mbps target) in Playwright's Chromium on the dev machine:
 
 - **Speed:** worker ~1.2–1.5 s for 255 frames (≈175–215 fps); main thread about the same. A 30 s
@@ -48,12 +47,30 @@ Starter story (8.5 s, 1080×1920 @ 30 fps, 8 Mbps target) in Playwright's Chromi
 - Not covered yet: media (photos/clips) in export, and the production build of the worker (the app
   doesn't import the exporter yet).
 
+## Step 2 results (2026-11-25) ✅
+
+The export module, without UI yet (`src/export/`):
+- `exportStory(project, assetRepository, { preset, onProgress, signal })` on the main thread:
+  snapshots the project (`structuredClone`), picks the target (`target.ts`: H.264/MP4, else
+  VP9/WebM), computes the bitrate (`presets.ts`), gathers the project's own asset files and runs
+  the worker. Returns `{ blob, filename, target, bitrate, totalFrames, elapsedMs, mediaFailures }`.
+- Media is frame-exact (`exportMedia.ts`): a **planning pass** draws every frame with a recording
+  resolver (cheap) to learn which assets/clip times each frame needs; then each frame's media is
+  decoded before drawing. Video readers (`videoReader.ts`, Mediabunny `canvasesAtTimestamps`) get
+  their whole timestamp list up front. Images/readers open at first use and close after last use.
+  Missing or undecodable media draws the placeholder and is reported in `mediaFailures`.
+- e2e (`e2e/export.spec.ts`): starter story (format, size, length, frame diffs), playback in
+  `<video>`, cancel, VP9/WebM, and a photo + red→blue clip + deleted-asset story checked by pixel
+  color in the decoded export (clip at 0.3 s red, 1.6 s blue, 3.8 s holds blue).
+- **Gotchas found:** `self.fonts.ready` never resolves in a dedicated worker (the export hung before
+  frame 0), so it isn't awaited; self-hosted fonts will need explicit `FontFace.load()`.
+  `canvasesAtTimestamps` reads timestamps ahead, so feeding them one per frame deadlocks; hence
+  the planning pass. Mediabunny re-iterates the timestamp iterator, so it must be async-iterable.
+
 ## Suggested breakdown
 
 1. ~~Spike~~ done (above).
-2. Export module (`src/export/`): worker entry, message protocol (start, progress, cancel, done,
-   error), frame loop with `assetsAt` preloading, encoder config from the capability probe
-   (`lib/capabilities.ts` already picks MP4 or WebM).
+2. ~~Export module~~ done (above).
 3. Fonts: `document.fonts.load` (or `FontFace` in the worker) before frame 0. System font stacks
    today; see Known gaps in CLAUDE.md.
 4. UI: Export button → dialog (quality preset), progress bar, cancel, then download via an object
