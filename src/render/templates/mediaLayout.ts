@@ -13,14 +13,36 @@ export const STORY_SIZE = { width: 1080, height: 1920 } as const;
 
 export type GridLayout = 'two' | 'three' | 'four';
 
-/** Cells of the photo grid, in slot order. */
+/**
+ * Cells of the photo grid, in slot order. Portrait stacks (2 above each other, 1 big on top + 2
+ * below); landscape puts them side by side (2 next to each other, 1 big on the left + 2 stacked on
+ * the right). 2 × 2 is the same in both. Margins and gaps scale with the shorter side.
+ */
 export function gridCells(layout: GridLayout, width: number, height: number): Rect[] {
-  const margin = width * 0.045;
-  const gap = width * 0.025;
+  const unit = Math.min(width, height);
+  const margin = unit * 0.045;
+  const gap = unit * 0.025;
   const x = margin;
   const y = margin;
   const w = width - margin * 2;
   const h = height - margin * 2;
+  if (width > height && layout === 'two') {
+    const cell = (w - gap) / 2;
+    return [
+      { x, y, width: cell, height: h },
+      { x: x + cell + gap, y, width: cell, height: h },
+    ];
+  }
+  if (width > height && layout === 'three') {
+    const big = (w - gap) * 0.6;
+    const small = (h - gap) / 2;
+    const right = x + big + gap;
+    return [
+      { x, y, width: big, height: h },
+      { x: right, y, width: w - gap - big, height: small },
+      { x: right, y: y + small + gap, width: w - gap - big, height: small },
+    ];
+  }
   if (layout === 'two') {
     const cell = (h - gap) / 2;
     return [

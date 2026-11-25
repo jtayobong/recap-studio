@@ -100,6 +100,31 @@ describe('Photo grid', () => {
     if (slot4?.kind !== 'media') throw new Error('expected a media field');
     expect(Object.keys(slot4.focus?.aspect?.byValue ?? {})).toEqual(['four']); // only the 2×2 layout has a 4th cell
   });
+
+  it('lays the cells out side by side in landscape, inside the frame and without overlap', async () => {
+    const { gridCells } = await import('./mediaLayout');
+    const [a, b] = gridCells('two', 1920, 1080);
+    expect(a!.height).toBe(b!.height);
+    expect(b!.x).toBeGreaterThan(a!.x + a!.width); // next to each other, with a gap
+    const [big, small1, small2] = gridCells('three', 1920, 1080);
+    expect(big!.height).toBeCloseTo(small1!.height + small2!.height + 1080 * 0.025); // 1 big + 2 stacked
+    expect(small1!.x).toBe(small2!.x);
+    for (const layout of ['two', 'three', 'four'] as const) {
+      const cells = gridCells(layout, 1920, 1080);
+      for (const cell of cells) {
+        expect(cell.x).toBeGreaterThan(0);
+        expect(cell.y).toBeGreaterThan(0);
+        expect(cell.x + cell.width).toBeLessThan(1920);
+        expect(cell.y + cell.height).toBeLessThan(1080);
+      }
+      cells.forEach((p, i) =>
+        cells.slice(i + 1).forEach((q) => {
+          const apart = p.x + p.width <= q.x || q.x + q.width <= p.x || p.y + p.height <= q.y || q.y + q.height <= p.y;
+          expect(apart, layout).toBe(true);
+        }),
+      );
+    }
+  });
 });
 
 describe('Photo carousel', () => {

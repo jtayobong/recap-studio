@@ -4,6 +4,7 @@ import type { FieldDefs, MediaField } from '../fields';
 import { drawMedia } from '../media';
 import { cssFont, fitText } from '../text';
 import { aspectOf, clipRounded, drawMediaPlaceholder, gridCells, STORY_SIZE, type GridLayout } from './mediaLayout';
+import { isLandscape, unitOf } from '../layout';
 import { defineTemplate } from './types';
 
 const ACCEPT = ['image', 'video'] as const;
@@ -60,7 +61,7 @@ const fields = {
     label: 'Layout',
     default: 'three',
     options: [
-      { value: 'two', label: '2 photos (stacked)' },
+      { value: 'two', label: '2 photos' },
       { value: 'three', label: '3 photos (1 big + 2)' },
       { value: 'four', label: '4 photos (2 × 2)' },
     ],
@@ -89,6 +90,7 @@ export const photoGridTemplate = defineTemplate({
     const layout: GridLayout = LAYOUTS.includes(values.layout as GridLayout) ? (values.layout as GridLayout) : 'three';
     const cells = gridCells(layout, W, H);
     const v = values as Record<string, string | number | boolean>;
+    const u = unitOf(frame);
 
     ctx.fillStyle = palette.background;
     ctx.fillRect(0, 0, W, H);
@@ -110,7 +112,7 @@ export const photoGridTemplate = defineTemplate({
           ctx.translate(cx, cy);
           ctx.scale(scale, scale);
           ctx.translate(-cx, -cy);
-          clipRounded(ctx, cell, W * 0.03);
+          clipRounded(ctx, cell, u * 0.03);
           if (media && (ACCEPT as readonly string[]).includes(media.kind)) {
             drawMedia(ctx, media, cell, {
               fit: v[`fit${n}`] === 'contain' ? 'contain' : 'cover',
@@ -133,26 +135,26 @@ export const photoGridTemplate = defineTemplate({
       const body = { family: fonts.body, weight: 800 };
       const fitted = fitText(ctx, caption, {
         font: body,
-        maxWidth: W * 0.8,
+        maxWidth: isLandscape(frame) ? W * 0.7 : W * 0.8,
         maxHeight: H * 0.12,
-        maxSize: W * 0.065,
-        minSize: W * 0.04,
+        maxSize: u * 0.065,
+        minSize: u * 0.04,
         lineHeight: 1.15,
         maxLines: 2,
       });
       const enter = easeOutCubic(progress(t, 700, 500));
-      const blockHeight = fitted.lines.length * fitted.lineHeightPx + W * 0.06;
-      const top = H - W * 0.045 - blockHeight;
+      const blockHeight = fitted.lines.length * fitted.lineHeightPx + u * 0.06;
+      const top = H - u * 0.045 - blockHeight;
       withAlpha(ctx, enter * 0.85, () => {
         ctx.fillStyle = palette.primary;
-        ctx.fillRect(W * 0.045, top, W - W * 0.09, blockHeight);
+        ctx.fillRect(u * 0.045, top, W - u * 0.09, blockHeight);
       });
       withAlpha(ctx, enter, () => {
         ctx.font = cssFont(body, fitted.sizePx);
         ctx.fillStyle = palette.text;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'alphabetic';
-        fitted.lines.forEach((line, i) => ctx.fillText(line, W / 2, top + W * 0.03 + fitted.sizePx + i * fitted.lineHeightPx));
+        fitted.lines.forEach((line, i) => ctx.fillText(line, W / 2, top + u * 0.03 + fitted.sizePx + i * fitted.lineHeightPx));
       });
     }
   },

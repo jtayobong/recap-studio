@@ -35,6 +35,10 @@ test in both formats); the editor UI (preview, strip, focus picker) handles both
 - *Photo / Video done:* the media stays full-bleed (cover/contain, focus and Ken Burns work in any
   frame shape); in 16:9 the caption is a lower third over the left ~60 % (2 lines) and the
   empty-slot placeholder is a wide box.
+- *Photo grid done:* `gridCells` lays out per shape: in 16:9, 2 side by side, 1 big (left, 60 %)
+  + 2 stacked on the right, and 2 × 2; margins/gaps from the shorter side. The layout option
+  "2 photos (stacked)" is now just "2 photos". Still to do (step 3): the focus picker's crop shapes
+  for grid cells are computed for 9:16 only.
 
 **Where things stood (checked 2026-11-25):**
 
