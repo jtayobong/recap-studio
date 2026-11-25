@@ -42,6 +42,9 @@ test in both formats); the editor UI (preview, strip, focus picker) handles both
 - *Photo carousel done:* sideways stays the default in both shapes. In 16:9 the sideways cards
   are ~1.45:1 (the next card peeks in), upward cards are wide and slide under the title band;
   cards sit lower to leave the title room. Crop shapes in the focus picker: step 3, as for the grid.
+- *Outro done (step 2 complete):* in 16:9 the rings and title sit on the left and the message is
+  a column on the right, clear of the rings. All 8 templates now have a landscape layout; the
+  text-bounds test covers every template in 16:9 and portrait output is unchanged.
 
 **Where things stood (checked 2026-11-25):**
 
