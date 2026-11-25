@@ -5,7 +5,8 @@ Deeper context lives in `docs/`:
 
 - `docs/PLAN.md`: the product plan, architecture and milestone roadmap (with status)
 - `docs/DECISIONS.md`: why things are the way they are; read before changing a core choice
-- `docs/NEXT-M7.md`: handoff and design notes for the next milestone (M7, templates and style)
+- `docs/NEXT-M8.md`: handoff and notes for the next milestone (M8, hardening)
+- `docs/NEXT-M7.md`: the M7 (templates and style) design record, completed
 - `docs/NEXT-M6.md`: the M6 (audio) design record, completed
 - `docs/NEXT-M5.md`: the M5 (export) design record and measurements, completed
 - `docs/NEXT-M4.md`: the M4 (media) design record, completed
@@ -31,8 +32,8 @@ templates or sample content.
 | M4 Media import (OPFS), media library, Photo/Video template | ✅ done |
 | M5 Export v1 (video): worker + OffscreenCanvas + Mediabunny | ✅ done |
 | M6 Audio track, mixed into export | ✅ done |
-| **M7 Template pack + style presets + more transitions** | ⏭ next (see `docs/NEXT-M7.md`) |
-| M8 Hardening | planned |
+| M7 Template pack + style presets + more transitions | ✅ done |
+| **M8 Hardening** | ⏭ next (see `docs/NEXT-M8.md`) |
 
 Work one milestone at a time. Each ends with something demonstrably working and with tests.
 
@@ -198,6 +199,7 @@ React rendering.
   music plays). A "keep clip sound" toggle (mixed under the music) is planned for M8.
 - Preview music is an `<audio>` element re-synced past 0.2 s drift; the export mix is exact.
 - Audio assets have no waveform thumbnail (the tile shows ♪ and the duration).
+- The inspector shows all Photo grid (4) and carousel (6) slots even when fewer are used.
 - The main JS chunk is ~560 kB (508 kB before M4), over Vite's 500 kB warning (the exporter and
   Mediabunny are already lazy-loaded; the export worker is ~694 kB, loaded on first export). Route-level code
   splitting (e.g. lazy `SystemPage`/editor) would fix it; not urgent for a local app.

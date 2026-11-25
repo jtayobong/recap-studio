@@ -166,7 +166,18 @@ One music track per story, in sync in the preview and mixed into the export.
   Opus in WebM). If the song is missing or can't be decoded, the video still exports, without music,
   and the header says why. The export dialog reminds you to check you have the rights to the music.
 
-## Next: M7 (templates and style)
+## Templates and style (M7)
 
-More scene templates, palettes, font pairs and transitions, and starter stories. See
-`docs/NEXT-M7.md`.
+- **Starter stories:** a new project offers *Music year*, *Travel year* and *Fitness year*,
+  seven scenes each with placeholder text and empty photo slots, ready to make your own.
+- **Templates:** Title, Big Number, Top 5, Compare, Photo / Video, Photo grid (2–4 photos),
+  Photo carousel (up to 6, scrolling sideways or upwards) and Outro.
+- **Style:** 10 palettes and 3 font pairs (Heavy Grotesk, Editorial Serif, Typewriter Mono; fonts
+  already on your computer) in the project panel.
+- **Transitions:** cut, fade, slide up, push left, zoom, wipe and flash; the first scene
+  transitions in from the background.
+
+## Next: M8 (hardening)
+
+Clear errors and recoverable failures end to end, plus the rough edges collected so far. See
+`docs/NEXT-M8.md`.

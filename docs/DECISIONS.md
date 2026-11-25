@@ -210,3 +210,11 @@ linger). Adding transition kinds is a schema change: v3 only bumps the version (
 valid) so an older app says "saved by a newer version" instead of "invalid data". `renderFrame`
 now clips everything to the frame rectangle first, because moving scenes would otherwise paint
 outside it on any canvas larger than one frame.
+
+### D29. Starter stories are data; the basic two-scene story stays for tests
+Starters (`render/templates/starters.ts`) are plain lists of `{ template, duration, transition,
+fields }` built with `createScene`, so they can't drift from the templates: a unit test checks that
+every starter value is accepted unchanged by its template's field descriptors and that each starter
+renders cleanly in every palette. The empty strip shows a picker of the three starters (user
+decision) instead of "Add starter scenes"; the old Title + Big Number story remains as the
+`addStarterScenes` action, which timing-sensitive e2e tests call via `e2e/helpers/story.ts`.

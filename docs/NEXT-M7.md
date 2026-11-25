@@ -1,4 +1,15 @@
-# Next up: M7, template pack and style
+# M7, templates and style: ✅ done (2026-11-25)
+
+Kept as the design record for M7 (decision D28 and the progress notes below); the next milestone
+is in `NEXT-M8.md`. Delivered: Top 5, Compare, Outro, Photo grid and Photo carousel templates;
+10 palettes and 3 system-font pairs with a font picker; push/zoom/wipe/flash transitions (schema
+v3); three starter stories in a picker.
+
+**Done-when result** (`e2e/m7-done.spec.ts`): pick *Travel year*, change a number, import 3 photos,
+a clip and a song, place them via the library pickers, export: 1020 frames / 34.0 s with music;
+all 13 compared frames (every scene's poster frame and 30 % into every transition, incl. the new
+ones) match `renderFrame` with independently decoded media (mean |Δ| ≤ 1.6, ≤ 0.32 % of pixels
+off by > 48). The test saves a strip of decoded frames to `test-results/…/export-frames.png`.
 
 **Goal:** make a good-looking story easy: more scene templates, more palettes and font pairs, more
 transitions, and starter stories to begin from.
