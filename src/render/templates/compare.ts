@@ -1,6 +1,7 @@
 import { isolated, withAlpha } from '../context';
 import { easeOutBack, easeOutCubic, easeOutExpo, lerp, progress } from '../easing';
 import { cssFont, fitSingleLine, fitText } from '../text';
+import { isLandscape, unitOf } from '../layout';
 import { defineTemplate } from './types';
 
 // Fixed locale so a project renders identically on every machine.
@@ -35,18 +36,22 @@ export const compareTemplate = defineTemplate({
     const { width: W, height: H, localMs: t } = frame;
     const display = { family: fonts.display, weight: 900 };
     const body = { family: fonts.body, weight: 700 };
-    const left = W * 0.08;
+    const u = unitOf(frame);
+    const wide = isLandscape(frame);
+    const left = wide ? W * 0.06 : W * 0.08;
     const maxBar = W * 0.84;
+    // Landscape: two upright bars side by side on a shared baseline, the change badge on the right.
+    const columns = { width: W * 0.26, bar: W * 0.15, centers: [W * 0.22, W * 0.53], baseline: H * 0.8, maxBar: H * 0.36 };
 
     ctx.fillStyle = palette.background;
     ctx.fillRect(0, 0, W, H);
 
     const title = fitText(ctx, values.title, {
       font: display,
-      maxWidth: W * 0.84,
-      maxHeight: H * 0.14,
-      maxSize: W * 0.11,
-      minSize: W * 0.05,
+      maxWidth: wide ? W * 0.88 : W * 0.84,
+      maxHeight: wide ? H * 0.16 : H * 0.14,
+      maxSize: u * 0.11,
+      minSize: u * 0.05,
       lineHeight: 1.05,
       maxLines: 2,
     });
@@ -56,7 +61,8 @@ export const compareTemplate = defineTemplate({
       ctx.fillStyle = palette.text;
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
-      title.lines.forEach((line, i) => ctx.fillText(line, left, H * 0.14 + title.sizePx + i * title.lineHeightPx));
+      const titleTop = wide ? H * 0.07 : H * 0.14;
+      title.lines.forEach((line, i) => ctx.fillText(line, left, titleTop + title.sizePx + i * title.lineHeightPx));
     });
 
     const largest = Math.max(values.leftValue, values.rightValue, 1);
@@ -66,17 +72,48 @@ export const compareTemplate = defineTemplate({
     ];
     // Same font size for both numbers, fitted to the longer one, so they compare visually.
     const numberSize = Math.min(
-      ...rows.map((row) => fitSingleLine(ctx, `${numberFormat.format(row.value)} ${values.unit}`.trim(), display, W * 0.84, W * 0.12, W * 0.05)),
+      ...rows.map((row) =>
+        fitSingleLine(ctx, `${numberFormat.format(row.value)} ${values.unit}`.trim(), display, wide ? columns.width : W * 0.84, u * 0.12, u * 0.05),
+      ),
     );
 
-    for (const row of rows) {
+    rows.forEach((row, index) => {
       const emphasised = row.value === largest && values.leftValue !== values.rightValue;
       const grow = easeOutExpo(progress(t, row.start, 1100));
       const shown = Math.round(row.value * grow);
       const labelIn = progress(t, row.start - 150, 300);
 
+      if (wide) {
+        const cx = columns.centers[index] ?? W / 2;
+        withAlpha(ctx, labelIn, () => {
+          ctx.font = cssFont(body, fitSingleLine(ctx, row.label, body, columns.width, u * 0.05, u * 0.03));
+          ctx.fillStyle = palette.text;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'alphabetic';
+          ctx.fillText(row.label, cx, columns.baseline + u * 0.075);
+        });
+        const barHeight = Math.max(u * 0.02, (row.value / largest) * columns.maxBar) * grow;
+        withAlpha(ctx, emphasised ? 1 : 0.35, () => {
+          ctx.fillStyle = emphasised ? palette.primary : palette.text;
+          ctx.fillRect(cx - columns.bar / 2, columns.baseline - barHeight, columns.bar, barHeight);
+        });
+        withAlpha(ctx, labelIn, () => {
+          isolated(ctx, () => {
+            const pop = emphasised ? lerp(0.85, 1, easeOutBack(progress(t, row.start + 600, 500))) : 1;
+            ctx.translate(cx, columns.baseline - barHeight - u * 0.03);
+            ctx.scale(pop, pop);
+            ctx.font = cssFont(display, numberSize);
+            ctx.fillStyle = emphasised ? palette.accent : palette.text;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'alphabetic';
+            ctx.fillText(`${numberFormat.format(shown)} ${values.unit}`.trim(), 0, 0);
+          });
+        });
+        return;
+      }
+
       withAlpha(ctx, labelIn, () => {
-        ctx.font = cssFont(body, W * 0.05);
+        ctx.font = cssFont(body, u * 0.05);
         ctx.fillStyle = palette.text;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'alphabetic';
@@ -84,7 +121,7 @@ export const compareTemplate = defineTemplate({
       });
 
       // Bar, scaled to the larger value.
-      const barWidth = Math.max(W * 0.02, (row.value / largest) * maxBar) * grow;
+      const barWidth = Math.max(u * 0.02, (row.value / largest) * maxBar) * grow;
       // The smaller bar is translucent text colour: visible on every palette's background.
       withAlpha(ctx, emphasised ? 1 : 0.35, () => {
         ctx.fillStyle = emphasised ? palette.primary : palette.text;
@@ -101,15 +138,16 @@ export const compareTemplate = defineTemplate({
           ctx.fillText(`${numberFormat.format(shown)} ${values.unit}`.trim(), 0, 0);
         });
       });
-    }
+    });
 
     const change = values.showChange ? percentChange(values.leftValue, values.rightValue) : '';
     if (change) {
       const badgeIn = easeOutBack(progress(t, 2000, 500));
       withAlpha(ctx, progress(t, 2000, 200), () => {
         isolated(ctx, () => {
-          const size = W * 0.075;
-          ctx.translate(W * 0.92, H * 0.88);
+          const size = wide ? u * 0.11 : u * 0.075;
+          if (wide) ctx.translate(W * 0.94, H * 0.55);
+          else ctx.translate(W * 0.92, H * 0.88);
           ctx.scale(badgeIn, badgeIn);
           ctx.font = cssFont(display, size);
           ctx.textAlign = 'right';

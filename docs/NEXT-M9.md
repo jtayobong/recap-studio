@@ -30,6 +30,8 @@ test in both formats); the editor UI (preview, strip, focus picker) handles both
   template" render test now runs in both formats.
 - *Top 5 done:* in 16:9 the title is a column on the left and the ranked list fills the right
   (taller rows, #1 highlighted); empty items are skipped as in portrait.
+- *Compare done:* in 16:9 the two values are upright bars side by side on a shared baseline
+  (number above, label below, both numbers at the same size), with the % change on the right.
 
 **Where things stood (checked 2026-11-25):**
 
