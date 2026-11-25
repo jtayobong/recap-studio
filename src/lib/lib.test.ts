@@ -118,6 +118,24 @@ describe('checkCapabilities', () => {
     expect(insecure.coreOk).toBe(false);
   });
 
+  it('probes video encoding in both shapes, 1080×1920 and 1920×1080', async () => {
+    const probed: string[] = [];
+    const VideoEncoder = {
+      isConfigSupported: async (config: { codec: string; width: number; height: number }) => {
+        probed.push(`${config.codec}@${config.width}x${config.height}`);
+        return { supported: true };
+      },
+    };
+    await checkCapabilities(fullEnv({ VideoEncoder }));
+    expect(probed).toEqual(expect.arrayContaining([`${CODECS.h264}@1080x1920`, `${CODECS.h264}@1920x1080`]));
+
+    // A codec that only works upright doesn't count: landscape projects couldn't export.
+    const portraitOnly = {
+      isConfigSupported: async (config: { codec: string; width: number }) => ({ supported: config.width === 1080 }),
+    };
+    expect((await checkCapabilities(fullEnv({ VideoEncoder: portraitOnly }))).exportOk).toBe(false);
+  });
+
   it('treats a throwing encoder probe as unsupported', async () => {
     const throwing = {
       isConfigSupported: async () => {

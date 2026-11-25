@@ -57,6 +57,11 @@ test in both formats); the editor UI (preview, strip, focus picker) handles both
   widened the whole page (pushing the inspector and Export off-screen) instead of scrolling; this
   also affected long 9:16 stories. `e2e/landscape.spec.ts` covers create → preview → thumbnails →
   switch → undo → reload.
+- *Step 5 done (export):* the capability probe requires the video encoder at 1080×1920 *and*
+  1920×1080. `e2e/landscape-export.spec.ts` (@dev) exports a 16:9 story with all 8 templates, a
+  photo, a clip and music: 1920×1080, 27 s, every scene's frame matches the renderer (mean |Δ|
+  ≤ 1.2), music included. `e2e/landscape.spec.ts` exports a 16:9 starter with own photo and song
+  through the UI (also on the production build) and plays it: 1920×1080, 34 s, AAC track.
 
 **Where things stood (checked 2026-11-25):**
 

@@ -144,7 +144,7 @@ History: v1 (M1); v2 (M6) added `audio.fadeIn` / `audio.fadeOut`; v3 (M7) added 
 ## Export (M5)
 
 - **Export** (editor header) opens the options: *Standard* (~8 Mbps), *High* (~12 Mbps) or
-  *Smaller file* (~5 Mbps) at the full 1080×1920, with a size estimate and a warning if a scene's
+  *Smaller file* (~5 Mbps) at the project's full size (1080×1920, or 1920×1080 for 16:9), with a size estimate and a warning if a scene's
   media is missing. The video is H.264 + AAC in MP4, or VP9 + Opus in WebM where H.264 encoding
   isn't available. The story's music (M6) is mixed in.
 - Rendering happens in a background worker on this computer (about 5 s for a 30 s story on a
@@ -209,6 +209,8 @@ delete single items or all unused media; scenes that used deleted media show an 
   and pick a portrait or landscape geometry. `render/portraitBaseline.test.ts` guards that 9:16
   output never changes: run it once with `PORTRAIT_BASELINE=<file>` before a template change to
   record, and again after to compare.
+- Export works the same in both shapes (same bitrates: the pixel count is equal). The browser check
+  (System page) requires the encoder to accept both 1080×1920 and 1920×1080.
 
 ## What's next
 

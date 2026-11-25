@@ -50,23 +50,29 @@ export interface CapabilityEnv {
   };
 }
 
-/** Probe settings match the default export: 1080×1920 at 30 fps. */
-const PROBE_VIDEO = { width: 1080, height: 1920, bitrate: 8_000_000, framerate: 30 } as const;
+/** Probe settings match the default export at 30 fps, in both enabled shapes (9:16 and 16:9). */
+const PROBE_SIZES = [
+  { width: 1080, height: 1920 },
+  { width: 1920, height: 1080 },
+] as const;
+const PROBE_VIDEO = { bitrate: 8_000_000, framerate: 30 } as const;
 const PROBE_AUDIO = { sampleRate: 48_000, numberOfChannels: 2, bitrate: 128_000 } as const;
 
 export const CODECS = {
-  /** H.264 High profile, level 4.0 (fits 1080×1920 @ 30 fps). */
+  /** H.264 High profile, level 4.0 (fits 1080×1920 and 1920×1080 @ 30 fps). */
   h264: 'avc1.640028',
   vp9: 'vp09.00.40.08',
   aac: 'mp4a.40.2',
   opus: 'opus',
 } as const;
 
+/** True when the encoder accepts `codec` at every probe size (a story can be either shape). */
 async function canEncodeVideo(env: CapabilityEnv, codec: string): Promise<boolean> {
-  if (!env.VideoEncoder) return false;
+  const encoder = env.VideoEncoder;
+  if (!encoder) return false;
   try {
-    const result = await env.VideoEncoder.isConfigSupported({ codec, ...PROBE_VIDEO });
-    return result.supported === true;
+    const results = await Promise.all(PROBE_SIZES.map((size) => encoder.isConfigSupported({ codec, ...size, ...PROBE_VIDEO })));
+    return results.every((result) => result.supported === true);
   } catch {
     return false;
   }
