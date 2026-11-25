@@ -134,7 +134,7 @@ e2e/             Playwright specs
   (or use the arrow keys; Shift for big steps, Home to re-center) to choose what stays in frame.
   The outlined box is what the story shows. **Motion** adds a slow zoom in or out, centered there.
 
-## Export (M5, in progress)
+## Export (M5)
 
 - **Export** (editor header) opens the options: *Standard* (~8 Mbps), *High* (~12 Mbps) or
   *Smaller file* (~5 Mbps) at the full 1080×1920, with a size estimate and a warning if a scene's
@@ -145,3 +145,7 @@ e2e/             Playwright specs
   header; when it's done, **Download** saves the file.
 - The export draws every frame with the same renderer as the preview. Photos are decoded at full
   size and clips are decoded frame-exactly, so the file matches the preview.
+
+## Next: M6 (audio)
+
+One music track per story, in sync in the preview and mixed into the export. See `docs/NEXT-M6.md`.

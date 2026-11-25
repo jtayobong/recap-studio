@@ -21,7 +21,7 @@ six-week project into a six-month one. Templates are the unit of new features.
 | Validation | Zod (project document) + plain field descriptors (template fields) | One source of truth for stored data; descriptors also generate the inspector |
 | Rendering | Canvas 2D with one pure `renderFrame(project, t)` | Preview and export run the same code, so preview matches export |
 | Export (M5) | Mediabunny (WebCodecs) in a Web Worker | Hardware-accelerated, no server, UI stays responsive |
-| Audio (M6) | Web Audio, `OfflineAudioContext` for export | Built in, faster than real time |
+| Audio (M6) | `<audio>` in the preview; Mediabunny decode/encode for export (`OfflineAudioContext` isn't available in workers) | Same pipeline as video export; see `docs/NEXT-M6.md` |
 | Storage | IndexedDB via Dexie (documents) + OPFS (media binaries, M4) | Structured data in a DB; large binaries in a streamable file system |
 | Testing | Vitest (model, renderer, stores) + Playwright (flows) | Renderer is pure, so it can be unit-tested with a mock context |
 
@@ -64,8 +64,8 @@ reopening restores everything.
 | M2 | Renderer core, Title + Big Number templates, preview with play/pause/scrub | A starter story plays smoothly | ✅ |
 | M3 | Editor UI: strip reorder/duplicate/delete, inspector from field descriptors, durations, transitions, undo/redo | A story can be built entirely through the UI | ✅ |
 | M4 | Media: import to OPFS, thumbnails, media library, Photo/Video template with fit/crop | Photos and clips appear in scenes and preview | ✅ |
-| M5 | Export v1 (video): worker, OffscreenCanvas, Mediabunny MP4, progress, cancel, download | A 30 s 1080×1920 MP4 matches the preview frame for frame | ⏭ next |
-| M6 | Audio: one music track, offset/volume, synced preview, mixed into export | Exported MP4 has correctly timed audio | planned |
+| M5 | Export v1 (video): worker, OffscreenCanvas, Mediabunny MP4, progress, cancel, download | A 30 s 1080×1920 MP4 matches the preview frame for frame | ✅ |
+| M6 | Audio: one music track, offset/volume, synced preview, mixed into export | Exported MP4 has correctly timed audio | ⏭ next |
 | M7 | Template pack + style: Top 5, Compare, Outro, palettes/font pairs, more transitions, starter stories | The starter story looks great out of the box | planned |
 | M8 | Hardening: errors, missing files, quota warnings, input limits, migration tests, project bundle import/export, e2e happy path, CSP review | A fresh user can go from start to export with no dead ends | planned |
 

@@ -1,4 +1,15 @@
-# Next up: M5, export v1 (video)
+# M5, export v1 (video): ✅ done (2026-11-25)
+
+Kept as the design record and measurements for M5 (decisions D22–D24); the next milestone is in
+`NEXT-M6.md`.
+
+**Done-when result** (`e2e/export.spec.ts`, "M5 done-when"): a 30 s story (title, big-number,
+photo with focus point + Ken Burns, clip in "show all" held past its end, photo with slide, title;
+fade/slide/cut transitions) exports to H.264 MP4: 900 frames, exactly 30.000 s, ~10.8 MB. 12 frames
+(including mid-transition ones) were compared with `renderFrame` fed by *independently* decoded
+media (`createImageBitmap`, random-access `CanvasSink.getCanvas`): mean |Δ| 0.65–1.03 per channel,
+≤ 0.21 % of pixels off by more than 48. Export took 17–20 s (44–52 fps) on the dev machine; see
+Known gaps in CLAUDE.md.
 
 **Goal:** render the story to an MP4 (H.264; WebM/VP9 fallback where H.264 encoding isn't available)
 in a worker, with progress, cancel and a download, matching the preview frame for frame.
@@ -83,9 +94,8 @@ The export module, without UI yet (`src/export/`):
    closing the tab mid-export asks first. Tested in `e2e/export-ui.spec.ts`, also against
    `vite preview` with the production CSP (the cancel test builds its long story through `/src`
    imports, so it only runs on the dev server).
-5. Tests: unit tests for the frame-schedule and `assetsAt` logic; an e2e test that exports a short
-   story and checks the output's duration and size, plus pixel-compares a couple of decoded frames
-   against `renderFrame` in the page.
+5. ~~Tests~~ done: unit tests (presets, file names, asset gathering, media planner, export store)
+   and e2e (`export.spec.ts`, `export-ui.spec.ts`), including the done-when test above.
 
 ## Decisions (confirmed with the user, 2026-11-25)
 

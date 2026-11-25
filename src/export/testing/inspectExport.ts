@@ -1,5 +1,5 @@
 import { ALL_FORMATS, BlobSource, CanvasSink, Input } from 'mediabunny';
-import type { MediaResolver } from '../../render/media';
+import type { MediaFrame, MediaResolver } from '../../render/media';
 import { renderFrame, type RenderableProject } from '../../render/renderFrame';
 
 /**
@@ -30,7 +30,8 @@ export async function inspectExport(
   file: Blob,
   project: RenderableProject,
   timesMs: number[],
-  media?: MediaResolver,
+  /** Media for the reference frames: a fixed resolver, or one prepared per timestamp. */
+  media?: MediaResolver | ((project: RenderableProject, timeMs: number) => Promise<MediaResolver>),
 ): Promise<VideoReport> {
   const input = new Input({ source: new BlobSource(file), formats: ALL_FORMATS });
   try {
@@ -50,7 +51,8 @@ export async function inspectExport(
       const wrapped = await sink.getCanvas(timeMs / 1000 + 0.5 / fps);
       if (!wrapped) throw new Error(`No frame at ${timeMs} ms`);
       decodedCtx.drawImage(wrapped.canvas, 0, 0, width, height);
-      renderFrame(refCtx, project, timeMs, media);
+      const resolver = typeof media === 'function' ? await media(project, timeMs) : media;
+      renderFrame(refCtx, project, timeMs, resolver);
       const a = decodedCtx.getImageData(0, 0, width, height).data;
       const b = refCtx.getImageData(0, 0, width, height).data;
       let sum = 0;
@@ -105,4 +107,57 @@ export async function samplePixels(
   } finally {
     input.dispose();
   }
+}
+
+/**
+ * Reference media for comparing exports, decoded independently of the exporter's own path:
+ * photos via createImageBitmap, clip frames via random-access `CanvasSink.getCanvas` (the exporter
+ * streams with `canvasesAtTimestamps`). Per timestamp it records which media the frame asks for,
+ * decodes exactly that, and returns a resolver for the reference draw.
+ */
+export function referenceMedia(assets: Record<string, { kind: 'image' | 'video' | 'audio'; file: Blob }>) {
+  const images = new Map<string, ImageBitmap>();
+  const sinks = new Map<string, Promise<CanvasSink>>();
+
+  const sinkFor = (id: string, file: Blob) => {
+    let sink = sinks.get(id);
+    if (!sink) {
+      sink = (async () => {
+        const input = new Input({ source: new BlobSource(file), formats: ALL_FORMATS });
+        const track = await input.getPrimaryVideoTrack();
+        if (!track) throw new Error('No video track');
+        return new CanvasSink(track, { width: track.displayWidth, height: track.displayHeight, fit: 'fill' });
+      })();
+      sinks.set(id, sink);
+    }
+    return sink;
+  };
+
+  return async (project: RenderableProject, timeMs: number): Promise<MediaResolver> => {
+    const requests: { id: string; clipMs: number }[] = [];
+    const scratch = new OffscreenCanvas(project.format.width, project.format.height).getContext('2d')!;
+    renderFrame(scratch, project, timeMs, { frame: (id, clipMs) => (requests.push({ id, clipMs }), undefined) });
+
+    const ready = new Map<string, MediaFrame>();
+    for (const { id, clipMs } of requests) {
+      const asset = assets[id];
+      if (!asset) continue;
+      if (asset.kind === 'image') {
+        let bitmap = images.get(id);
+        if (!bitmap) {
+          bitmap = await createImageBitmap(asset.file);
+          images.set(id, bitmap);
+        }
+        ready.set(`${id}@${clipMs}`, { source: bitmap, width: bitmap.width, height: bitmap.height, kind: 'image' });
+      } else if (asset.kind === 'video') {
+        const wrapped = await (await sinkFor(id, asset.file)).getCanvas(Math.max(0, clipMs) / 1000);
+        if (!wrapped) continue;
+        // getCanvas reuses nothing without a pool, but copy anyway so the frame is stable.
+        const copy = new OffscreenCanvas(wrapped.canvas.width, wrapped.canvas.height);
+        copy.getContext('2d')!.drawImage(wrapped.canvas, 0, 0);
+        ready.set(`${id}@${clipMs}`, { source: copy, width: copy.width, height: copy.height, kind: 'video' });
+      }
+    }
+    return { frame: (id, clipMs) => ready.get(`${id}@${clipMs}`) };
+  };
 }

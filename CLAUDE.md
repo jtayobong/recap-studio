@@ -5,7 +5,8 @@ Deeper context lives in `docs/`:
 
 - `docs/PLAN.md`: the product plan, architecture and milestone roadmap (with status)
 - `docs/DECISIONS.md`: why things are the way they are; read before changing a core choice
-- `docs/NEXT-M5.md`: handoff and design notes for the next milestone (M5, export)
+- `docs/NEXT-M6.md`: handoff and design notes for the next milestone (M6, audio)
+- `docs/NEXT-M5.md`: the M5 (export) design record and measurements, completed
 - `docs/NEXT-M4.md`: the M4 (media) design record, completed
 
 ## Project
@@ -27,8 +28,8 @@ templates or sample content.
 | M2 Renderer (`renderFrame`), Title + Big Number templates, live preview | ✅ done |
 | M3 Editor: inspector, scene reorder/duplicate/delete, undo/redo | ✅ done |
 | M4 Media import (OPFS), media library, Photo/Video template | ✅ done |
-| **M5 Export v1 (video): worker + OffscreenCanvas + Mediabunny** | ⏭ next (see `docs/NEXT-M5.md`) |
-| M6 Audio track, mixed into export | planned |
+| M5 Export v1 (video): worker + OffscreenCanvas + Mediabunny | ✅ done |
+| **M6 Audio track, mixed into export** | ⏭ next (see `docs/NEXT-M6.md`) |
 | M7 Template pack + style presets + more transitions | planned |
 | M8 Hardening | planned |
 
@@ -177,10 +178,15 @@ React rendering.
   Self-hosted fonts (M7) must be loaded in the page and in the worker with explicit
   `FontFace.load()`; `self.fonts.ready` never resolves in a worker.
 - For the first scene, a `slide` transition renders as a fade from the background.
-- Preview video is approximate (`<video>` seeking); frame-exact decoding comes with Mediabunny in
-  M5. The exporter must wait for every asset of a frame before drawing it (see `docs/NEXT-M5.md`).
-- Export and audio: not started (M5–M6).
-- The main JS chunk is ~544 kB (508 kB before M4), over Vite's 500 kB warning. Route-level code
+- Preview video is approximate (`<video>` seeking); export decodes clips frame-exactly, so a clip
+  can look a frame off in the preview but never in the file.
+- Export speed: ~200 fps for text scenes but ~45–50 fps with full-size photos/clips on the dev
+  machine (30 s story ≈ 17–20 s). Unprofiled; likely candidates are high-quality `drawImage`
+  scaling of large bitmaps every frame and video decode. Fine for now; revisit in M8.
+- Leaving the editor discards a finished export that wasn't downloaded yet (no warning).
+- Audio: not started (M6).
+- The main JS chunk is ~552 kB (508 kB before M4), over Vite's 500 kB warning (the exporter and
+  Mediabunny are already lazy-loaded). Route-level code
   splitting (e.g. lazy `SystemPage`/editor) would fix it; not urgent for a local app.
 - Images up to 2160 px keep their original bytes, including EXIF/GPS; a project-bundle export (M8)
   must strip it.

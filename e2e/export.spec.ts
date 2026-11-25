@@ -254,3 +254,106 @@ test('text renders the same in the export worker as in the preview, for every fo
     }
   }
 });
+
+test('M5 done-when: a 30 s story with title, big-number, photo and clip scenes exports matching the preview', async ({ page }, testInfo) => {
+  test.setTimeout(240_000);
+  const result = await page.evaluate(async () => {
+    const m = (window as unknown as { __m: Modules }).__m;
+
+    // Textured media, so crop/focus/zoom/fit mistakes would show up in the comparison.
+    const photoCanvas = new OffscreenCanvas(1600, 1200);
+    const p = photoCanvas.getContext('2d')!;
+    const sky = p.createLinearGradient(0, 0, 1600, 1200);
+    sky.addColorStop(0, '#ff7a18');
+    sky.addColorStop(1, '#3d1a78');
+    p.fillStyle = sky;
+    p.fillRect(0, 0, 1600, 1200);
+    for (let i = 0; i < 9; i += 1) {
+      p.fillStyle = `hsl(${i * 40} 85% 60%)`;
+      p.beginPath();
+      p.arc(180 + i * 160, 300 + (i % 3) * 300, 120, 0, Math.PI * 2);
+      p.fill();
+    }
+    const photo = new File([await photoCanvas.convertToBlob({ type: 'image/png' })], 'sunset.png');
+
+    // ~3 s clip: a ball crossing a shifting gradient.
+    const clipCanvas = document.createElement('canvas');
+    clipCanvas.width = 540;
+    clipCanvas.height = 960;
+    const c = clipCanvas.getContext('2d')!;
+    const started = performance.now();
+    const draw = () => {
+      const t = (performance.now() - started) / 1000;
+      const bg = c.createLinearGradient(0, 0, 0, 960);
+      bg.addColorStop(0, `hsl(${(t * 60) % 360} 70% 45%)`);
+      bg.addColorStop(1, `hsl(${(t * 60 + 120) % 360} 70% 30%)`);
+      c.fillStyle = bg;
+      c.fillRect(0, 0, 540, 960);
+      c.fillStyle = '#fff';
+      c.beginPath();
+      c.arc(60 + t * 140, 480, 70, 0, Math.PI * 2);
+      c.fill();
+    };
+    draw();
+    const recorder = new MediaRecorder(clipCanvas.captureStream(30), { mimeType: 'video/webm' });
+    const chunks: Blob[] = [];
+    recorder.ondataavailable = (e) => chunks.push(e.data);
+    const stopped = new Promise((resolve) => (recorder.onstop = resolve));
+    const timer = setInterval(draw, 33);
+    recorder.start();
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    recorder.stop();
+    await stopped;
+    clearInterval(timer);
+    const clip = new File(chunks, 'ball.webm', { type: 'video/webm' });
+
+    const project = await m.db.projectRepository.create({ name: 'Thirty seconds' });
+    const { imported } = await m.media.importer.importFiles([photo, clip], project.id);
+    const [photoAsset, clipAsset] = imported;
+    const scene = (templateId: string, durationMs: number, transitionIn: 'cut' | 'fade' | 'slide', fields: Record<string, unknown> = {}) => {
+      const base = m.registry.createScene(templateId);
+      return { ...base, durationMs, transitionIn, fields: { ...base.fields, ...fields } };
+    };
+    const saved = await m.db.projectRepository.save({
+      ...project,
+      scenes: [
+        scene('title', 3500, 'fade'), //                                                          0.0–3.5
+        scene('big-number', 5000, 'slide'), //                                                    3.5–8.5
+        scene('photo', 6000, 'fade', { media: photoAsset!.id, fit: 'cover', focusX: 0.3, focusY: 0.6, motion: 'zoom-in' }), // 8.5–14.5
+        scene('photo', 6000, 'cut', { media: clipAsset!.id, fit: 'contain', caption: 'Clip, held after 3 s' }), // 14.5–20.5
+        scene('photo', 5000, 'slide', { media: photoAsset!.id, fit: 'contain', motion: 'zoom-out' }), // 20.5–25.5
+        scene('title', 4500, 'fade', { title: 'See you\nnext year' }), //                                  25.5–30.0
+      ],
+    });
+
+    const file = await m.exporter.exportStory(saved, m.db.assetRepository);
+    const assets = await m.exporter.gatherExportAssets(saved, m.db.assetRepository);
+    const times = [1000, 3700, 6000, 8700, 11000, 14600, 16000, 19000, 20700, 23000, 25700, 29000];
+    const report = await m.inspect.inspectExport(file.blob, saved, times, m.inspect.referenceMedia(assets));
+    return {
+      frames: file.totalFrames,
+      elapsedMs: file.elapsedMs,
+      bytes: file.blob.size,
+      container: file.target.container,
+      failures: file.mediaFailures,
+      report,
+    };
+  });
+
+  const summary = [
+    `30 s story: ${result.frames} frames in ${(result.elapsedMs / 1000).toFixed(1)} s (${(result.frames / (result.elapsedMs / 1000)).toFixed(0)} fps), ${(result.bytes / 1e6).toFixed(1)} MB ${result.container}/${result.report.codec}`,
+    `decoded: ${result.report.width}×${result.report.height}, ${result.report.durationS.toFixed(3)} s, ${result.report.packetCount} packets`,
+    ...result.report.frameDiffs.map((d) => `  t=${d.timeMs} ms: mean |Δ| ${d.meanAbsDiff.toFixed(2)}, pixels Δ>48 ${(d.badPixelShare * 100).toFixed(3)}%`),
+  ].join('\n');
+  console.log(`\n${summary}`);
+  testInfo.annotations.push({ type: 'M5 done-when', description: summary });
+
+  expect(result.failures).toEqual({});
+  expect(result.frames).toBe(900);
+  expect(result.report).toMatchObject({ width: 1080, height: 1920, packetCount: 900 });
+  expect(result.report.durationS).toBeCloseTo(30, 1);
+  for (const diff of result.report.frameDiffs) {
+    expect(diff.meanAbsDiff, `frame at ${diff.timeMs} ms`).toBeLessThan(4);
+    expect(diff.badPixelShare, `frame at ${diff.timeMs} ms`).toBeLessThan(0.005);
+  }
+});
