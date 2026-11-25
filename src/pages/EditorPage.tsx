@@ -140,7 +140,7 @@ function EditorLayout({ project }: { project: Project }) {
           <div className="editor__canvas-slot">
             <PreviewCanvas format={project.format} />
           </div>
-          <PlaybackControls durationMs={durationMs} fps={project.format.fps} hasMusic={project.audio !== undefined} />
+          <PlaybackControls durationMs={durationMs} fps={project.format.fps} hasSound={project.audio !== undefined || project.scenes.some((s) => s.fields.clipSound === true)} />
           <PreviewMusic />
         </section>
 

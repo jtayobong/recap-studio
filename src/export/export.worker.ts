@@ -3,15 +3,16 @@ import { encodeStory, type EncodeOptions, type EncodeResult } from './encodeStor
 import type { AudioTrack } from '../domain/project';
 import { getSceneSpans, totalDurationMs } from '../render/timeline';
 import { createExportMedia, type ExportAsset } from './exportMedia';
+import { soundSegments } from '../render/clipSound';
 import {
-  canEncodeMusic,
-  MUSIC_BITRATE,
-  MUSIC_CHANNELS,
-  MUSIC_SAMPLE_RATE,
-  musicCodecFor,
-  openMusicStream,
-  type MusicStream,
-} from './musicStream';
+  AUDIO_BITRATE,
+  AUDIO_CHANNELS,
+  AUDIO_SAMPLE_RATE,
+  audioCodecFor,
+  canEncodeAudioCodec,
+  openAudioMix,
+  type OpenedMix,
+} from './audioSources';
 import { MediabunnyVideoReader } from './videoReader';
 
 /**
@@ -53,7 +54,7 @@ scope.onmessage = async (event: MessageEvent<ExportRequest>) => {
   }
   if (controller) return; // one export per worker at a time
   controller = new AbortController();
-  let music: MusicStream | null = null;
+  let mix: OpenedMix | null = null;
   try {
     // Fonts: the app uses system font stacks, which need no loading. Don't await
     // `self.fonts.ready` here: in a dedicated worker it never resolved (Chromium, M5 step 2).
@@ -66,32 +67,36 @@ scope.onmessage = async (event: MessageEvent<ExportRequest>) => {
       openVideo: (file, timestampsS) => MediabunnyVideoReader.open(file, timestampsS),
     });
 
-    // Music: optional. If it can't be included, the video still exports and says why.
+    // Audio: the music plus clips with "Keep clip sound". Optional: if it can't be included, the
+    // video still exports and says why.
     const { music: track, ...encodeOptions } = request.options;
-    let musicNote: string | undefined;
+    const storyMs = Math.min(
+      totalDurationMs(getSceneSpans(encodeOptions.project.scenes)),
+      encodeOptions.endMs ?? Number.POSITIVE_INFINITY,
+    );
+    const lookup = (id: string) => request.assets[id];
+    const clips = soundSegments(encodeOptions.project.scenes, lookup)
+      .filter((segment) => segment.startMs < storyMs)
+      .map((segment) => ({ file: request.assets[segment.assetId]!.file, segment: { ...segment, endMs: Math.min(segment.endMs, storyMs) } }));
     const musicFile = track ? request.assets[track.assetId] : undefined;
-    const audioCodec = musicCodecFor(encodeOptions.container);
-    if (track && musicFile?.kind === 'audio') {
-      try {
-        if (!(await canEncodeMusic(audioCodec))) {
-          musicNote = `This browser can't encode ${audioCodec.toUpperCase()} audio, so the video has no music.`;
-        } else {
-          const storyMs = totalDurationMs(getSceneSpans(encodeOptions.project.scenes));
-          music = await openMusicStream(musicFile.file, track, Math.min(storyMs, encodeOptions.endMs ?? storyMs));
-          if (!music) musicNote = 'The song’s start point is past its end, so the video has no music.';
-        }
-      } catch (error) {
-        musicNote = `The music couldn’t be read (${error instanceof Error ? error.message : String(error)}), so the video has no music.`;
+    let musicNote: string | undefined;
+    if (track && musicFile?.kind !== 'audio') musicNote = 'The song is no longer in the library, so the video has no music.';
+    const wantsMusic = track !== undefined && musicFile?.kind === 'audio';
+    const audioCodec = audioCodecFor(encodeOptions.container);
+    if (wantsMusic || clips.length > 0) {
+      if (!(await canEncodeAudioCodec(audioCodec))) {
+        musicNote = `This browser can't encode ${audioCodec.toUpperCase()} audio, so the video has no sound.`;
+      } else {
+        mix = await openAudioMix({ storyMs, music: wantsMusic ? { file: musicFile!.file, track: track! } : undefined, clips });
+        musicNote ??= mix.musicNote;
       }
-    } else if (track) {
-      musicNote = 'The song is no longer in the library, so the video has no music.';
     }
 
     const encoded = await encodeStory({
       ...encodeOptions,
       media,
-      audio: music
-        ? { codec: audioCodec, bitrate: MUSIC_BITRATE, sampleRate: MUSIC_SAMPLE_RATE, numberOfChannels: MUSIC_CHANNELS, samples: music.samples }
+      audio: mix?.samples
+        ? { codec: audioCodec, bitrate: AUDIO_BITRATE, sampleRate: AUDIO_SAMPLE_RATE, numberOfChannels: AUDIO_CHANNELS, samples: mix.samples }
         : undefined,
       signal: controller.signal,
       onProgress: ({ frame, totalFrames }) => {
@@ -102,13 +107,13 @@ scope.onmessage = async (event: MessageEvent<ExportRequest>) => {
         }
       },
     });
-    const result: EncodeResult = { ...encoded, music: { included: encoded.music.included, note: musicNote } };
+    const result: EncodeResult = { ...encoded, music: { included: mix?.musicIncluded ?? false, note: musicNote } };
     post({ type: 'done', result }, [result.data]);
   } catch (error) {
     const cancelled = error instanceof DOMException && error.name === 'AbortError';
     post({ type: 'error', message: error instanceof Error ? error.message : String(error), cancelled });
   } finally {
-    music?.dispose();
+    mix?.dispose();
     controller = null;
   }
 };

@@ -8,7 +8,7 @@ export interface PlaybackState {
   timeMs: number;
   playing: boolean;
   loop: boolean;
-  /** Preview music muted (UI-only; the export always includes the music). */
+  /** Preview sound muted, music and clips (UI-only; the export is unaffected). */
   muted: boolean;
   play(): void;
   pause(): void;

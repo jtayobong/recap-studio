@@ -218,3 +218,14 @@ every starter value is accepted unchanged by its template's field descriptors an
 renders cleanly in every palette. The empty strip shows a picker of the three starters (user
 decision) instead of "Add starter scenes"; the old Title + Big Number story remains as the
 `addStarterScenes` action, which timing-sensitive e2e tests call via `e2e/helpers/story.ts`.
+
+### D30. Clip sound: a template field, shared sound segments, and a real audio mixer
+"Keep clip sound" is a `boolean` template field (`clipSound`) on the media templates, so stored
+projects need no migration. `soundSegments(scenes, lookup)` derives when each video clip is heard
+(the whole scene, from clip time 0, capped at the clip's length), using the convention that
+templates draw clips at clip time = scene time; preview and export both use it, together with
+`duckGain` (music at 30 %, 300 ms ramps; user decision). Mixing several sources at different rates
+needed more than "encode the song": the export now decodes each source with Mediabunny,
+resamples to 48 kHz stereo (linear interpolation), and sums blocks with per-frame gains and 15 ms
+fades at clip edges (`audioMix.ts`, pure and unit-tested). Clips without an audio track are silent,
+not an error. Preview mute now silences all preview sound.

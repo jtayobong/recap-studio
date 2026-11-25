@@ -62,6 +62,7 @@ const fields = {
   ...slotFields(1),
   ...slotFields(2),
   ...slotFields(3),
+  clipSound: { kind: 'boolean', label: 'Keep clip sound', default: false },
   caption: { kind: 'text', label: 'Caption', default: '', maxLength: 80, multiline: true },
 } satisfies FieldDefs;
 

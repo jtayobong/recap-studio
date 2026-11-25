@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { musicEndMs, musicGain, songTimeMs } from './music';
+import { duckGain, DUCK_LEVEL, DUCK_RAMP_MS, musicEndMs, musicGain, songTimeMs } from './music';
 import { defaultAudioTrack, MUSIC_FADE_IN_MS, MUSIC_FADE_OUT_MS } from './project';
 
 const track = (overrides = {}) => ({ ...defaultAudioTrack('song'), ...overrides });
@@ -44,5 +44,22 @@ describe('musicGain', () => {
   it('combines volume with both fades', () => {
     const t = track({ volume: 0.5, fadeIn: true });
     expect(musicGain(t, MUSIC_FADE_IN_MS / 2, 30_000, 180_000)).toBeCloseTo(0.25);
+  });
+});
+
+describe('duckGain', () => {
+  const segments = [{ assetId: 'c', startMs: 5000, endMs: 8000 }];
+
+  it('ducks the music during clip sound, ramping before and after', () => {
+    expect(duckGain(1000, segments)).toBe(1);
+    expect(duckGain(5000 - DUCK_RAMP_MS / 2, segments)).toBeCloseTo(1 - (1 - DUCK_LEVEL) / 2);
+    expect(duckGain(6000, segments)).toBeCloseTo(DUCK_LEVEL);
+    expect(duckGain(8000 + DUCK_RAMP_MS / 2, segments)).toBeCloseTo(1 - (1 - DUCK_LEVEL) / 2);
+    expect(duckGain(9000, segments)).toBe(1);
+    expect(duckGain(6000, [])).toBe(1);
+  });
+
+  it('overlapping segments duck once, not twice', () => {
+    expect(duckGain(6000, [...segments, { assetId: 'b', startMs: 5500, endMs: 7000 }])).toBeCloseTo(DUCK_LEVEL);
   });
 });

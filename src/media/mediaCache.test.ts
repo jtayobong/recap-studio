@@ -183,6 +183,6 @@ describe('mediaCache', () => {
     await flush();
     cache.releaseAll();
     expect(decoded.every((d) => d.closed)).toBe(true);
-    expect(cache.stats()).toEqual({ images: 0, imagePixels: 0, thumbnails: 0, videos: 0 });
+    expect(cache.stats()).toEqual({ images: 0, imagePixels: 0, thumbnails: 0, videos: 0, audibleVideos: 0 });
   });
 });

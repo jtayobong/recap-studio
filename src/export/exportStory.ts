@@ -55,7 +55,7 @@ export async function gatherExportAssets(project: Project, source: ExportAssetSo
   for (const id of mediaAssetIds(project)) {
     const [asset, file] = await Promise.all([source.get(id), source.readFile(id)]);
     // Only this project's own assets (projects never share media, see D15).
-    if (asset && file && asset.projectId === project.id) assets[id] = { kind: asset.kind, file };
+    if (asset && file && asset.projectId === project.id) assets[id] = { kind: asset.kind, file, durationMs: asset.durationMs };
   }
   return assets;
 }

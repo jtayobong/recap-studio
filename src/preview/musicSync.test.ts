@@ -101,3 +101,11 @@ describe('syncMusic', () => {
     expect(audio.muted).toBe(false);
   });
 });
+
+describe('syncMusic ducking', () => {
+  it('multiplies the volume by the duck factor', () => {
+    const audio = fakeAudio();
+    syncMusic(audio, state({ duck: 0.3 }));
+    expect(audio.volume).toBeCloseTo(0.3);
+  });
+});

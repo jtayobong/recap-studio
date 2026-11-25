@@ -1,6 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { assetRepository } from '../db';
+import { duckGain } from '../domain/music';
 import { projectDurationMs } from '../domain/project';
+import { mediaCache } from '../media';
+import { soundSegments } from '../render/clipSound';
 import { useEditorStore } from '../store/editorStore';
 import { syncMusic } from './musicSync';
 import { usePlaybackStore } from './playbackStore';
@@ -34,6 +37,8 @@ export function PreviewMusic() {
         timeMs,
         playing,
         muted,
+        // Duck under clips that keep their own sound (same segments as the export).
+        duck: project ? duckGain(timeMs, soundSegments(project.scenes, mediaCache.assetInfo)) : 1,
       });
     };
 
@@ -76,11 +81,14 @@ export function PreviewMusic() {
       else if (state.project !== previous.project) sync();
     });
     const unsubscribePlayback = usePlaybackStore.subscribe(sync);
+    // Asset info (clip kinds/lengths for ducking) arrives asynchronously.
+    const unsubscribeMedia = mediaCache.subscribe(sync);
 
     return () => {
       generation += 1;
       unsubscribeProject();
       unsubscribePlayback();
+      unsubscribeMedia();
       audio.removeEventListener('loadedmetadata', onReady);
       audio.removeEventListener('durationchange', onReady);
       unload();

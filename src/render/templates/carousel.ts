@@ -41,6 +41,7 @@ const fields = {
     ],
   },
   title: { kind: 'text', label: 'Title', default: 'Moments from the year', maxLength: 50 },
+  clipSound: { kind: 'boolean', label: 'Keep clip sound', default: false },
   ...Object.assign({}, ...Array.from({ length: CAROUSEL_SLOTS }, (_, i) => slotFields(i))),
 } satisfies FieldDefs;
 

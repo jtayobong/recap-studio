@@ -101,7 +101,7 @@ History: v1 (M1); v2 (M6) added `audio.fadeIn` / `audio.fadeOut`; v3 (M7) added 
 | Alt+← / Alt+→ | Move the focused scene |
 | Delete | Delete the focused scene |
 | Esc | Back to project settings |
-| M | Mute / unmute the music in the preview |
+| M | Mute / unmute the preview's sound |
 
 ## Adding a scene template
 
@@ -161,7 +161,9 @@ One music track per story, in sync in the preview and mixed into the export.
   (1 s) and out at the end (1.5 s). It starts with the story and plays once; if it ends early,
   the rest is silent. All of this is undoable.
 - **In the preview** the music plays along with the playhead (jumping to the right place when you
-  seek), with its volume and fades. **🔊 / M** mutes it in the preview only.
+  seek), with its volume and fades. **🔊 / M** mutes the preview's sound (music and clips) only.
+- **Keep clip sound** (M8, on Photo / Video, Photo grid and carousel scenes): the clip's own sound
+  plays during that scene and the music dips to ~30 % under it, in the preview and the export.
 - **In the export** the music is mixed in with the same start point, volume and fades (AAC in MP4,
   Opus in WebM). If the song is missing or can't be decoded, the video still exports, without music,
   and the header says why. The export dialog reminds you to check you have the rights to the music.

@@ -31,6 +31,7 @@ export const photoTemplate = defineTemplate({
     },
     focusX: { kind: 'number', label: 'Focus across', default: 0.5, min: 0, max: 1, step: 0.01 },
     focusY: { kind: 'number', label: 'Focus down', default: 0.5, min: 0, max: 1, step: 0.01 },
+    clipSound: { kind: 'boolean', label: 'Keep clip sound', default: false },
     caption: { kind: 'text', label: 'Caption', default: 'The best day of the year', maxLength: 80, multiline: true },
     fit: {
       kind: 'choice',

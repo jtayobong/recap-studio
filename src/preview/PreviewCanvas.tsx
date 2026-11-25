@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { Format } from '../domain/project';
 import { mediaCache } from '../media';
+import { audibleAt, soundSegments } from '../render/clipSound';
 import { renderFrame } from '../render/renderFrame';
 import { useEditorStore } from '../store/editorStore';
 import { usePlaybackStore } from './playbackStore';
@@ -25,8 +26,9 @@ export function PreviewCanvas({ format }: { format: Format }) {
       scheduled = 0;
       const project = useEditorStore.getState().project;
       if (!project) return;
-      const { timeMs, playing } = usePlaybackStore.getState();
+      const { timeMs, playing, muted } = usePlaybackStore.getState();
       mediaCache.setPlaying(playing);
+      mediaCache.setSound(audibleAt(soundSegments(project.scenes, mediaCache.assetInfo), timeMs), muted);
       mediaCache.beginFrame();
       renderFrame(ctx, project, timeMs, mediaCache.preview);
       mediaCache.endFrame(); // pauses clips that are no longer on screen
@@ -40,7 +42,7 @@ export function PreviewCanvas({ format }: { format: Format }) {
       if (state.project !== previous.project) requestDraw();
     });
     const unsubscribePlayback = usePlaybackStore.subscribe((state, previous) => {
-      if (state.timeMs !== previous.timeMs || state.playing !== previous.playing) requestDraw();
+      if (state.timeMs !== previous.timeMs || state.playing !== previous.playing || state.muted !== previous.muted) requestDraw();
     });
     // Redraw when media finishes decoding or a paused clip lands on its seek target.
     const unsubscribeMedia = mediaCache.subscribe(requestDraw);

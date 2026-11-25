@@ -112,6 +112,9 @@ export function createMediaCache<I extends DecodedImage & CanvasImageSource = Im
   let clock = 0; // logical time for LRU
   let frameStart = 0;
   let playing = false;
+  /** Clips whose own sound is heard right now ("Keep clip sound"), and the preview mute. */
+  let audible: ReadonlySet<string> = new Set();
+  let soundMuted = false;
   let touchedVideos = new Set<string>();
 
   const notifyPreview = () => previewListeners.forEach((listener) => listener());
@@ -253,6 +256,8 @@ export function createMediaCache<I extends DecodedImage & CanvasImageSource = Im
     const target = Math.min(Math.max(0, clipTimeMs / 1000), lastS);
     const atEnd = target >= lastS;
 
+    // Clips are silent unless their scene keeps clip sound and the preview is playing.
+    element.muted = !(playing && !atEnd && audible.has(id)) || soundMuted;
     if (playing && !atEnd) {
       if (element.paused) {
         if (Math.abs(element.currentTime - target) > PAUSED_TOLERANCE_S) element.currentTime = target;
@@ -312,6 +317,17 @@ export function createMediaCache<I extends DecodedImage & CanvasImageSource = Im
       playing = next;
     },
 
+    /** Which clips are heard in this frame (from `soundSegments`), and whether preview sound is muted. */
+    setSound(audibleIds: ReadonlySet<string>, muted: boolean): void {
+      audible = audibleIds;
+      soundMuted = muted;
+    },
+
+    /** Kind and length of an asset, if loaded (starts loading it otherwise; listeners hear when). */
+    assetInfo(id: string): Pick<Asset, 'kind' | 'durationMs'> | undefined {
+      return assetFor(id);
+    },
+
     /** Preview redraw requests (an image decoded, a clip seeked). */
     subscribe(listener: () => void): () => void {
       previewListeners.add(listener);
@@ -341,7 +357,14 @@ export function createMediaCache<I extends DecodedImage & CanvasImageSource = Im
     },
 
     /** For tests and diagnostics. */
-    stats: () => ({ images: full.entries.size, imagePixels: full.pixels(), thumbnails: thumbs.entries.size, videos: videos.size }),
+    stats: () => ({
+      images: full.entries.size,
+      imagePixels: full.pixels(),
+      thumbnails: thumbs.entries.size,
+      videos: videos.size,
+      /** Clips currently playing with their own sound. */
+      audibleVideos: [...videos.values()].filter((v) => v.element && !v.element.paused && !v.element.muted).length,
+    }),
   };
 }
 

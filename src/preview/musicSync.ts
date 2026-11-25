@@ -19,6 +19,8 @@ export interface MusicSyncState {
   timeMs: number;
   playing: boolean;
   muted: boolean;
+  /** Music multiplier from clips with their own sound (`duckGain`); 1 when none. */
+  duck?: number;
 }
 
 /** Allowed difference between the song position and the playhead while playing. */
@@ -42,7 +44,7 @@ export function syncMusic(audio: AudioLike, state: MusicSyncState): void {
   }
 
   const target = songTimeMs(track, state.timeMs) / 1000;
-  audio.volume = musicGain(track, state.timeMs, state.storyMs, songMs);
+  audio.volume = musicGain(track, state.timeMs, state.storyMs, songMs) * (state.duck ?? 1);
   if (audio.paused) {
     if (Math.abs(audio.currentTime - target) > START_TOLERANCE_S) audio.currentTime = target;
     // Rejections (autoplay policy, element torn down) leave the preview silent, not broken.

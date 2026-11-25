@@ -4,11 +4,11 @@ import { usePlaybackStore } from './playbackStore';
 interface PlaybackControlsProps {
   durationMs: number;
   fps: number;
-  /** Show the mute button (only stories with music have something to mute). */
-  hasMusic?: boolean;
+  /** Show the mute button (only stories with music or clip sound have something to mute). */
+  hasSound?: boolean;
 }
 
-export function PlaybackControls({ durationMs, fps, hasMusic = false }: PlaybackControlsProps) {
+export function PlaybackControls({ durationMs, fps, hasSound = false }: PlaybackControlsProps) {
   const timeMs = usePlaybackStore((s) => s.timeMs);
   const playing = usePlaybackStore((s) => s.playing);
   const loop = usePlaybackStore((s) => s.loop);
@@ -61,14 +61,14 @@ export function PlaybackControls({ durationMs, fps, hasMusic = false }: Playback
         Loop
       </label>
 
-      {hasMusic && (
+      {hasSound && (
         <button
           type="button"
           className="button button--icon"
           onClick={toggleMuted}
-          aria-label="Mute music"
+          aria-label="Mute sound"
           aria-pressed={muted}
-          title="Mute music in the preview (M)"
+          title="Mute the preview's sound: music and clips (M)"
         >
           {muted ? '🔇' : '🔊'}
         </button>

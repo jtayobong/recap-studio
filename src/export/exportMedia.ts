@@ -18,6 +18,8 @@ import type { MediaFrame, MediaResolver } from '../render/media';
 export interface ExportAsset {
   kind: AssetKind;
   file: Blob;
+  /** Clip/song length, from the asset row (caps clip-sound segments like in the preview). */
+  durationMs?: number;
 }
 
 export interface DecodedFrame {

@@ -173,8 +173,8 @@ test('the preview plays the music in sync with the playhead; mute and the song e
   expect(playhead).toBeGreaterThan(5);
 
   // Mute (button, then the M key) silences without stopping.
-  await page.getByRole('button', { name: 'Mute music' }).click();
-  await expect(page.getByRole('button', { name: 'Mute music' })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: 'Mute sound' }).click();
+  await expect(page.getByRole('button', { name: 'Mute sound' })).toHaveAttribute('aria-pressed', 'true');
   await expect.poll(async () => (await audioState(page)).muted).toBe(true);
   expect((await audioState(page)).paused).toBe(false);
   await page.keyboard.press('m');

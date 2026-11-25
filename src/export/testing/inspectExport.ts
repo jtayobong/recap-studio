@@ -169,26 +169,32 @@ export interface AudioReport {
   durationS: number;
   /** Root-mean-square level (0–1, first channel) in each requested window [startS, endS). */
   rms: number[];
+  /** Per window, the amplitude (0–1) of each requested frequency (Goertzel), first channel. */
+  tones: number[][];
 }
 
 /** Decode an export's audio track and measure its level in time windows; null if it has none. */
-export async function inspectAudio(file: Blob, windowsS: [number, number][]): Promise<AudioReport | null> {
+export async function inspectAudio(file: Blob, windowsS: [number, number][], frequencies: number[] = []): Promise<AudioReport | null> {
   const input = new Input({ source: new BlobSource(file), formats: ALL_FORMATS });
   try {
     const track = await input.getPrimaryAudioTrack();
     if (!track) return null;
     const sums = windowsS.map(() => ({ sum: 0, count: 0 }));
+    const windowSamples: number[][] = windowsS.map(() => []);
+    let rate = 0;
     for await (const sample of new AudioSampleSink(track).samples()) {
       try {
         const options = { planeIndex: 0, format: 'f32-planar' as const };
         const plane = new Float32Array(sample.allocationSize(options) / 4);
         sample.copyTo(plane, options);
+        rate = sample.sampleRate;
         for (let i = 0; i < plane.length; i += 1) {
           const t = sample.timestamp + i / sample.sampleRate;
           windowsS.forEach(([start, end], w) => {
             if (t >= start && t < end) {
               sums[w]!.sum += plane[i]! * plane[i]!;
               sums[w]!.count += 1;
+              if (frequencies.length > 0) windowSamples[w]!.push(plane[i]!);
             }
           });
         }
@@ -202,8 +208,25 @@ export async function inspectAudio(file: Blob, windowsS: [number, number][]): Pr
       channels: track.numberOfChannels,
       durationS: await track.computeDuration(),
       rms: sums.map(({ sum, count }) => (count > 0 ? Math.sqrt(sum / count) : 0)),
+      tones: windowSamples.map((samples) => frequencies.map((f) => goertzel(samples, f, rate))),
     };
   } finally {
     input.dispose();
   }
+}
+
+/** Amplitude of frequency `f` in `samples` (Goertzel algorithm): a sine of amplitude A gives ≈ A. */
+function goertzel(samples: number[], f: number, rate: number): number {
+  const n = samples.length;
+  if (n === 0 || rate === 0) return 0;
+  const coefficient = 2 * Math.cos((2 * Math.PI * f) / rate);
+  let s1 = 0;
+  let s2 = 0;
+  for (const x of samples) {
+    const s0 = x + coefficient * s1 - s2;
+    s2 = s1;
+    s1 = s0;
+  }
+  const power = s1 * s1 + s2 * s2 - coefficient * s1 * s2;
+  return (2 * Math.sqrt(Math.max(0, power))) / n;
 }

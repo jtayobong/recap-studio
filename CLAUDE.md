@@ -93,7 +93,7 @@ src/
   editor/       sceneActions.ts (editor commands), musicActions.ts (music track), selectionStore.ts,
                 useEditorShortcuts.ts
   render/       renderFrame.ts, timeline.ts, easing.ts, text.ts, fields.ts, context.ts,
-                media.ts (MediaResolver, cover/contain geometry, drawMedia),
+                media.ts (MediaResolver, cover/contain geometry, drawMedia), clipSound.ts (when clips are heard),
                 templates/ (types, registry, title, bigNumber, topList, compare, photo, photoGrid,
                 carousel, outro, mediaLayout, starters), testing/mockContext.ts
   preview/      playbackStore.ts, usePlaybackClock.ts, PreviewCanvas.tsx, PlaybackControls.tsx,
@@ -104,7 +104,7 @@ src/
                 Modal, ConfirmDialog, ProjectCard, …)
   export/       exportStory.ts (main-thread API: snapshot, target, assets, worker), export.worker.ts,
                 encodeStory.ts (plan pass + frame loop → Mediabunny, interleaved music),
-                musicStream.ts + musicMix.ts (decode + mix the song), exportMedia.ts (frame-exact
+                audioSources.ts + audioMix.ts (decode, resample, mix music + clip sound), exportMedia.ts (frame-exact
                 media: record → plan → prepare → free), videoReader.ts, presets.ts, target.ts,
                 testing/inspectExport.ts (decode + compare, e2e only), exportStore.ts (UI-only
                 export state), mediaRefs.ts, index.ts (useExportStore; exporter lazy-loaded)
@@ -195,8 +195,6 @@ React rendering.
   machine (30 s story ≈ 17–20 s). Unprofiled; likely candidates are high-quality `drawImage`
   scaling of large bitmaps every frame and video decode. Fine for now; revisit in M8.
 - Leaving the editor discards a finished export that wasn't downloaded yet (no warning).
-- Video clips are always silent: their own sound is ignored in preview and export (only the story
-  music plays). A "keep clip sound" toggle (mixed under the music) is planned for M8.
 - Preview music is an `<audio>` element re-synced past 0.2 s drift; the export mix is exact.
 - Audio assets have no waveform thumbnail (the tile shows ♪ and the duration).
 - The inspector shows all Photo grid (4) and carousel (6) slots even when fewer are used.
