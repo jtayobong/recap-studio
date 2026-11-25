@@ -249,3 +249,18 @@ Types with a single named policy that only accepts the bundled export worker's U
 Policy`, COOP and CORP were added, and unused `data:`/`blob:` sources removed. Because the dev
 server sends no CSP, `npm run test:e2e:prod` runs the e2e flows against `vite preview`; it caught
 that Trusted Types also gates `new Worker()`. Tests needing `/src` imports are tagged `@dev`.
+
+### D33. Landscape: one template, two geometries, sized from the shorter side
+16:9 output (user decisions: switchable per project, landscape only, layouts designed for wide
+frames, wide media defaults, portrait unchanged) needed no schema change: the project already
+stored `format.width/height`. Each template keeps one drawing routine and picks a portrait or
+landscape *geometry* (positions, column widths, line limits) with `isLandscape(frame)`; sizes use
+`unitOf(frame)`, the shorter side, which equals the width in 9:16, so portrait output is
+byte-identical. That was verified, not assumed: `portraitBaseline.test.ts` hashes every template's
+draw calls (204 cases) and was compared after every template change. Separate landscape templates
+were rejected (double the templates, and switching format would have to swap template ids).
+Crop shapes for the focus picker stay plain data in the field descriptors, now per shape
+(`aspect.byShape.portrait/landscape`), with `slotCropAspect` choosing for the project's format.
+Switching format is a normal undoable project edit that keeps scenes and focus points. The
+capability check requires the encoder at both sizes, so "can export" holds for either shape.
+Square (1:1) stays "Later"; the same helpers make it a smaller job.

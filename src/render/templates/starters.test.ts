@@ -5,8 +5,13 @@ import { resolveFields } from '../fields';
 import { renderFrame } from '../renderFrame';
 import { createMockContext } from '../testing/mockContext';
 import { getSceneSpans, totalDurationMs } from '../timeline';
-import { getTemplate } from './registry';
+import { getTemplate, posterTimeMs } from './registry';
 import { getStarterStory, STARTER_STORIES } from './starters';
+
+const FORMATS = [
+  { width: 1080, height: 1920, fps: 30 as const },
+  { width: 1920, height: 1080, fps: 30 as const },
+] as const;
 
 describe('starter stories', () => {
   it('offers Music, Travel and Fitness year', () => {
@@ -44,21 +49,40 @@ describe('starter stories', () => {
     expect(new Set([...scenes, ...again].map((s) => s.id)).size).toBe(scenes.length * 2);
   });
 
-  it('every starter renders at every point without error cards, in every palette', () => {
+  it('every starter renders at every point without error cards, in every palette and both formats', () => {
     const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
-    for (const starter of STARTER_STORIES) {
-      const scenes = starter.scenes();
-      const total = totalDurationMs(getSceneSpans(scenes));
-      for (const palette of PALETTES) {
-        const project = { format: { width: 1080, height: 1920, fps: 30 as const }, style: { paletteId: palette.id, fontPairId: 'heavy-grotesk' }, scenes };
-        for (let t = 0; t <= total; t += 500) {
-          const { ctx, texts } = createMockContext();
-          renderFrame(ctx, project, t);
-          expect(texts().some((text) => text.includes('failed to draw'))).toBe(false);
+    for (const format of FORMATS) {
+      for (const starter of STARTER_STORIES) {
+        const scenes = starter.scenes();
+        const total = totalDurationMs(getSceneSpans(scenes));
+        for (const palette of PALETTES) {
+          const project = { format, style: { paletteId: palette.id, fontPairId: 'heavy-grotesk' }, scenes };
+          for (let t = 0; t <= total; t += 500) {
+            const { ctx, texts } = createMockContext();
+            renderFrame(ctx, project, t);
+            expect(texts().some((text) => text.includes('failed to draw'))).toBe(false);
+          }
         }
       }
     }
     expect(errors).not.toHaveBeenCalled();
     errors.mockRestore();
+  });
+
+  it('in 16:9, every starter scene keeps its text inside the frame once it has animated in', () => {
+    const format = FORMATS[1];
+    for (const starter of STARTER_STORIES) {
+      for (const scene of starter.scenes()) {
+        const { ctx, calls } = createMockContext();
+        const single = { ...scene, transitionIn: 'cut' as const };
+        renderFrame(ctx, { format, style: { paletteId: 'neon-pulse', fontPairId: 'heavy-grotesk' }, scenes: [single] }, posterTimeMs(single));
+        for (const call of calls.filter((c) => c.method === 'fillText')) {
+          const y = Number(call.args[2]);
+          // Text drawn at the origin of a translated context (Compare's numbers) reports y = 0.
+          expect(y, `${starter.name} / ${scene.templateId}: "${String(call.args[0])}"`).toBeGreaterThanOrEqual(0);
+          expect(y, `${starter.name} / ${scene.templateId}: "${String(call.args[0])}"`).toBeLessThan(format.height);
+        }
+      }
+    }
   });
 });

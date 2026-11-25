@@ -68,6 +68,7 @@ reopening restores everything.
 | M6 | Audio: one music track, offset/volume, synced preview, mixed into export | Exported MP4 has correctly timed audio | ✅ |
 | M7 | Template pack + style: Top 5, Compare, Outro, palettes/font pairs, more transitions, starter stories | The starter story looks great out of the box | ✅ |
 | M8 | Hardening: errors, missing files, quota warnings, input limits, migration tests, project bundle import/export, e2e happy path, CSP review | A fresh user can go from start to export with no dead ends | ✅ |
+| M9 cand. 1 | Landscape (16:9) output: shape-aware template layouts, format switch, focus picker, export (`docs/NEXT-M9.md`) | A 16:9 project looks designed for it in preview and a 1920×1080 export | ✅ |
 
 M5 is the riskiest milestone. The spike (canvas animation → MP4 in a worker) wasn't done during M4;
 it is the first step of M5 (`docs/NEXT-M5.md`).

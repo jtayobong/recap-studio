@@ -214,6 +214,6 @@ delete single items or all unused media; scenes that used deleted media show an 
 
 ## What's next
 
-The original roadmap (M0–M8) is complete. Landscape output is in progress; other ideas for what
-could come next, such as project bundles (backup/move a project with its media), are in
+The original roadmap (M0–M8) and landscape (16:9) output are complete. Other ideas for what could
+come next, such as project bundles (backup/move a project with its media), are in
 `docs/NEXT-M9.md`.

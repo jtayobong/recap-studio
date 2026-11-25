@@ -2,12 +2,21 @@
 
 The plan in `PLAN.md` is complete: a fresh user can go from a starter story, through their own
 numbers, photos, clips and music, to a downloaded MP4, with tested failure paths along the way.
-This note collects candidates for what comes next. Landscape output is planned in detail and its
-open questions are answered; the other candidates are still undecided.
+This note collects candidates for what comes next. Landscape output (candidate 1) is **done**
+(2026-11-25) and kept here as its record; the other candidates are still undecided.
 
 ## Candidates
 
-### 1. Landscape (16:9) output (planned 2026-11-25; was "M8.1")
+### 1. Landscape (16:9) output: ✅ done (2026-11-25; was "M8.1")
+
+**Done-when result:** a 16:9 project created in the New project dialog (or switched in the project
+panel), from a starter with own photo and song, exports through the UI as a 1920×1080 MP4 that
+plays for the story's length with its music (`e2e/landscape.spec.ts`, also on the production
+build); a 16:9 story with all 8 templates, a photo, a clip and music exports with every scene's
+frame matching the renderer (`e2e/landscape-export.spec.ts`). Every template has a landscape
+layout, checked on contact sheets and by text-bounds tests for every template and every starter
+scene in 16:9; 9:16 output is unchanged (portrait baseline, 204 cases). `npm run check` (385 unit
+tests), `npm run test:e2e` (59) and `npm run test:e2e:prod` (41) pass.
 
 **Goal:** a project can be made in 16:9 landscape (1920×1080) and looks designed for it in the
 preview, thumbnails and the exported video, with the same templates, starters, media, music and
@@ -62,6 +71,9 @@ test in both formats); the editor UI (preview, strip, focus picker) handles both
   photo, a clip and music: 1920×1080, 27 s, every scene's frame matches the renderer (mean |Δ|
   ≤ 1.2), music included. `e2e/landscape.spec.ts` exports a 16:9 starter with own photo and song
   through the UI (also on the production build) and plays it: 1920×1080, 34 s, AAC track.
+- *Step 6 done (tests and wrap-up):* the starters test renders all three starters in both formats
+  and checks every starter scene's text stays inside a 16:9 frame; a contact sheet of all 21
+  starter scenes in 16:9 showed no overlaps. Decision record: D33 in `DECISIONS.md`.
 
 **Where things stood (checked 2026-11-25):**
 
@@ -141,5 +153,5 @@ exact); audio tiles have no waveform.
 
 ## Open questions for the user
 
-- Which candidate comes next (landscape output is ready to start), or something else?
+- Which candidate comes next (landscape output is done), or something else?
 - If project bundles: backup only (same app, another computer), or also for sharing?

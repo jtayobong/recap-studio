@@ -5,7 +5,7 @@ Deeper context lives in `docs/`:
 
 - `docs/PLAN.md`: the product plan, architecture and milestone roadmap (with status)
 - `docs/DECISIONS.md`: why things are the way they are; read before changing a core choice
-- `docs/NEXT-M9.md`: what could come next (the original roadmap M0–M8 is complete)
+- `docs/NEXT-M9.md`: what could come next (M0–M8 complete), with the landscape (16:9) record
 - `docs/NEXT-M8.md`: the M8 (hardening) record, completed
 - `docs/NEXT-M7.md`: the M7 (templates and style) design record, completed
 - `docs/NEXT-M6.md`: the M6 (audio) design record, completed
@@ -15,7 +15,7 @@ Deeper context lives in `docs/`:
 ## Project
 
 **Recap Studio** is a local, browser-only video editor for year-in-review stories, inspired by
-Spotify Wrapped. A user builds a 9:16 story from templated, animated scenes (big stats, titles,
+Spotify Wrapped. A user builds a 9:16 story (or a 16:9 landscape video) from templated, animated scenes (big stats, titles,
 later photos/video), previews it live, and (from M5) exports an MP4. Everything stays on the user's
 machine: no backend, no accounts, no uploads, no analytics.
 
@@ -35,8 +35,10 @@ templates or sample content.
 | M6 Audio track, mixed into export | ✅ done |
 | M7 Template pack + style presets + more transitions | ✅ done |
 | M8 Hardening | ✅ done |
+| Landscape (16:9) output (first M9 candidate) | ✅ done |
 
-The original roadmap is complete; candidates for what's next are in `docs/NEXT-M9.md`.
+The original roadmap is complete, and so is landscape output (record in `docs/NEXT-M9.md`, which
+also lists the remaining candidates).
 
 Work one milestone at a time. Each ends with something demonstrably working and with tests.
 
@@ -96,7 +98,8 @@ src/
   store/        createEditorStore.ts: loaded project, debounced serialized autosave, undo/redo
   editor/       sceneActions.ts (editor commands), musicActions.ts (music track), selectionStore.ts,
                 useEditorShortcuts.ts
-  render/       renderFrame.ts, timeline.ts, easing.ts, text.ts, fields.ts, context.ts,
+  render/       renderFrame.ts, timeline.ts, easing.ts, text.ts, fields.ts (+ slotCropAspect), context.ts,
+                layout.ts (isLandscape, unitOf), portraitBaseline.test.ts (9:16 output guard),
                 media.ts (MediaResolver, cover/contain geometry, drawMedia), clipSound.ts (when clips are heard),
                 templates/ (types, registry, title, bigNumber, topList, compare, photo, photoGrid,
                 carousel, outro, mediaLayout, starters), testing/mockContext.ts
@@ -104,7 +107,7 @@ src/
                 usePlaybackShortcuts.ts, PreviewMusic.tsx + musicSync.ts (music follows the playhead)
   components/   UI pieces (SceneStrip, SceneInspector, FieldEditor, TemplateGallery, SceneThumbnail,
                 MediaLibrary, AssetTile, MediaSlotField, FocusPicker, ExportControl, ExportDialog,
-                MusicSection,
+                MusicSection, FormatPicker,
                 Modal, ConfirmDialog, ProjectCard, …)
   export/       exportStory.ts (main-thread API: snapshot, target, assets, worker), export.worker.ts,
                 encodeStory.ts (plan pass + frame loop → Mediabunny, interleaved music),
@@ -147,6 +150,10 @@ React rendering.
    - format numbers with a fixed locale (`en-US`)
    - set `posterMs` (when the scene looks complete); it drives selection and thumbnails
    - `renderFrame` respects the caller's transform (thumbnails draw on a scaled context)
+   - work in both shapes (9:16 and 16:9): size text/strokes from `unitOf(frame)` (the shorter
+     side), pick positions with `isLandscape(frame)`. Portrait output must not change: record
+     `PORTRAIT_BASELINE=<file> npx vitest run src/render/portraitBaseline.test.ts` before and
+     compare after a template change
 5. **Template fields are plain descriptors** (`render/fields.ts`: text/number/boolean/choice/media,
    each with an optional plain-data `visibleWhen` for the inspector).
    `resolveFields` coerces stored values and never throws; the inspector form is generated from
