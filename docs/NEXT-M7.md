@@ -31,6 +31,12 @@ Design notes; the open questions are settled (see **Decisions** at the end).
   Top 5 skips empty items and keeps ranks; Compare counts both up, scales the bars to the larger
   value, emphasises it and shows the % change (`percentChange`, en-US); Outro rings + title,
   optional fade to the background over the last 0.9 s. Checked on a contact sheet across palettes.
+- **Step 2 done (2026-11-25): Photo grid and Photo carousel** (`photoGrid.ts`, `carousel.ts`,
+  shared geometry and placeholder in `mediaLayout.ts`). Grid: layouts 2 stacked / 1 big + 2 /
+  2 × 2, per-slot media, focus point and fit, cells pop in and drift. Carousel: up to 6 slots
+  (filled ones in order; three placeholders when empty) on a strip that scrolls continuously from
+  the first card centred to the last, left or up. `MediaField.focus.aspect` lets the focus picker
+  outline the real cell/card shape per layout/direction.
 
 ## Suggested breakdown
 

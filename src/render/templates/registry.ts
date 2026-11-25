@@ -2,9 +2,11 @@ import type { Scene } from '../../domain/project';
 import { newId } from '../../lib/ids';
 import { defaultFields } from '../fields';
 import { bigNumberTemplate } from './bigNumber';
+import { carouselTemplate } from './carousel';
 import { compareTemplate } from './compare';
 import { outroTemplate } from './outro';
 import { photoTemplate } from './photo';
+import { photoGridTemplate } from './photoGrid';
 import { topListTemplate } from './topList';
 import { titleTemplate } from './title';
 import type { SceneTemplate } from './types';
@@ -16,6 +18,8 @@ export const TEMPLATES: readonly SceneTemplate[] = [
   topListTemplate,
   compareTemplate,
   photoTemplate,
+  photoGridTemplate,
+  carouselTemplate,
   outroTemplate,
 ];
 

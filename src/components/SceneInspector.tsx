@@ -127,12 +127,13 @@ function SceneFields({ scene, project }: { scene: Scene; project: Project }) {
 
   const focusFor = (def: FieldDef, key: string): FocusBinding | undefined => {
     if (def.kind !== 'media' || !def.focus) return undefined;
-    const { x, y, fit } = def.focus;
+    const { x, y, fit, aspect } = def.focus;
     const cropped = fit === undefined || values[fit] === 'cover';
+    const slotAspect = aspect ? aspect.byValue[String(values[aspect.field])] : undefined;
     return {
       x: Number(values[x]),
       y: Number(values[y]),
-      cropAspect: cropped ? project.format.width / project.format.height : undefined,
+      cropAspect: cropped ? (slotAspect ?? project.format.width / project.format.height) : undefined,
       onChange: (nx, ny, gesture) => setSceneFields(scene.id, { [x]: nx, [y]: ny }, `focus:${key}:${gesture}`),
     };
   };

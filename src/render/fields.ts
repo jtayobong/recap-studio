@@ -54,7 +54,16 @@ export interface MediaField {
    * focus picker inside this slot instead of as separate inputs. `fit` names a `choice` field
    * whose value 'cover' means the media is cropped (the picker then shows the visible area).
    */
-  focus?: { x: string; y: string; fit?: string };
+  focus?: {
+    x: string;
+    y: string;
+    fit?: string;
+    /**
+     * Shape of the visible area when it isn't the whole frame (grid cells, carousel cards):
+     * width ÷ height per value of a `choice` field, e.g. `{ field: 'layout', byValue: { two: 1.1 } }`.
+     */
+    aspect?: { field: string; byValue: Readonly<Record<string, number>> };
+  };
 }
 
 /** Field keys that a media slot edits itself (its focus point), so the form skips them. */

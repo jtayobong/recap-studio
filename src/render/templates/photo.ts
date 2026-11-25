@@ -1,7 +1,8 @@
-import { isolated, withAlpha, type Ctx2D } from '../context';
+import { withAlpha } from '../context';
 import { easeInOutCubic, easeOutCubic, lerp, progress } from '../easing';
 import { drawMedia } from '../media';
-import { cssFont, fitSingleLine, fitText } from '../text';
+import { cssFont, fitText } from '../text';
+import { drawMediaPlaceholder } from './mediaLayout';
 import { defineTemplate } from './types';
 
 const ACCEPT = ['image', 'video'] as const;
@@ -69,7 +70,7 @@ export const photoTemplate = defineTemplate({
         backdropTintAlpha: 0.7,
       });
     } else {
-      drawPlaceholder(ctx, W, H, palette, fonts.body);
+      drawMediaPlaceholder(ctx, { x: W * 0.08, y: H * 0.1, width: W * 0.84, height: H * 0.62 }, { palette, fonts }, 'Add a photo or clip');
     }
 
     // Caption on a soft band at the bottom; slides up after the media settles.
@@ -104,34 +105,6 @@ export const photoTemplate = defineTemplate({
     });
   },
 });
-
-/** Dashed frame shown while there is no media to draw. */
-function drawPlaceholder(
-  ctx: Ctx2D,
-  W: number,
-  H: number,
-  palette: { surface: string; text: string },
-  bodyFamily: string,
-): void {
-  isolated(ctx, () => {
-    const inset = W * 0.08;
-    ctx.fillStyle = palette.surface;
-    ctx.fillRect(inset, H * 0.1, W - inset * 2, H * 0.62);
-    ctx.strokeStyle = palette.text;
-    ctx.lineWidth = Math.max(2, W * 0.004);
-    ctx.setLineDash([W * 0.02, W * 0.015]);
-    withAlpha(ctx, 0.35, () => ctx.strokeRect(inset, H * 0.1, W - inset * 2, H * 0.62));
-
-    const label = 'Add a photo or clip';
-    const font = { family: bodyFamily, weight: 700 };
-    const size = fitSingleLine(ctx, label, font, W * 0.7, W * 0.05, W * 0.03);
-    ctx.font = cssFont(font, size);
-    ctx.fillStyle = palette.text;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    withAlpha(ctx, 0.6, () => ctx.fillText(label, W / 2, H * 0.41));
-  });
-}
 
 /** How far the Ken Burns motion zooms over a whole scene. */
 export const KEN_BURNS_MAX_ZOOM = 1.12;
