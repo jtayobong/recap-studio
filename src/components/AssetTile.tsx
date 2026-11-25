@@ -10,8 +10,10 @@ interface AssetTileProps {
   onDelete: () => void;
 }
 
+const KIND_LABEL: Record<Asset['kind'], string> = { image: 'Photo', video: 'Video', audio: 'Music' };
+
 export function describeAsset(asset: Asset): string {
-  const parts = [asset.kind === 'video' ? 'Video' : 'Photo'];
+  const parts = [KIND_LABEL[asset.kind]];
   if (asset.width && asset.height) parts.push(`${asset.width}×${asset.height}`);
   if (asset.durationMs !== undefined) parts.push(formatDuration(asset.durationMs));
   parts.push(formatBytes(asset.bytes));
@@ -25,8 +27,8 @@ export function AssetThumbnail({ asset }: { asset: Asset }) {
   return thumbnailUrl ? (
     <img src={thumbnailUrl} alt="" draggable={false} />
   ) : (
-    <span className="asset-tile__placeholder" aria-hidden="true">
-      {asset.kind === 'video' ? 'Video' : 'Photo'}
+    <span className={`asset-tile__placeholder asset-tile__placeholder--${asset.kind}`} aria-hidden="true">
+      {asset.kind === 'audio' ? '♪' : KIND_LABEL[asset.kind]}
     </span>
   );
 }

@@ -1,4 +1,4 @@
-import { MEDIA_LIMITS, SUPPORTED_MIME_TYPES, type Asset, type SupportedMimeType } from '../domain/asset';
+import { AUDIO_ONLY_FALLBACK, MEDIA_LIMITS, SUPPORTED_MIME_TYPES, type Asset, type AssetKind, type SupportedMimeType } from '../domain/asset';
 import type { AssetRepository } from '../db/assetRepository';
 import { StorageFullError } from '../db/opfsStore';
 import { describeError } from '../lib/errors';
@@ -34,10 +34,23 @@ export interface ProbedVideo {
   thumbnail?: Blob;
 }
 
+export interface ProbedAudio {
+  durationMs: number;
+}
+
+/** Thrown by `MediaProbe.video` for a container with sound but no picture (imported as audio). */
+export class NoVideoTrackError extends Error {
+  constructor() {
+    super('The file has no video picture.');
+    this.name = 'NoVideoTrackError';
+  }
+}
+
 /** Decoding and thumbnailing. The browser implementation is in `browserProbe.ts`. */
 export interface MediaProbe {
   image(file: Blob, mime: SupportedMimeType): Promise<ProbedImage>;
   video(file: Blob): Promise<ProbedVideo>;
+  audio(file: Blob): Promise<ProbedAudio>;
 }
 
 export interface ImportDependencies {
@@ -65,7 +78,9 @@ export interface ImportResult {
   failed: { filename: string; error: ImportError }[];
 }
 
-const SUPPORTED_LIST = 'JPEG, PNG, WebP, GIF, MP4, MOV or WebM';
+const SUPPORTED_LIST = 'JPEG, PNG, WebP, GIF, MP4, MOV, WebM, MP3, M4A, WAV, OGG or FLAC';
+
+const KIND_PLURAL: Record<AssetKind, string> = { image: 'Images', video: 'Videos', audio: 'Audio files' };
 
 function isAbort(error: unknown): boolean {
   return typeof error === 'object' && error !== null && 'name' in error && error.name === 'AbortError';
@@ -102,44 +117,56 @@ export function createImporter(deps: ImportDependencies) {
 
       const mime = sniffMimeType(await readHeader(file));
       if (!mime) {
-        throw new ImportError('unsupported', `“${filename}” isn’t a supported image or video. Use ${SUPPORTED_LIST}.`);
+        throw new ImportError('unsupported', `“${filename}” isn’t a supported photo, video or audio file. Use ${SUPPORTED_LIST}.`);
       }
       const kind = SUPPORTED_MIME_TYPES[mime];
+      // An audio-only MP4/WebM is checked against the (larger) video size limit first; the
+      // audio limit applies once probing shows there's no picture.
       const limit = MEDIA_LIMITS[kind].maxBytes;
       if (file.size > limit) {
-        throw new ImportError(
-          'too-large',
-          `“${filename}” is ${formatBytes(file.size)}. ${kind === 'image' ? 'Images' : 'Videos'} can be up to ${formatBytes(limit)}.`,
-        );
+        throw new ImportError('too-large', `“${filename}” is ${formatBytes(file.size)}. ${KIND_PLURAL[kind]} can be up to ${formatBytes(limit)}.`);
       }
 
       checkAborted(signal, filename);
       onProgress?.({ phase: 'processing' });
 
+      const asAudio = async (audioMime: SupportedMimeType): Promise<Parameters<AssetRepository['add']>[0]> => {
+        if (file.size > MEDIA_LIMITS.audio.maxBytes) {
+          throw new ImportError('too-large', `“${filename}” is ${formatBytes(file.size)}. Audio files can be up to ${formatBytes(MEDIA_LIMITS.audio.maxBytes)}.`);
+        }
+        const probed = await probe(() => deps.probe.audio(file), filename, 'audio');
+        checkDuration(probed.durationMs, 'audio', filename);
+        return { projectId, kind: 'audio', mime: audioMime, filename, durationMs: Math.round(probed.durationMs), data: file };
+      };
+
       let input: Parameters<AssetRepository['add']>[0];
-      if (kind === 'image') {
+      if (kind === 'audio') {
+        input = await asAudio(mime);
+      } else if (kind === 'image') {
         const probed = await probe(() => deps.probe.image(file, mime), filename, 'image');
         input = { projectId, kind, mime: probed.mime, filename, width: probed.width, height: probed.height, data: probed.data, thumbnail: probed.thumbnail };
       } else {
-        const probed = await probe(() => deps.probe.video(file), filename, 'video');
-        const maxMs = MEDIA_LIMITS.video.maxDurationMs;
-        if (probed.durationMs > maxMs) {
-          throw new ImportError(
-            'too-long',
-            `“${filename}” is ${formatDuration(probed.durationMs)} long. Videos can be up to ${formatDuration(maxMs)}.`,
-          );
+        // `null`: the container has sound but no picture, so it becomes an audio asset.
+        const probed = await probe(() => deps.probe.video(file), filename, 'video').catch((error: unknown) => {
+          if (error instanceof NoVideoTrackError && AUDIO_ONLY_FALLBACK[mime]) return null;
+          throw error;
+        });
+        if (probed === null) {
+          input = await asAudio(AUDIO_ONLY_FALLBACK[mime] as SupportedMimeType);
+        } else {
+          checkDuration(probed.durationMs, 'video', filename);
+          input = {
+            projectId,
+            kind,
+            mime,
+            filename,
+            width: probed.width,
+            height: probed.height,
+            durationMs: Math.round(probed.durationMs),
+            data: file, // streamed from disk, never fully loaded
+            thumbnail: probed.thumbnail,
+          };
         }
-        input = {
-          projectId,
-          kind,
-          mime,
-          filename,
-          width: probed.width,
-          height: probed.height,
-          durationMs: Math.round(probed.durationMs),
-          data: file, // streamed from disk, never fully loaded
-          thumbnail: probed.thumbnail,
-        };
       }
 
       const total = input.data instanceof Blob ? input.data.size : file.size;
@@ -188,17 +215,24 @@ export function createImporter(deps: ImportDependencies) {
 
 export type Importer = ReturnType<typeof createImporter>;
 
-async function probe<T>(run: () => Promise<T>, filename: string, kind: 'image' | 'video'): Promise<T> {
+async function probe<T>(run: () => Promise<T>, filename: string, kind: AssetKind): Promise<T> {
   try {
     return await run();
   } catch (error) {
-    if (error instanceof ImportError || isAbort(error)) throw error;
+    if (error instanceof ImportError || error instanceof NoVideoTrackError || isAbort(error)) throw error;
     throw new ImportError(
       'unreadable',
       kind === 'image'
         ? `“${filename}” couldn’t be decoded. The file may be damaged.`
         : `“${filename}” can’t be played in this browser. The file may be damaged or use an unsupported codec.`,
     );
+  }
+}
+
+function checkDuration(durationMs: number, kind: 'video' | 'audio', filename: string): void {
+  const maxMs = MEDIA_LIMITS[kind].maxDurationMs;
+  if (durationMs > maxMs) {
+    throw new ImportError('too-long', `“${filename}” is ${formatDuration(durationMs)} long. ${KIND_PLURAL[kind]} can be up to ${formatDuration(maxMs)}.`);
   }
 }
 

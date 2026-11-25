@@ -5,13 +5,16 @@ import { EditorDatabase } from '../db/database';
 import { createOpfsStore } from '../db/opfsStore';
 import { createMemoryDirectory, type MemoryDirectory } from '../db/testing/memoryDirectory';
 import { fitWithin, reencodeMimeType } from './browserProbe';
-import { createImporter, ImportError, STORAGE_MARGIN_BYTES, type ImportDependencies, type MediaProbe } from './importAsset';
+import { createImporter, ImportError, NoVideoTrackError, STORAGE_MARGIN_BYTES, type ImportDependencies, type MediaProbe } from './importAsset';
 
 const PNG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 const MP4 = [0, 0, 0, 0x20, ...'ftypisom'].map((b) => (typeof b === 'string' ? b.charCodeAt(0) : b));
 
 const pngFile = (name = 'photo.png', extra = 100) => new File([new Uint8Array([...PNG, ...new Array<number>(extra).fill(1)])], name);
 const mp4File = (name = 'clip.mp4') => new File([new Uint8Array([...MP4, ...new Array<number>(200).fill(2)])], name);
+const ascii = (text: string) => [...text].map((c) => c.charCodeAt(0));
+const WAV = [...ascii('RIFF'), 0x24, 0, 0, 0, ...ascii('WAVEfmt ')];
+const wavFile = (name = 'song.wav') => new File([new Uint8Array([...WAV, ...new Array<number>(300).fill(0)])], name);
 
 /** A file that reports a huge size without allocating it. */
 function fakeSizedFile(header: number[], size: number, name: string): File {
@@ -23,7 +26,11 @@ function fakeSizedFile(header: number[], size: number, name: string): File {
 let database: EditorDatabase;
 let dir: MemoryDirectory;
 let assets: AssetRepository;
-let probe: { image: ReturnType<typeof vi.fn<MediaProbe['image']>>; video: ReturnType<typeof vi.fn<MediaProbe['video']>> };
+let probe: {
+  image: ReturnType<typeof vi.fn<MediaProbe['image']>>;
+  video: ReturnType<typeof vi.fn<MediaProbe['video']>>;
+  audio: ReturnType<typeof vi.fn<MediaProbe['audio']>>;
+};
 
 beforeEach(() => {
   database = new EditorDatabase(`test-${crypto.randomUUID()}`);
@@ -32,6 +39,7 @@ beforeEach(() => {
   probe = {
     image: vi.fn<MediaProbe['image']>(async (file, mime) => ({ width: 640, height: 480, data: file, mime, thumbnail: new Blob(['t']) })),
     video: vi.fn<MediaProbe['video']>(async () => ({ width: 1080, height: 1920, durationMs: 12_345, thumbnail: new Blob(['t']) })),
+    audio: vi.fn<MediaProbe['audio']>(async () => ({ durationMs: 185_000 })),
   };
 });
 
@@ -76,6 +84,39 @@ describe('importer', () => {
     });
     expect(asset).toMatchObject({ kind: 'video', mime: 'video/mp4', durationMs: 12_345, width: 1080, bytes: file.size });
     expect(progress.at(-1)).toBe(1);
+  });
+
+  it('imports audio: duration, no thumbnail, streamed as-is', async () => {
+    const asset = await importer().importFile(wavFile(), 'p1');
+    expect(asset).toMatchObject({ kind: 'audio', mime: 'audio/wav', durationMs: 185_000, bytes: 316 });
+    expect(asset.width).toBeUndefined();
+    expect(await assets.readThumbnail(asset.id)).toBeUndefined();
+    expect(probe.image).not.toHaveBeenCalled();
+    expect(probe.video).not.toHaveBeenCalled();
+  });
+
+  it('enforces the audio limits', async () => {
+    const big = fakeSizedFile(WAV, MEDIA_LIMITS.audio.maxBytes + 1, 'huge.wav');
+    expect((await expectImportError(importer().importFile(big, 'p1'), 'too-large')).message).toBe('“huge.wav” is 100 MB. Audio files can be up to 100 MB.');
+    probe.audio.mockResolvedValueOnce({ durationMs: 10 * 60_000 + 1000 });
+    expect((await expectImportError(importer().importFile(wavFile('long.wav'), 'p1'), 'too-long')).message).toBe('“long.wav” is 10:01 long. Audio files can be up to 10:00.');
+  });
+
+  it('imports an MP4 with sound but no picture as audio', async () => {
+    probe.video.mockRejectedValueOnce(new NoVideoTrackError());
+    const asset = await importer().importFile(mp4File('voice-memo.mp4'), 'p1');
+    expect(asset).toMatchObject({ kind: 'audio', mime: 'audio/mp4', durationMs: 185_000 });
+  });
+
+  it('applies the audio size limit to an audio-only MP4', async () => {
+    probe.video.mockRejectedValueOnce(new NoVideoTrackError());
+    const big = fakeSizedFile(MP4, MEDIA_LIMITS.audio.maxBytes + 1, 'big-memo.mp4');
+    await expectImportError(importer().importFile(big, 'p1'), 'too-large');
+  });
+
+  it('reports unplayable audio as unreadable', async () => {
+    probe.audio.mockRejectedValueOnce(new Error('decode'));
+    expect((await expectImportError(importer().importFile(wavFile(), 'p1'), 'unreadable')).message).toMatch(/can’t be played/);
   });
 
   it('decides the format from content, not the name', async () => {

@@ -13,7 +13,7 @@ const MB = 1024 * 1024;
 export const AssetKindSchema = z.enum(['image', 'video', 'audio']);
 export type AssetKind = z.infer<typeof AssetKindSchema>;
 
-/** Accepted formats and the kind each one maps to. Audio formats arrive with M6. */
+/** Accepted formats and the kind each one maps to. */
 export const SUPPORTED_MIME_TYPES = {
   'image/jpeg': 'image',
   'image/png': 'image',
@@ -22,7 +22,24 @@ export const SUPPORTED_MIME_TYPES = {
   'video/mp4': 'video',
   'video/quicktime': 'video',
   'video/webm': 'video',
+  'audio/mpeg': 'audio',
+  'audio/aac': 'audio',
+  'audio/mp4': 'audio',
+  'audio/wav': 'audio',
+  'audio/ogg': 'audio',
+  'audio/flac': 'audio',
+  'audio/webm': 'audio',
 } as const satisfies Record<string, AssetKind>;
+
+/**
+ * MP4/MOV and WebM files can hold audio only (voice memos, recordings) with the same container
+ * signature as video. When probing finds no picture, the file is imported as this audio type.
+ */
+export const AUDIO_ONLY_FALLBACK: Partial<Record<SupportedMimeType, SupportedMimeType>> = {
+  'video/mp4': 'audio/mp4',
+  'video/quicktime': 'audio/mp4',
+  'video/webm': 'audio/webm',
+};
 
 export type SupportedMimeType = keyof typeof SUPPORTED_MIME_TYPES;
 
@@ -32,10 +49,11 @@ export function isSupportedMimeType(mime: string): mime is SupportedMimeType {
   return Object.hasOwn(SUPPORTED_MIME_TYPES, mime);
 }
 
-/** Import limits (source file, before any downscaling). Chosen for M4; see DECISIONS.md D16. */
+/** Import limits (source file, before any downscaling). M4 (D16); audio limits from M6. */
 export const MEDIA_LIMITS = {
   image: { maxBytes: 80 * MB },
   video: { maxBytes: 2048 * MB, maxDurationMs: 5 * 60_000 },
+  audio: { maxBytes: 100 * MB, maxDurationMs: 10 * 60_000 },
 } as const;
 
 /** Images larger than this on their long edge are downscaled on import (2× the 1080 px output). */

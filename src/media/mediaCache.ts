@@ -272,7 +272,8 @@ export function createMediaCache<I extends DecodedImage & CanvasImageSource = Im
   const preview: MediaResolver = {
     frame(assetId, clipTimeMs) {
       const asset = assetFor(assetId);
-      if (!asset) return undefined;
+      // Audio has no pixels; a template asking for it gets nothing (and nothing is decoded).
+      if (!asset || asset.kind === 'audio') return undefined;
       if (asset.kind === 'video') return videoFrame(assetId, asset, clipTimeMs);
       const image = fullImage(assetId);
       if (image) return asFrame(image, asset.kind);
@@ -284,7 +285,7 @@ export function createMediaCache<I extends DecodedImage & CanvasImageSource = Im
   const thumbnails: MediaResolver = {
     frame(assetId) {
       const asset = assetFor(assetId);
-      if (!asset) return undefined;
+      if (!asset || asset.kind === 'audio') return undefined;
       const thumb = thumbImage(assetId);
       return thumb ? asFrame(thumb, asset.kind) : undefined;
     },

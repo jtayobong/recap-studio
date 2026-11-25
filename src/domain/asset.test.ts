@@ -23,6 +23,12 @@ describe('AssetSchema', () => {
     expect(AssetSchema.safeParse({ ...validAsset, kind: 'video' }).success).toBe(false);
   });
 
+  it('accepts audio without dimensions', () => {
+    const audio = { ...validAsset, kind: 'audio', mime: 'audio/mpeg', filename: 'song.mp3', width: undefined, height: undefined, durationMs: 185_000 };
+    expect(AssetSchema.safeParse(audio).success).toBe(true);
+    expect(AssetSchema.safeParse({ ...audio, kind: 'image' }).success).toBe(false);
+  });
+
   it('rejects unsupported MIME types', () => {
     expect(AssetSchema.safeParse({ ...validAsset, mime: 'image/svg+xml' }).success).toBe(false);
   });

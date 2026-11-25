@@ -1,5 +1,5 @@
 import { IMAGE_MAX_EDGE, type SupportedMimeType } from '../domain/asset';
-import { ImportError, type MediaProbe, type ProbedImage, type ProbedVideo } from './importAsset';
+import { NoVideoTrackError, type MediaProbe, type ProbedAudio, type ProbedImage, type ProbedVideo } from './importAsset';
 
 /** Long edge of library/inspector thumbnails, in pixels. */
 export const THUMB_MAX_EDGE = 480;
@@ -59,7 +59,7 @@ async function probeImage(file: Blob, mime: SupportedMimeType): Promise<ProbedIm
   }
 }
 
-function waitFor(video: HTMLVideoElement, event: keyof HTMLVideoElementEventMap): Promise<void> {
+function waitFor(video: HTMLMediaElement, event: keyof HTMLMediaElementEventMap): Promise<void> {
   return new Promise((resolve, reject) => {
     const cleanup = () => {
       clearTimeout(timer);
@@ -72,7 +72,7 @@ function waitFor(video: HTMLVideoElement, event: keyof HTMLVideoElementEventMap)
     };
     const onError = () => {
       cleanup();
-      reject(new Error(video.error?.message || 'The video could not be decoded.'));
+      reject(new Error(video.error?.message || 'The file could not be decoded.'));
     };
     const timer = setTimeout(() => {
       cleanup();
@@ -83,10 +83,37 @@ function waitFor(video: HTMLVideoElement, event: keyof HTMLVideoElementEventMap)
   });
 }
 
-async function seek(video: HTMLVideoElement, seconds: number): Promise<void> {
+async function seek(video: HTMLMediaElement, seconds: number): Promise<void> {
   const seeked = waitFor(video, 'seeked');
   video.currentTime = seconds;
   await seeked;
+}
+
+/**
+ * Media duration in seconds. Some files (e.g. MediaRecorder WebM) don't store one: seeking far
+ * past the end makes the browser scan the file and report the real length.
+ */
+async function durationOf(element: HTMLMediaElement): Promise<number> {
+  if (Number.isFinite(element.duration)) return element.duration;
+  await seek(element, Number.MAX_SAFE_INTEGER);
+  if (!Number.isFinite(element.duration)) throw new Error('The media’s length could not be determined.');
+  return element.duration;
+}
+
+async function probeAudio(file: Blob): Promise<ProbedAudio> {
+  const url = URL.createObjectURL(file);
+  const audio = document.createElement('audio');
+  audio.preload = 'metadata';
+  try {
+    const metadata = waitFor(audio, 'loadedmetadata');
+    audio.src = url;
+    await metadata;
+    return { durationMs: Math.round((await durationOf(audio)) * 1000) };
+  } finally {
+    audio.removeAttribute('src');
+    audio.load();
+    URL.revokeObjectURL(url);
+  }
 }
 
 async function probeVideo(file: Blob): Promise<ProbedVideo> {
@@ -101,18 +128,10 @@ async function probeVideo(file: Blob): Promise<ProbedVideo> {
     await metadata;
 
     const { videoWidth: width, videoHeight: height } = video;
-    if (width === 0 || height === 0) {
-      throw new ImportError('unsupported', 'This file has no video picture (audio-only files arrive in a later version).');
-    }
+    // Sound but no picture: the importer takes it as an audio file instead.
+    if (width === 0 || height === 0) throw new NoVideoTrackError();
 
-    let duration = video.duration;
-    if (!Number.isFinite(duration)) {
-      // Some WebM files (e.g. from MediaRecorder) don't store a duration. Seeking far past the
-      // end makes the browser scan the file and report the real one.
-      await seek(video, Number.MAX_SAFE_INTEGER);
-      duration = video.duration;
-      if (!Number.isFinite(duration)) throw new Error('The video’s length could not be determined.');
-    }
+    const duration = await durationOf(video);
 
     // Poster frame: a little way in, to skip black lead-in frames.
     await seek(video, Math.min(0.5, duration / 2));
@@ -128,5 +147,5 @@ async function probeVideo(file: Blob): Promise<ProbedVideo> {
 }
 
 export function createBrowserProbe(): MediaProbe {
-  return { image: probeImage, video: probeVideo };
+  return { image: probeImage, video: probeVideo, audio: probeAudio };
 }

@@ -1025,6 +1025,11 @@ legend {
   color: var(--text-muted);
 }
 
+.asset-tile__placeholder--audio {
+  font-size: 2.2rem;
+  color: var(--accent);
+}
+
 .asset-tile__badge {
   position: absolute;
   right: 0.3rem;

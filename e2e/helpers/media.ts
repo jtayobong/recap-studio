@@ -54,3 +54,53 @@ export async function makeWebm(page: Page, durationMs = 1200): Promise<Buffer> {
   }, durationMs);
   return Buffer.from(base64, 'base64');
 }
+
+/** A mono 16-bit PCM WAV with a sine tone, built in Node. */
+export function makeWav(durationMs: number, frequency = 440, sampleRate = 22_050): Buffer {
+  const samples = Math.round((durationMs / 1000) * sampleRate);
+  const data = Buffer.alloc(samples * 2);
+  for (let i = 0; i < samples; i += 1) {
+    data.writeInt16LE(Math.round(Math.sin((2 * Math.PI * frequency * i) / sampleRate) * 0.5 * 32767), i * 2);
+  }
+  const header = Buffer.alloc(44);
+  header.write('RIFF', 0, 'ascii');
+  header.writeUInt32LE(36 + data.length, 4);
+  header.write('WAVE', 8, 'ascii');
+  header.write('fmt ', 12, 'ascii');
+  header.writeUInt32LE(16, 16); // fmt chunk size
+  header.writeUInt16LE(1, 20); // PCM
+  header.writeUInt16LE(1, 22); // mono
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(sampleRate * 2, 28); // byte rate
+  header.writeUInt16LE(2, 32); // block align
+  header.writeUInt16LE(16, 34); // bits per sample
+  header.write('data', 36, 'ascii');
+  header.writeUInt32LE(data.length, 40);
+  return Buffer.concat([header, data]);
+}
+
+/** An audio-only WebM (Opus) recorded in the page: same container signature as a video WebM. */
+export async function makeAudioWebm(page: Page, durationMs = 1500): Promise<Buffer> {
+  const base64 = await page.evaluate(async (durationMs) => {
+    const context = new AudioContext();
+    const oscillator = context.createOscillator();
+    const destination = context.createMediaStreamDestination();
+    oscillator.connect(destination);
+    oscillator.start();
+    const recorder = new MediaRecorder(destination.stream, { mimeType: 'audio/webm' });
+    const chunks: Blob[] = [];
+    recorder.ondataavailable = (e) => chunks.push(e.data);
+    const stopped = new Promise((resolve) => (recorder.onstop = resolve));
+    recorder.start();
+    await new Promise((resolve) => setTimeout(resolve, durationMs));
+    recorder.stop();
+    await stopped;
+    oscillator.stop();
+    await context.close();
+    const bytes = new Uint8Array(await new Blob(chunks).arrayBuffer());
+    let binary = '';
+    for (const byte of bytes) binary += String.fromCharCode(byte);
+    return btoa(binary);
+  }, durationMs);
+  return Buffer.from(base64, 'base64');
+}

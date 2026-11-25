@@ -11,7 +11,11 @@ import { AssetTile } from './AssetTile';
 import { ConfirmDialog } from './ConfirmDialog';
 
 /** For the file picker only; the importer checks real content regardless. */
-const ACCEPT = [...Object.keys(SUPPORTED_MIME_TYPES), '.jpg', '.jpeg', '.png', '.webp', '.gif', '.mp4', '.m4v', '.mov', '.webm'].join(',');
+const ACCEPT = [
+  ...Object.keys(SUPPORTED_MIME_TYPES),
+  ...['.jpg', '.jpeg', '.png', '.webp', '.gif', '.mp4', '.m4v', '.mov', '.webm'],
+  ...['.mp3', '.m4a', '.aac', '.wav', '.ogg', '.oga', '.opus', '.flac'],
+].join(',');
 
 interface ImportJob {
   index: number;
@@ -182,7 +186,8 @@ export function MediaLibrary({ project }: { project: Project }) {
       </div>
 
       <p id={hintId} className="media-library__hint">
-        Drop photos or clips here. JPEG, PNG, WebP, GIF · MP4, MOV, WebM. Files stay on this computer.
+        Drop photos, clips or music here. JPEG, PNG, WebP, GIF · MP4, MOV, WebM · MP3, M4A, WAV, OGG, FLAC.
+        Files stay on this computer.
       </p>
 
       {job && (

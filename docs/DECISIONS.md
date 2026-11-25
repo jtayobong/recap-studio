@@ -171,3 +171,12 @@ store lazy-loads the exporter, so Mediabunny and the worker are fetched only on 
 (main bundle +8 kB). Leaving the editor cancels a running export and frees a finished file; closing
 the tab mid-export asks first. The status area stays in the accessibility tree even when empty,
 because a live region must exist before its content changes to be announced.
+
+### D25. Audio import: magic bytes, plus an audio-only fallback for MP4/WebM
+M6 accepts MP3, M4A/AAC, WAV, OGG and FLAC (user decision: up to 100 MB and 10 minutes), detected by
+magic bytes like everything else. JPEG is checked before MPEG audio because both begin with 0xFF.
+MP4/MOV and WebM can't be told apart from video by their first bytes, so they are probed as video
+first; if there's no picture, the probe throws `NoVideoTrackError` and the importer imports the
+file as `audio/mp4` / `audio/webm` (size limit re-checked against the audio limit). Audio assets
+have no thumbnail (the tile shows ♪ and the duration), and the preview cache never tries to decode
+them as images.

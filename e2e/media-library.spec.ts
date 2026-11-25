@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { makeImage, makeWebm } from './helpers/media';
+import { makeAudioWebm, makeImage, makeWav, makeWebm } from './helpers/media';
 
 async function createProject(page: Page, name: string) {
   await page.goto('/');
@@ -26,7 +26,7 @@ test('import photos and clips, survive a reload, and delete', async ({ page }) =
   ]);
 
   await expect(page.getByRole('status').filter({ hasText: 'Imported 2 of 3 files.' })).toBeAttached();
-  await expect(page.getByRole('alert')).toContainText('“notes.jpg” isn’t a supported image or video.');
+  await expect(page.getByRole('alert')).toContainText('“notes.jpg” isn’t a supported photo, video or audio file.');
 
   await expect(tile(page, 'beach.png')).toBeVisible();
   await expect(tile(page, 'beach.png').locator('img')).toHaveAttribute('src', /^blob:/);
@@ -87,4 +87,33 @@ test('a library item whose file is gone is shown as missing', async ({ page }) =
   });
   await page.reload();
   await expect(tile(page, 'gone.png')).toContainText('Missing file');
+});
+
+test('music imports into the library (WAV, and an audio-only WebM) but not into photo slots', async ({ page }) => {
+  await createProject(page, 'Music import');
+  await page.getByLabel('Import media files').setInputFiles([
+    { name: 'tone.wav', mimeType: 'audio/wav', buffer: makeWav(2200) },
+    { name: 'voice-memo.webm', mimeType: 'video/webm', buffer: await makeAudioWebm(page, 1500) },
+    { name: 'photo.png', mimeType: 'image/png', buffer: await makeImage(page, 400, 300) },
+  ]);
+  await expect(page.getByRole('status').filter({ hasText: 'Imported 3 files.' })).toBeAttached();
+
+  // Audio tiles: a music note, the duration, and "Music" in the details.
+  await expect(tile(page, 'tone.wav')).toContainText('♪');
+  await expect(tile(page, 'tone.wav')).toContainText('0:02');
+  await expect(tile(page, 'tone.wav')).toContainText(/Music · 0:02/);
+  // Recorded as WebM with no picture: detected as audio, not rejected as a broken video.
+  await expect(tile(page, 'voice-memo.webm')).toContainText(/Music · 0:0[12]/);
+
+  // Photo/clip slots only offer photos and clips.
+  await page.getByRole('button', { name: /Photo \/ Video/ }).click();
+  await page.getByRole('button', { name: 'Choose…' }).click();
+  const picker = page.getByRole('dialog', { name: 'Choose photo or clip' });
+  await expect(picker.getByRole('button', { name: 'photo.png' })).toBeVisible();
+  await expect(picker.getByRole('button', { name: 'tone.wav' })).toHaveCount(0);
+  await expect(picker.getByRole('button', { name: 'voice-memo.webm' })).toHaveCount(0);
+
+  // Survives a reload.
+  await page.reload();
+  await expect(tile(page, 'tone.wav')).toContainText('0:02');
 });

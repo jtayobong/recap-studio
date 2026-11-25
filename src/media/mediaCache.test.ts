@@ -163,6 +163,17 @@ describe('mediaCache', () => {
     expect(deps.readFile).not.toHaveBeenCalled();
   });
 
+  it('never decodes audio assets as pictures', async () => {
+    const { cache, deps } = setup({ m: { asset: { ...asset('m'), kind: 'audio', mime: 'audio/mpeg' }, file: 'mp3-bytes', thumb: '1x1' } });
+    for (let i = 0; i < 3; i += 1) {
+      expect(cache.preview.frame('m', 0)).toBeUndefined();
+      expect(cache.thumbnails.frame('m', 0)).toBeUndefined();
+      await flush();
+    }
+    expect(deps.decodeImage).not.toHaveBeenCalled();
+    expect(deps.readFile).not.toHaveBeenCalled();
+  });
+
   it('releaseAll closes everything', async () => {
     const { cache, decoded } = setup({ a: { asset: asset('a'), file: '10x10', thumb: '2x2' } });
     cache.preview.frame('a', 0);

@@ -113,9 +113,10 @@ e2e/             Playwright specs
 
 ## Media (M4)
 
-- **Import** photos and clips with the media panel's **Import…** button or by dropping files on it.
-  Accepted: JPEG, PNG, WebP, GIF (first frame), MP4, MOV, WebM. Formats are detected from file
-  contents, not names. Limits: images up to 80 MB, video up to 2 GB and 5 minutes.
+- **Import** photos, clips and music with the media panel's **Import…** button or by dropping
+  files on it. Accepted: JPEG, PNG, WebP, GIF (first frame), MP4, MOV, WebM, and (M6) MP3, M4A/AAC,
+  WAV, OGG and FLAC. Formats are detected from file contents, not names. Limits: images up to
+  80 MB, video up to 2 GB and 5 minutes, audio up to 100 MB and 10 minutes.
 - Images larger than 2160 px on the long edge are downscaled before storing. Videos are streamed to
   storage, never loaded fully into memory. Each item gets a small WebP thumbnail.
 - Binaries live in the browser's Origin Private File System (`assets/<id>`, `thumbs/<id>.webp`);
@@ -146,6 +147,7 @@ e2e/             Playwright specs
 - The export draws every frame with the same renderer as the preview. Photos are decoded at full
   size and clips are decoded frame-exactly, so the file matches the preview.
 
-## Next: M6 (audio)
+## Next: M6 (audio, in progress)
 
-One music track per story, in sync in the preview and mixed into the export. See `docs/NEXT-M6.md`.
+One music track per story, in sync in the preview and mixed into the export. Music can already be
+imported into the library. See `docs/NEXT-M6.md`.

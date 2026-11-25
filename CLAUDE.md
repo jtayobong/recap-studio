@@ -184,7 +184,7 @@ React rendering.
   machine (30 s story ≈ 17–20 s). Unprofiled; likely candidates are high-quality `drawImage`
   scaling of large bitmaps every frame and video decode. Fine for now; revisit in M8.
 - Leaving the editor discards a finished export that wasn't downloaded yet (no warning).
-- Audio: not started (M6).
+- Audio (M6): import works; the music track UI, preview playback and export mixing are next.
 - The main JS chunk is ~552 kB (508 kB before M4), over Vite's 500 kB warning (the exporter and
   Mediabunny are already lazy-loaded). Route-level code
   splitting (e.g. lazy `SystemPage`/editor) would fix it; not urgent for a local app.
