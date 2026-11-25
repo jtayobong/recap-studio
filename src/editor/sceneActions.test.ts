@@ -5,6 +5,7 @@ import { useEditorStore } from '../store/editorStore';
 import {
   addScene,
   addStarterScenes,
+  addStarterStory,
   deleteScene,
   duplicateScene,
   forgetAsset,
@@ -15,6 +16,7 @@ import {
   setSceneField,
   setSceneTransition,
 } from './sceneActions';
+import { posterTimeMs } from '../render/templates/registry';
 import { useSelectionStore } from './selectionStore';
 
 // These drive the real stores. Autosave is debounced, so nothing is written during a test.
@@ -135,5 +137,24 @@ describe('forgetAsset', () => {
     const project = useEditorStore.getState().project;
     forgetAsset('nope');
     expect(useEditorStore.getState().project).toBe(project);
+  });
+});
+
+describe('addStarterStory', () => {
+  it('fills an empty story with the chosen starter, in one undo step', () => {
+    addStarterStory('travel-year');
+    expect(templates()).toEqual(['title', 'big-number', 'carousel', 'top-list', 'compare', 'photo-grid', 'outro']);
+    expect(selected()).toBeNull();
+    expect(usePlaybackStore.getState().timeMs).toBe(posterTimeMs(scenes()[0]!)); // the title, fully drawn
+    useEditorStore.getState().undo();
+    expect(scenes()).toEqual([]);
+  });
+
+  it('does nothing for an unknown starter or a story that already has scenes', () => {
+    addStarterStory('nope');
+    expect(scenes()).toEqual([]);
+    addScene('title');
+    addStarterStory('music-year');
+    expect(templates()).toEqual(['title']);
   });
 });

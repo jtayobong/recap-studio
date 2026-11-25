@@ -93,7 +93,8 @@ src/
                 useEditorShortcuts.ts
   render/       renderFrame.ts, timeline.ts, easing.ts, text.ts, fields.ts, context.ts,
                 media.ts (MediaResolver, cover/contain geometry, drawMedia),
-                templates/ (types, registry, title, bigNumber, photo), testing/mockContext.ts
+                templates/ (types, registry, title, bigNumber, topList, compare, photo, photoGrid,
+                carousel, outro, mediaLayout, starters), testing/mockContext.ts
   preview/      playbackStore.ts, usePlaybackClock.ts, PreviewCanvas.tsx, PlaybackControls.tsx,
                 usePlaybackShortcuts.ts, PreviewMusic.tsx + musicSync.ts (music follows the playhead)
   components/   UI pieces (SceneStrip, SceneInspector, FieldEditor, TemplateGallery, SceneThumbnail,
@@ -110,7 +111,7 @@ src/
   lib/          capabilities, storage, format, debounce, keyboard, ids, errors
 e2e/            Playwright specs: projects, preview, editor, media-import, media-library, media-slot,
                 media-preview (reads canvas pixels), media-project, export (decodes the output), export-ui,
-                music;
+                music, starters; helpers/story.ts adds the basic 8.5 s story for timing tests;
                 helpers/media.ts generates test images/video in the page (no binary fixtures)
 ```
 

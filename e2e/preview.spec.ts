@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { addBasicStory } from './helpers/story';
 
 async function openNewProject(page: Page) {
   await page.goto('/');
@@ -32,7 +33,7 @@ test('starter scenes render, play, seek and persist', async ({ page }) => {
 
   // Empty story: placeholder card plus the starter button.
   await expect(page.getByRole('button', { name: 'Play' })).toBeDisabled();
-  await page.getByRole('button', { name: 'Add starter scenes' }).click();
+  await addBasicStory(page);
 
   const scenes = page.getByRole('list', { name: 'Scenes' });
   await expect(scenes.getByRole('button')).toHaveCount(2);

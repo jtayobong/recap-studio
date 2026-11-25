@@ -1,6 +1,7 @@
 import { useState, type DragEvent, type KeyboardEvent } from 'react';
 import type { Project } from '../domain/project';
-import { addStarterScenes, deleteScene, moveSceneBy, moveSceneTo, selectScene } from '../editor/sceneActions';
+import { addStarterStory, deleteScene, moveSceneBy, moveSceneTo, selectScene } from '../editor/sceneActions';
+import { STARTER_STORIES } from '../render/templates/starters';
 import { useSelectionStore } from '../editor/selectionStore';
 import { usePlaybackStore } from '../preview/playbackStore';
 import { getTemplate } from '../render/templates/registry';
@@ -25,10 +26,24 @@ export function SceneStrip({ project }: { project: Project }) {
   if (project.scenes.length === 0) {
     return (
       <div className="scene-strip scene-strip--empty">
-        <p>Your story is empty. Start from the starter story, or add scenes from the left.</p>
-        <button type="button" className="button button--primary" onClick={addStarterScenes}>
-          Add starter scenes
-        </button>
+        <p>Your story is empty. Start from a story, or add scenes from the left:</p>
+        <ul className="starter-list" aria-label="Starter stories">
+          {STARTER_STORIES.map((starter) => (
+            <li key={starter.id}>
+              <button
+                type="button"
+                className="starter-card"
+                onClick={() => addStarterStory(starter.id)}
+                aria-describedby={`starter-desc-${starter.id}`}
+              >
+                <span className="starter-card__name">{starter.name}</span>
+                <span id={`starter-desc-${starter.id}`} className="starter-card__desc">
+                  {starter.description} {starter.scenes().length} scenes.
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
       </div>
     );
   }

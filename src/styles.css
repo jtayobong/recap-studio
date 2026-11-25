@@ -812,6 +812,42 @@ legend {
   justify-content: center;
 }
 
+.starter-list {
+  display: flex;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.starter-card {
+  display: grid;
+  gap: 0.15rem;
+  width: 220px;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-sunken);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.starter-card:hover {
+  border-color: var(--primary);
+}
+
+.starter-card__name {
+  font-weight: 800;
+}
+
+.starter-card__desc {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: normal;
+}
+
 .scene-strip--empty p,
 .scene-strip__total {
   margin: 0;

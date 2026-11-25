@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { addBasicStory } from './helpers/story';
 import { makeImage, makeWav } from './helpers/media';
 
 const inspector = (page: Page) => page.getByRole('complementary', { name: 'Inspector' });
@@ -13,7 +14,7 @@ async function projectWithLibrary(page: Page, name: string) {
   await dialog.getByLabel('Project name').fill(name);
   await dialog.getByRole('button', { name: 'Create project' }).click();
   await expect(page).toHaveURL(/\/project\/[\w-]+$/);
-  await page.getByRole('button', { name: 'Add starter scenes' }).click(); // 8.5 s story
+  await addBasicStory(page); // 8.5 s story
   await page.getByLabel('Import media files').setInputFiles([
     { name: 'anthem.wav', mimeType: 'audio/wav', buffer: makeWav(12_000) },
     { name: 'photo.png', mimeType: 'image/png', buffer: await makeImage(page, 400, 300) },

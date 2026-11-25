@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { addBasicStory } from './helpers/story';
 import { readFileSync } from 'node:fs';
 import { makeImage } from './helpers/media';
 import type * as DbExports from '../src/db/index';
@@ -20,7 +21,7 @@ test('export from the editor: choose quality, watch progress, keep editing, down
   await createProject(page, 'My 2026 Recap');
   // Nothing to export yet.
   await expect(page.getByRole('button', { name: 'Export', exact: true })).toBeDisabled();
-  await page.getByRole('button', { name: 'Add starter scenes' }).click();
+  await addBasicStory(page);
 
   await page.getByRole('button', { name: 'Export', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Export video' });

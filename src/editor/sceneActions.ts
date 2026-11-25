@@ -4,6 +4,7 @@ import * as ops from '../domain/sceneOps';
 import { newId } from '../lib/ids';
 import { usePlaybackStore } from '../preview/playbackStore';
 import { createScene, createStarterScenes, posterTimeMs } from '../render/templates/registry';
+import { getStarterStory } from '../render/templates/starters';
 import { getSceneSpans } from '../render/timeline';
 import { useEditorStore } from '../store/editorStore';
 import { useSelectionStore } from './selectionStore';
@@ -53,6 +54,18 @@ export function addScene(templateId: string): void {
   selectScene(scene.id);
 }
 
+/** Fill an empty story with a starter story (Music year, Travel year, …). */
+export function addStarterStory(starterId: string): void {
+  const starter = getStarterStory(starterId);
+  if (!starter || scenes().length > 0) return;
+  const story = starter.scenes();
+  updateScenes(() => story);
+  selectScene(null);
+  // Show the opening scene fully drawn, as when a project is opened (not the start of its fade-in).
+  usePlaybackStore.getState().seek(story[0] ? posterTimeMs(story[0]) : 0);
+}
+
+/** The minimal two-scene story (Title + Big Number); used by tests and as a fallback. */
 export function addStarterScenes(): void {
   if (scenes().length > 0) return;
   updateScenes(() => createStarterScenes());

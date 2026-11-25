@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { addBasicStory } from './helpers/story';
 
 async function openStarterProject(page: Page) {
   await page.goto('/');
@@ -6,7 +7,7 @@ async function openStarterProject(page: Page) {
   const dialog = page.getByRole('dialog', { name: 'New project' });
   await dialog.getByLabel('Project name').fill('Editor Test');
   await dialog.getByRole('button', { name: 'Create project' }).click();
-  await page.getByRole('button', { name: 'Add starter scenes' }).click();
+  await addBasicStory(page);
 }
 
 const chips = (page: Page) => page.getByRole('list', { name: 'Scenes' }).getByRole('button');

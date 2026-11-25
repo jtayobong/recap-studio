@@ -49,6 +49,13 @@ Design notes; the open questions are settled (see **Decisions** at the end).
   renders as a fade" gap). `renderFrame` clips to the frame first, so moving scenes never paint
   outside it. Schema v3 (migration 2→3 changes only the version; tested with a v2 fixture).
   Export frames mid-transition match the preview for all four new kinds.
+- **Step 5 done (2026-11-25): starter stories.** `render/templates/starters.ts`: Music year, Travel
+  year, Fitness year (7 scenes each, using the new templates and transitions, placeholder text,
+  empty media slots). The empty strip shows a picker instead of "Add starter scenes"; picking is
+  one undo step and seeks to the title's poster frame. Unit tests check every starter value is
+  accepted as-is by its template and renders cleanly in every palette. The basic two-scene story
+  (`addStarterScenes`) remains as an editor action; e2e specs that need a short story with known
+  timing use `e2e/helpers/story.ts`.
 
 ## Suggested breakdown
 
