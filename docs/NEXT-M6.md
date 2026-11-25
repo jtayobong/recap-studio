@@ -1,4 +1,9 @@
-# Next up: M6, audio
+# M6, audio: ✅ done (2026-11-25)
+
+Kept as the design record for M6 (decisions D25–D27); the next milestone is in `NEXT-M7.md`.
+Delivered: audio import (MP3, M4A/AAC, WAV, OGG, FLAC; audio-only MP4/WebM), one music track per
+story (start point, volume, optional fades, schema v2), music in the preview in sync with the
+playhead (with mute), and music mixed into the export (AAC/Opus) by the same timing and fade rules.
 
 **Goal:** one music track per story: import an audio file, set where it starts and how loud it is,
 hear it in the preview in sync with the playhead, and get it mixed into the exported video.
@@ -53,8 +58,8 @@ Design notes; the open questions are settled (see **Decisions** at the end).
   puts it, levels match the volume, the fade-out ramps, an early-ending song stops early, fade-in
   starts silent, WebM gets Opus.
 
-**The M6 done-when is met** (export with correctly timed audio, preview in sync). Remaining: the
-milestone wrap-up (status tables, NEXT-M7 handoff).
+**The M6 done-when is met** (export with correctly timed audio, preview in sync), verified by the
+e2e tests in `e2e/music.spec.ts` and `e2e/export.spec.ts`.
 
 ## Suggested breakdown
 

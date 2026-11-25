@@ -151,9 +151,9 @@ History: v1 (M1); v2 (M6) added `audio.fadeIn` / `audio.fadeOut`. Old-version fi
 - The export draws every frame with the same renderer as the preview. Photos are decoded at full
   size and clips are decoded frame-exactly, so the file matches the preview.
 
-## Next: M6 (audio, in progress)
+## Music (M6)
 
-One music track per story, in sync in the preview and mixed into the export. See `docs/NEXT-M6.md`.
+One music track per story, in sync in the preview and mixed into the export.
 
 - **Music** (project panel, with no scene selected): choose a song from the library, drag one onto
   the slot, or drop a file. Set where in the song it starts, the volume, and whether it fades in
@@ -164,3 +164,8 @@ One music track per story, in sync in the preview and mixed into the export. See
 - **In the export** the music is mixed in with the same start point, volume and fades (AAC in MP4,
   Opus in WebM). If the song is missing or can't be decoded, the video still exports, without music,
   and the header says why. The export dialog reminds you to check you have the rights to the music.
+
+## Next: M7 (templates and style)
+
+More scene templates, palettes, font pairs and transitions, and starter stories. See
+`docs/NEXT-M7.md`.

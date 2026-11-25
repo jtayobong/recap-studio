@@ -65,8 +65,8 @@ reopening restores everything.
 | M3 | Editor UI: strip reorder/duplicate/delete, inspector from field descriptors, durations, transitions, undo/redo | A story can be built entirely through the UI | ✅ |
 | M4 | Media: import to OPFS, thumbnails, media library, Photo/Video template with fit/crop | Photos and clips appear in scenes and preview | ✅ |
 | M5 | Export v1 (video): worker, OffscreenCanvas, Mediabunny MP4, progress, cancel, download | A 30 s 1080×1920 MP4 matches the preview frame for frame | ✅ |
-| M6 | Audio: one music track, offset/volume, synced preview, mixed into export | Exported MP4 has correctly timed audio | ⏭ next |
-| M7 | Template pack + style: Top 5, Compare, Outro, palettes/font pairs, more transitions, starter stories | The starter story looks great out of the box | planned |
+| M6 | Audio: one music track, offset/volume, synced preview, mixed into export | Exported MP4 has correctly timed audio | ✅ |
+| M7 | Template pack + style: Top 5, Compare, Outro, palettes/font pairs, more transitions, starter stories | The starter story looks great out of the box | ⏭ next |
 | M8 | Hardening: errors, missing files, quota warnings, input limits, migration tests, project bundle import/export, e2e happy path, CSP review | A fresh user can go from start to export with no dead ends | planned |
 
 M5 is the riskiest milestone. The spike (canvas animation → MP4 in a worker) wasn't done during M4;

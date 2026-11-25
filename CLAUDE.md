@@ -5,7 +5,8 @@ Deeper context lives in `docs/`:
 
 - `docs/PLAN.md`: the product plan, architecture and milestone roadmap (with status)
 - `docs/DECISIONS.md`: why things are the way they are; read before changing a core choice
-- `docs/NEXT-M6.md`: handoff and design notes for the next milestone (M6, audio)
+- `docs/NEXT-M7.md`: handoff and design notes for the next milestone (M7, templates and style)
+- `docs/NEXT-M6.md`: the M6 (audio) design record, completed
 - `docs/NEXT-M5.md`: the M5 (export) design record and measurements, completed
 - `docs/NEXT-M4.md`: the M4 (media) design record, completed
 
@@ -29,8 +30,8 @@ templates or sample content.
 | M3 Editor: inspector, scene reorder/duplicate/delete, undo/redo | ✅ done |
 | M4 Media import (OPFS), media library, Photo/Video template | ✅ done |
 | M5 Export v1 (video): worker + OffscreenCanvas + Mediabunny | ✅ done |
-| **M6 Audio track, mixed into export** | ⏭ next (see `docs/NEXT-M6.md`) |
-| M7 Template pack + style presets + more transitions | planned |
+| M6 Audio track, mixed into export | ✅ done |
+| **M7 Template pack + style presets + more transitions** | ⏭ next (see `docs/NEXT-M7.md`) |
 | M8 Hardening | planned |
 
 Work one milestone at a time. Each ends with something demonstrably working and with tests.
@@ -193,9 +194,12 @@ React rendering.
   machine (30 s story ≈ 17–20 s). Unprofiled; likely candidates are high-quality `drawImage`
   scaling of large bitmaps every frame and video decode. Fine for now; revisit in M8.
 - Leaving the editor discards a finished export that wasn't downloaded yet (no warning).
-- Audio (M6): import, music track UI, preview playback and export mixing work; wrap-up pending.
-- The main JS chunk is ~552 kB (508 kB before M4), over Vite's 500 kB warning (the exporter and
-  Mediabunny are already lazy-loaded). Route-level code
+- Video clips are always silent: their own sound is ignored in preview and export (only the story
+  music plays). A "keep clip sound" option is an open question for M7/M8.
+- Preview music is an `<audio>` element re-synced past 0.2 s drift; the export mix is exact.
+- Audio assets have no waveform thumbnail (the tile shows ♪ and the duration).
+- The main JS chunk is ~560 kB (508 kB before M4), over Vite's 500 kB warning (the exporter and
+  Mediabunny are already lazy-loaded; the export worker is ~694 kB, loaded on first export). Route-level code
   splitting (e.g. lazy `SystemPage`/editor) would fix it; not urgent for a local app.
 - Images up to 2160 px keep their original bytes, including EXIF/GPS; a project-bundle export (M8)
   must strip it.
