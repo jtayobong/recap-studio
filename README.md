@@ -23,6 +23,7 @@ npm run dev                       # http://localhost:5173
 | `npm test` | Unit tests (Vitest) |
 | `npm run test:e2e` | End-to-end tests (Playwright, starts the dev server) |
 | `npm run build && npm run preview` | Production build served with a strict CSP |
+| `npm run test:e2e:prod` | Build, then run the e2e flows against the production server |
 
 ## Project structure
 

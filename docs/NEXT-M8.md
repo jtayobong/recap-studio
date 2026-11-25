@@ -39,6 +39,19 @@ Design notes; the open questions are settled (see **Decisions** at the end).
   it are emptied in the saved project) and "Delete unused media". Logic in
   `storage/mediaUsage.ts`, through the repositories only; media of unreadable projects counts as
   in use. `assetRepository.listAll()` added.
+- **Step 4 done (2026-11-25): build & security.**
+  - *Code splitting:* editor, Storage and System pages load on first visit (data-router `lazy`);
+    `node_modules` (except Mediabunny) go to a cached `vendor` chunk. A per-module report showed
+    the old 544 kB chunk was ~all framework code, so the app entry is now 32 kB, the editor 80 kB,
+    vendor 513 kB (161 kB gzip); the warning limit is 600 kB with that rationale.
+  - *CSP review:* dropped unused `data:` (img) and `blob:` (worker); added Trusted Types
+    (`require-trusted-types-for 'script'`, single policy `recap-export-worker` that only accepts
+    the bundled worker URL, `export/workerUrl.ts` + `?worker&url`), `Permissions-Policy`,
+    `Cross-Origin-Opener-Policy`, `Cross-Origin-Resource-Policy`. The prod e2e run caught that
+    Trusted Types also gates `new Worker()`.
+  - *Prod e2e:* `npm run test:e2e:prod` builds and runs every non-`@dev` test against
+    `vite preview` (34 tests), incl. `@prod` checks that headers are sent and Trusted Types blocks
+    `innerHTML`, inline scripts and unknown policies. `addBasicStory` now uses the UI.
 
 ## Collected for M8 (from earlier milestones)
 
@@ -52,8 +65,7 @@ Design notes; the open questions are settled (see **Decisions** at the end).
 - ~~**Project bundle export/import**~~ deferred past M8 (user decision): zip of the project JSON +
   media; strip EXIF/GPS from photos kept byte-for-byte; validate everything on import (Zod,
   unknown templates, size caps / zip bombs).
-- **Bundle size**: main chunk ~560 kB; route-level code splitting.
-- **CSP review** and an e2e run of the main flows against `vite preview` in CI.
+- ~~Bundle size~~, ~~CSP review~~, ~~prod e2e~~ (step 4).
 - **Fonts** differ slightly between operating systems (system font stacks); self-hosted fonts were
   declined for M7 and stay out of scope for M8.
 

@@ -18,7 +18,7 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/system');
 });
 
-test('images: small ones are kept as-is, large ones downscaled, both get a thumbnail', async ({ page }) => {
+test('images: small ones are kept as-is, large ones downscaled, both get a thumbnail', { tag: '@dev' }, async ({ page }) => {
   const result = await page.evaluate(async () => {
     const { createBrowserProbe } = (await import('/src/media/browserProbe.ts' as string)) as ProbeModule;
     const probe = createBrowserProbe();
@@ -69,7 +69,7 @@ test('images: small ones are kept as-is, large ones downscaled, both get a thumb
   expect(result.brokenError).not.toBeNull();
 });
 
-test('video: reads size and duration (even when the file has none) and grabs a poster', async ({ page }) => {
+test('video: reads size and duration (even when the file has none) and grabs a poster', { tag: '@dev' }, async ({ page }) => {
   const result = await page.evaluate(async () => {
     const { createBrowserProbe } = (await import('/src/media/browserProbe.ts' as string)) as ProbeModule;
 
@@ -118,7 +118,7 @@ test('video: reads size and duration (even when the file has none) and grabs a p
   expect(result.brokenError).not.toBeNull();
 });
 
-test('full import streams into OPFS and deleting the project removes the files', async ({ page }) => {
+test('full import streams into OPFS and deleting the project removes the files', { tag: '@dev' }, async ({ page }) => {
   const result = await page.evaluate(async () => {
     const { importer } = (await import('/src/media/index.ts' as string)) as MediaModule;
     const { assetRepository, projectRepository } = (await import('/src/db/index.ts' as string)) as DbModule;

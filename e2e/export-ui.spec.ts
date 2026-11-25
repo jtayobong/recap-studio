@@ -56,7 +56,7 @@ test('export from the editor: choose quality, watch progress, keep editing, down
   await expect(page.getByLabel('Project name')).toHaveValue('Renamed during export');
 });
 
-test('a running export can be cancelled', async ({ page }) => {
+test('a running export can be cancelled', { tag: '@dev' }, async ({ page }) => {
   await createProject(page, 'Long story');
   // Three 60 s scenes: long enough that the export is still running when we click Cancel.
   await page.evaluate(async () => {
@@ -132,7 +132,7 @@ test('leaving the editor asks first while an export is running or not yet downlo
   await expect(page.getByRole('heading', { name: 'Your projects' })).toBeVisible();
 });
 
-test('leaving during an export can cancel it', async ({ page }) => {
+test('leaving during an export can cancel it', { tag: '@dev' }, async ({ page }) => {
   await createProject(page, 'Long export');
   await page.evaluate(async () => {
     const db = await import('/src/db/index.ts' as string);

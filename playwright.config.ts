@@ -5,6 +5,8 @@ const baseURL = 'http://localhost:5173';
 export default defineConfig({
   testDir: 'e2e',
   fullyParallel: true,
+  // `@prod` tests check the production server's headers; they run via `npm run test:e2e:prod`.
+  grepInvert: /@prod/,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
   reporter: 'list',

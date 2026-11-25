@@ -1,17 +1,18 @@
 import { expect, type Page } from '@playwright/test';
-import type * as SceneActions from '../../src/editor/sceneActions';
 
 /**
- * Adds the minimal two-scene story (Title 3.5 s + Big Number 5 s = 8.5 s) to the open, empty
- * project through the app's own editor action (same module instance as the UI). For tests that
- * need *a* story with known timing; the starter-story picker itself is tested in starters.spec.ts.
+ * Adds the minimal two-scene story (Title 3.5 s + Big Number 5 s = 8.5 s, each with its default
+ * transition) to the open, empty project through the UI, then deselects and rewinds, so tests start
+ * from the project panel at 0:00. Works against the dev server and the production build.
  */
 export async function addBasicStory(page: Page): Promise<void> {
   // The editor has loaded the (empty) project once the starter picker shows.
   await expect(page.getByRole('list', { name: 'Starter stories' })).toBeVisible();
-  await page.evaluate(async () => {
-    const actions = (await import('/src/editor/sceneActions.ts' as string)) as typeof SceneActions;
-    actions.addStarterScenes();
-  });
-  await expect(page.getByRole('list', { name: 'Scenes' }).getByRole('button')).toHaveCount(2);
+  // Gallery buttons are named "+ Title An opening card…", so match the start of the name.
+  await page.getByRole('button', { name: /^\+ Title / }).click();
+  await page.getByRole('button', { name: /^\+ Big Number / }).click();
+  const chips = page.getByRole('list', { name: 'Scenes' }).getByRole('button');
+  await expect(chips).toHaveCount(2);
+  await page.keyboard.press('Escape'); // back to the project panel
+  await page.getByRole('button', { name: 'Go to start' }).click();
 }

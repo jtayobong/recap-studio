@@ -105,7 +105,7 @@ async function photoSceneWith(page: Page, files: { name: string; mimeType: strin
   await page.getByRole('dialog', { name: 'Choose photo or clip' }).getByRole('button', { name: choose }).click();
 }
 
-test('a photo fills the preview and the scene thumbnail; "show all" letterboxes it', async ({ page }) => {
+test('a photo fills the preview and the scene thumbnail; "show all" letterboxes it', { tag: '@dev' }, async ({ page }) => {
   await page.goto('/');
   const green = await solidImage(page, '#00ff00', 1600, 900);
   await photoSceneWith(page, [{ name: 'green.png', mimeType: 'image/png', buffer: green }], 'green.png');
@@ -128,7 +128,7 @@ test('a photo fills the preview and the scene thumbnail; "show all" letterboxes 
   await expect.poll(async () => dominant(await previewPixel(page, 0.5, 0.5))).toBe('mixed');
 });
 
-test('a clip follows the playhead when seeking and while playing', async ({ page }) => {
+test('a clip follows the playhead when seeking and while playing', { tag: '@dev' }, async ({ page }) => {
   await page.goto('/');
   const webm = await redThenBlueWebm(page);
   await photoSceneWith(page, [{ name: 'red-blue.webm', mimeType: 'video/webm', buffer: webm }], 'red-blue.webm');
@@ -151,7 +151,7 @@ test('a clip follows the playhead when seeking and while playing', async ({ page
   expect(dominant(await previewPixel(page, 0.5, 0.4))).toBe('blue');
 });
 
-test('the focus point picks which part of a cropped photo stays in frame', async ({ page }) => {
+test('the focus point picks which part of a cropped photo stays in frame', { tag: '@dev' }, async ({ page }) => {
   await page.goto('/');
   // 2:1 image: left half red, right half blue. A 9:16 crop shows only a narrow vertical strip.
   const base64 = await page.evaluate(async () => {

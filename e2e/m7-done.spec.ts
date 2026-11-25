@@ -24,7 +24,7 @@ async function choose(page: Page, slot: string, filename: string) {
   await page.getByRole('dialog').getByRole('button', { name: filename }).click();
 }
 
-test('pick a starter, make it yours, export: every scene and transition matches the preview', async ({ page }, testInfo) => {
+test('pick a starter, make it yours, export: every scene and transition matches the preview', { tag: '@dev' }, async ({ page }, testInfo) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'New project' }).first().click();
   const dialog = page.getByRole('dialog', { name: 'New project' });

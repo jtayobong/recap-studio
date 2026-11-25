@@ -6,6 +6,7 @@ import type { ExportRequest, ExportResponse, WorkerEncodeOptions } from './expor
 import { mediaAssetIds } from './mediaRefs';
 import { bitrateFor, DEFAULT_PRESET, exportFilename, type QualityPresetId } from './presets';
 import { pickTarget, type ExportTarget } from './target';
+import { exportWorkerScriptUrl } from './workerUrl';
 
 export { mediaAssetIds } from './mediaRefs';
 
@@ -69,7 +70,7 @@ export function runExportWorker(
   signal?: AbortSignal,
 ): Promise<EncodeResult> {
   if (signal?.aborted) return Promise.reject(new DOMException('Export cancelled', 'AbortError'));
-  const worker = new Worker(new URL('./export.worker.ts', import.meta.url), { type: 'module', name: 'export' });
+  const worker = new Worker(exportWorkerScriptUrl(), { type: 'module', name: 'export' });
   return new Promise<EncodeResult>((resolve, reject) => {
     const finish = () => {
       signal?.removeEventListener('abort', onAbort);

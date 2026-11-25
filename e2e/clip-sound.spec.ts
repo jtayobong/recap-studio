@@ -110,7 +110,7 @@ async function exportTones(page: Page, projectId: string) {
   );
 }
 
-test('export: the clip is heard and the music ducks under it, only while that scene plays', async ({ page }, testInfo) => {
+test('export: the clip is heard and the music ducks under it, only while that scene plays', { tag: '@dev' }, async ({ page }, testInfo) => {
   const projectId = await storyWithClipSound(page, true);
   const { tones, music } = await exportTones(page, projectId);
   testInfo.annotations.push({ type: 'tones [330 Hz, 880 Hz] per window', description: JSON.stringify(tones) });
@@ -128,7 +128,7 @@ test('export: the clip is heard and the music ducks under it, only while that sc
   expect(during[0]! / before[0]!).toBeLessThan(0.4);
 });
 
-test('export: without "Keep clip sound" the clip stays silent and the music isn’t ducked', async ({ page }) => {
+test('export: without "Keep clip sound" the clip stays silent and the music isn’t ducked', { tag: '@dev' }, async ({ page }) => {
   const projectId = await storyWithClipSound(page, false);
   const { tones } = await exportTones(page, projectId);
   const [before, during] = tones as [number[], number[]];
@@ -136,7 +136,7 @@ test('export: without "Keep clip sound" the clip stays silent and the music isn�
   expect(during[0]! / before[0]!).toBeGreaterThan(0.9);
 });
 
-test('preview: the clip plays with sound and the music ducks while that scene plays; mute silences both', async ({ page }) => {
+test('preview: the clip plays with sound and the music ducks while that scene plays; mute silences both', { tag: '@dev' }, async ({ page }) => {
   const projectId = await storyWithClipSound(page, true);
   await page.goto(`/project/${projectId}`);
   await expect(page.getByRole('button', { name: 'Mute sound' })).toBeVisible();

@@ -2,11 +2,8 @@ import { createBrowserRouter, Outlet, RouterProvider } from 'react-router';
 import { AppShell } from './components/AppShell';
 import { CapabilityGate } from './components/CapabilityGate';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { EditorPage } from './pages/EditorPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { ProjectsPage } from './pages/ProjectsPage';
-import { StoragePage } from './pages/StoragePage';
-import { SystemPage } from './pages/SystemPage';
 
 /** Every route sits behind the capability check. */
 function Root() {
@@ -19,7 +16,8 @@ function Root() {
 
 /**
  * A data router (not `<BrowserRouter>`), so pages can block navigation (`useBlocker`: the editor
- * asks before leaving with an unsaved export) and routes can be lazy-loaded.
+ * asks before leaving with an unsaved export) and the editor, Storage and System pages are loaded
+ * on first visit.
  */
 const router = createBrowserRouter([
   {
@@ -29,13 +27,14 @@ const router = createBrowserRouter([
         element: <AppShell />,
         children: [
           { index: true, element: <ProjectsPage /> },
-          { path: 'storage', element: <StoragePage /> },
-          { path: 'system', element: <SystemPage /> },
+          // Loaded on first visit: keeps the start page's bundle small.
+          { path: 'storage', lazy: async () => ({ Component: (await import('./pages/StoragePage')).StoragePage }) },
+          { path: 'system', lazy: async () => ({ Component: (await import('./pages/SystemPage')).SystemPage }) },
           { path: '*', element: <NotFoundPage /> },
         ],
       },
       // The editor is full-screen, outside the app shell.
-      { path: 'project/:projectId', element: <EditorPage /> },
+      { path: 'project/:projectId', lazy: async () => ({ Component: (await import('./pages/EditorPage')).EditorPage }) },
     ],
   },
 ]);

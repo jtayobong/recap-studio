@@ -44,6 +44,7 @@ npm run dev          # http://localhost:5173 (bound to localhost only, strictPor
 npm run check        # typecheck + lint + unit tests: run before calling anything done
 npm test             # Vitest unit tests only
 npm run test:e2e     # Playwright (Chromium); starts the dev server itself
+npm run test:e2e:prod # builds, then runs the e2e flows against `vite preview` (strict CSP, headers)
 npm run build        # tsc --noEmit && vite build
 npm run preview      # production build on :4173 with a strict CSP
 npx playwright install chromium   # once per machine
@@ -157,7 +158,9 @@ React rendering.
 8. **Playback, selection and export state are UI-only**: separate Zustand stores, never saved,
    never in undo history.
 9. **Local-only and safe by default.** No network requests, no third-party scripts or fonts, dev
-   server on localhost only, strict CSP in `vite preview`. Never render user content as HTML (an
+   server on localhost only, strict CSP in `vite preview` (Trusted Types enforced: the only allowed
+   policy is `recap-export-worker` for the export worker URL; create Workers through
+   `export/workerUrl.ts`-style policies, never from arbitrary strings). Never render user content as HTML (an
    ESLint rule bans `dangerouslySetInnerHTML`). Treat imported files and stored data as untrusted.
 
 ## Code conventions
@@ -181,6 +184,9 @@ React rendering.
 - `render.test.ts` renders **every registered template** at many timestamps in every palette, so
   new templates get basic coverage automatically; add template-specific tests too.
 - E2E: `e2e/*.spec.ts`, Chromium. Each test gets a fresh browser context (empty IndexedDB).
+  Tests that import app modules via `/src/...` (dev server only) are tagged `@dev`; tests of the
+  production server (headers) are tagged `@prod`. `npm run test:e2e:prod` runs everything not
+  tagged `@dev` against the production build.
 - Definition of done for a milestone: `npm run check` and `npm run test:e2e` pass, the feature is
   exercised in the running app, README/docs updated.
 
@@ -199,8 +205,9 @@ React rendering.
   software and is ~3.7× slower, so don't read e2e export timings as user-facing speed.
 - Preview music is an `<audio>` element re-synced past 0.2 s drift; the export mix is exact.
 - Audio assets have no waveform thumbnail (the tile shows ♪ and the duration).
-- The main JS chunk is ~560 kB (508 kB before M4), over Vite's 500 kB warning (the exporter and
-  Mediabunny are already lazy-loaded; the export worker is ~694 kB, loaded on first export). Route-level code
+- Bundles: app entry ~32 kB, editor ~80 kB (lazy), framework `vendor` chunk ~513 kB / 161 kB gzip
+  (react-dom, Dexie, Zod, React Router; only replacing those would shrink it), export worker
+  ~712 kB (loaded on first export). Warning limit set to 600 kB with that rationale. Route-level code
   splitting (e.g. lazy `SystemPage`/editor) would fix it; not urgent for a local app.
 - Images up to 2160 px keep their original bytes, including EXIF/GPS; a project-bundle export (M8)
   must strip it.

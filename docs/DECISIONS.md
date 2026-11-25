@@ -239,3 +239,13 @@ the export (`timings` in the result) showed ~97 % of the time is the video encod
 encoding is ~3.7× faster. No pre-scaling or decode work was added, because it wouldn't help.
 `Modal` now ignores the close event its own programmatic close causes (it fires asynchronously and
 could dismiss a dialog reopened in the meantime).
+
+### D32. Vendor chunk, Trusted Types, and e2e against the production build
+A per-module size report showed the old 544 kB entry chunk was nearly all framework code (react-dom,
+Dexie, Zod, React Router), so route-level splitting alone couldn't fix the size warning. Pages now
+load on first visit, `node_modules` except Mediabunny go to a `vendor` chunk (cached across app
+updates), and the warning limit is 600 kB with that rationale. The production CSP gained Trusted
+Types with a single named policy that only accepts the bundled export worker's URL; `Permissions-
+Policy`, COOP and CORP were added, and unused `data:`/`blob:` sources removed. Because the dev
+server sends no CSP, `npm run test:e2e:prod` runs the e2e flows against `vite preview`; it caught
+that Trusted Types also gates `new Worker()`. Tests needing `/src` imports are tagged `@dev`.

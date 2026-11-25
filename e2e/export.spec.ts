@@ -49,7 +49,7 @@ async function starterProject(page: Page): Promise<string> {
   });
 }
 
-test('the starter story exports in the worker: right format, size, length, frames match the preview', async ({ page }, testInfo) => {
+test('the starter story exports in the worker: right format, size, length, frames match the preview', { tag: '@dev' }, async ({ page }, testInfo) => {
   const projectId = await starterProject(page);
   const result = await page.evaluate(async (projectId) => {
     const m = (window as unknown as { __m: Modules }).__m;
@@ -99,7 +99,7 @@ test('the starter story exports in the worker: right format, size, length, frame
   }
 });
 
-test('the file plays in <video>; cancel stops the export; the WebM/VP9 fallback works', async ({ page }) => {
+test('the file plays in <video>; cancel stops the export; the WebM/VP9 fallback works', { tag: '@dev' }, async ({ page }) => {
   const projectId = await starterProject(page);
   const result = await page.evaluate(async (projectId) => {
     const m = (window as unknown as { __m: Modules }).__m;
@@ -138,7 +138,7 @@ test('the file plays in <video>; cancel stops the export; the WebM/VP9 fallback 
   expect(result.webm.report.frameDiffs[0]!.meanAbsDiff).toBeLessThan(4);
 });
 
-test('photos and clips are in the export, frame-exact; missing media is reported, not fatal', async ({ page }, testInfo) => {
+test('photos and clips are in the export, frame-exact; missing media is reported, not fatal', { tag: '@dev' }, async ({ page }, testInfo) => {
   const result = await page.evaluate(async () => {
     const m = (window as unknown as { __m: Modules }).__m;
 
@@ -211,7 +211,7 @@ test('photos and clips are in the export, frame-exact; missing media is reported
   expect(Object.keys(result.failures)).toEqual([result.goneId]);
 });
 
-test('text renders the same in the export worker as in the preview, for every font pair and fallback scripts', async ({ page }, testInfo) => {
+test('text renders the same in the export worker as in the preview, for every font pair and fallback scripts', { tag: '@dev' }, async ({ page }, testInfo) => {
   const result = await page.evaluate(async () => {
     const m = (window as unknown as { __m: Modules }).__m;
     const presets = await import('/src/domain/stylePresets.ts' as string);
@@ -256,7 +256,7 @@ test('text renders the same in the export worker as in the preview, for every fo
   }
 });
 
-test('M5 done-when: a 30 s story with title, big-number, photo and clip scenes exports matching the preview', async ({ page }, testInfo) => {
+test('M5 done-when: a 30 s story with title, big-number, photo and clip scenes exports matching the preview', { tag: '@dev' }, async ({ page }, testInfo) => {
   test.setTimeout(240_000);
   const result = await page.evaluate(async () => {
     const m = (window as unknown as { __m: Modules }).__m;
@@ -394,7 +394,7 @@ async function exportAndMeasure(page: Page, projectId: string, windows: [number,
   );
 }
 
-test('the music is mixed into the export: start point, volume, a timing marker and the fade-out', async ({ page }, testInfo) => {
+test('the music is mixed into the export: start point, volume, a timing marker and the fade-out', { tag: '@dev' }, async ({ page }, testInfo) => {
   // 12 s tone with a silent gap at 4–5 s of the song. Starting the song at 2 s puts the gap at
   // 2–3 s of the story; the story (8.5 s) ends before the song, with a 1.5 s fade-out.
   const projectId = await storyWithMusic(page, makeWav(12_000, 440, 44_100, [[4000, 5000]]), { offsetMs: 2000, volume: 0.5 });
@@ -430,7 +430,7 @@ test('the music is mixed into the export: start point, volume, a timing marker a
   expect(result.frameDiff).toBeLessThan(4);
 });
 
-test('a song that ends before the story stops early (with fade); WebM gets Opus; fade-in starts silent', async ({ page }) => {
+test('a song that ends before the story stops early (with fade); WebM gets Opus; fade-in starts silent', { tag: '@dev' }, async ({ page }) => {
   // Start 10 s into a 12 s song: the music stops 2 s into the 8.5 s story.
   const early = await storyWithMusic(page, makeWav(12_000, 440, 22_050), { offsetMs: 10_000, fadeIn: true });
   const result = await exportAndMeasure(page, early, [[0, 0.05], [1.0, 1.3], [3, 8]], 'webm');
@@ -446,7 +446,7 @@ test('a song that ends before the story stops early (with fade); WebM gets Opus;
   expect(result.videoDurationS).toBeCloseTo(8.5, 1);
 });
 
-test('missing music doesn’t stop the export: the video has no audio track and says why', async ({ page }) => {
+test('missing music doesn’t stop the export: the video has no audio track and says why', { tag: '@dev' }, async ({ page }) => {
   const projectId = await storyWithMusic(page, makeWav(3000), {});
   await page.evaluate(async (projectId) => {
     const m = (window as unknown as { __m: Modules }).__m;
@@ -459,7 +459,7 @@ test('missing music doesn’t stop the export: the video has no audio track and 
   expect(result.videoDurationS).toBeCloseTo(8.5, 1);
 });
 
-test('the new transitions (push, zoom, wipe, flash) export exactly as the preview draws them', async ({ page }) => {
+test('the new transitions (push, zoom, wipe, flash) export exactly as the preview draws them', { tag: '@dev' }, async ({ page }) => {
   const result = await page.evaluate(async () => {
     const m = (window as unknown as { __m: Modules }).__m;
     const kinds = ['push', 'zoom', 'wipe', 'flash'] as const;
