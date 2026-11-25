@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Scene } from '../domain/project';
 import { clamp01, easeInOutCubic, easeOutBack, easeOutCubic, easeOutExpo, lerp, progress, seededRandom } from './easing';
 import { defaultFields, fieldsEditedBySlots, resolveFields, type FieldDefs } from './fields';
-import { PALETTES } from '../domain/stylePresets';
+import { getPalette, PALETTES } from '../domain/stylePresets';
 import { NO_MEDIA, type MediaResolver } from './media';
 import { renderFrame, type RenderableProject } from './renderFrame';
 import { kenBurnsZoom, KEN_BURNS_MAX_ZOOM } from './templates/photo';
@@ -408,5 +408,79 @@ describe('renderFrame', () => {
       template.draw = original;
       errors.mockRestore();
     }
+  });
+});
+
+describe('transitions', () => {
+  const KINDS = ['fade', 'slide', 'push', 'zoom', 'wipe', 'flash'] as const;
+  // Title (3500 ms) then Big Number entering with each kind; mid-transition is 3500 + 450 / 2.
+  const story = (kind: (typeof KINDS)[number]) =>
+    project([scene('t', 3500, { templateId: 'title' }), scene('n', 5000, { templateId: 'big-number', transitionIn: kind })]);
+
+  it.each(KINDS)('%s: draws both scenes mid-transition, balanced and deterministic', (kind) => {
+    const a = createMockContext();
+    const b = createMockContext();
+    renderFrame(a.ctx, story(kind), 3500 + TRANSITION_MS * 0.3);
+    renderFrame(b.ctx, story(kind), 3500 + TRANSITION_MS * 0.3);
+    expect(a.calls).toEqual(b.calls);
+    expect(a.calls.filter((c) => c.method === 'save').length).toBe(a.calls.filter((c) => c.method === 'restore').length);
+    const texts = a.texts();
+    if (kind === 'flash') {
+      // Flash cuts at its peak: first half shows the outgoing scene only.
+      expect(texts).toContain('Recap');
+    } else {
+      expect(texts).toContain('Recap'); // outgoing title
+      expect(texts).toContain('You listened for'); // incoming big number
+    }
+  });
+
+  it.each(KINDS)('%s: after the transition only the new scene is drawn', (kind) => {
+    const mock = createMockContext();
+    renderFrame(mock.ctx, story(kind), 3500 + TRANSITION_MS + 50);
+    expect(mock.texts()).not.toContain('Recap');
+    expect(mock.texts()).toContain('You listened for');
+  });
+
+  it('flash peaks white at the cut, from the old scene into the new one', () => {
+    const whiteAlpha = (t: number) => {
+      const mock = createMockContext();
+      renderFrame(mock.ctx, story('flash'), t);
+      return mock.calls.filter((c) => c.method === 'fillRect' && c.state.fillStyle === '#ffffff').at(-1)?.state.globalAlpha ?? 0;
+    };
+    const peak = whiteAlpha(3500 + TRANSITION_MS * 0.49);
+    expect(peak).toBeGreaterThan(0.9);
+    expect(whiteAlpha(3500 + TRANSITION_MS * 0.1)).toBeLessThan(peak);
+    expect(whiteAlpha(3500 + TRANSITION_MS * 0.9)).toBeLessThan(0.2);
+    const afterCut = createMockContext();
+    renderFrame(afterCut.ctx, story('flash'), 3500 + TRANSITION_MS * 0.6);
+    expect(afterCut.texts()).toContain('You listened for');
+    expect(afterCut.texts()).not.toContain('Recap');
+  });
+
+  it('wipe rides an accent-coloured band on its edge', () => {
+    const mock = createMockContext();
+    renderFrame(mock.ctx, story('wipe'), 3500 + TRANSITION_MS / 2);
+    const accent = getPalette('neon-pulse').accent;
+    expect(mock.calls.some((c) => c.method === 'fillRect' && c.state.fillStyle === accent)).toBe(true);
+  });
+
+  it('the first scene transitions in from the background with every kind', () => {
+    for (const kind of KINDS) {
+      const mock = createMockContext();
+      renderFrame(mock.ctx, project([scene('t', 3500, { templateId: 'title', transitionIn: kind })]), TRANSITION_MS * 0.6);
+      expect(mock.calls.filter((c) => c.method === 'save').length, kind).toBe(mock.calls.filter((c) => c.method === 'restore').length);
+    }
+  });
+});
+
+describe('renderFrame clipping', () => {
+  it('clips everything to the frame before drawing, so transitions never paint outside it', () => {
+    const { ctx, calls } = createMockContext();
+    renderFrame(ctx, project([scene('t', 3500, { transitionIn: 'push' })]), 100);
+    const firstClip = calls.findIndex((c) => c.method === 'clip');
+    const firstFill = calls.findIndex((c) => c.method === 'fillRect');
+    expect(firstClip).toBeGreaterThan(-1);
+    expect(firstClip).toBeLessThan(firstFill);
+    expect(calls.find((c) => c.method === 'rect')?.args).toEqual([0, 0, 1080, 1920]);
   });
 });

@@ -23,6 +23,11 @@ export const MIGRATIONS: Readonly<Record<number, Migration>> = {
     if (isPlainObject(raw.audio)) next.audio = { fadeIn: false, fadeOut: true, ...raw.audio };
     return next;
   },
+  /**
+   * v2 → v3 (M7): new transition kinds. No data changes (old values stay valid); the version bump
+   * makes an older app report "saved by a newer version" instead of "invalid data".
+   */
+  2: (raw) => ({ ...raw, schemaVersion: 3 }),
 };
 
 export class ProjectDataError extends Error {

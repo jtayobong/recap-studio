@@ -23,7 +23,7 @@ test('edit scene content and timing, and it persists', async ({ page }) => {
   await inspector(page).getByLabel('Number', { exact: true }).fill('1200');
   await inspector(page).getByLabel('Count up').uncheck();
   await inspector(page).getByLabel('Duration (seconds)').fill('4');
-  await inspector(page).getByLabel('Transition in').selectOption('fade');
+  await inspector(page).getByLabel('Transition in').selectOption('wipe');
 
   await expect(page.getByText('2 scenes · 0:07.5')).toBeVisible();
   await expect(saved(page)).toBeVisible();
@@ -33,7 +33,7 @@ test('edit scene content and timing, and it persists', async ({ page }) => {
   await expect(inspector(page).getByLabel('Label')).toHaveValue('Songs played');
   await expect(inspector(page).getByLabel('Number', { exact: true })).toHaveValue('1200');
   await expect(inspector(page).getByLabel('Count up')).not.toBeChecked();
-  await expect(inspector(page).getByLabel('Transition in')).toHaveValue('fade');
+  await expect(inspector(page).getByLabel('Transition in')).toHaveValue('wipe');
 });
 
 test('duplicate, reorder and delete scenes', async ({ page }) => {

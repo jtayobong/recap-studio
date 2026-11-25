@@ -456,3 +456,28 @@ test('missing music doesn’t stop the export: the video has no audio track and 
   expect(result.audio).toBeNull();
   expect(result.videoDurationS).toBeCloseTo(8.5, 1);
 });
+
+test('the new transitions (push, zoom, wipe, flash) export exactly as the preview draws them', async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const m = (window as unknown as { __m: Modules }).__m;
+    const kinds = ['push', 'zoom', 'wipe', 'flash'] as const;
+    const templates = ['big-number', 'top-list', 'compare', 'outro'];
+    const project = await m.db.projectRepository.create({ name: 'Transitions' });
+    const scenes = [
+      { ...m.registry.createScene('title'), durationMs: 2000, transitionIn: 'cut' as const },
+      ...kinds.map((kind, i) => ({ ...m.registry.createScene(templates[i]!), durationMs: 2000, transitionIn: kind })),
+    ];
+    const saved = await m.db.projectRepository.save({ ...project, scenes });
+    const file = await m.exporter.exportStory(saved, m.db.assetRepository);
+    // About 30 % and 70 % into each 450 ms transition (scenes start at 2 s, 4 s, 6 s, 8 s), snapped
+    // to exact frame times: mid-motion, a reference drawn even 2 ms off a frame differs visibly.
+    const atFrame = (ms: number) => (Math.round((ms * 30) / 1000) * 1000) / 30;
+    const times = kinds.flatMap((_, i) => [atFrame(2000 * (i + 1) + 135), atFrame(2000 * (i + 1) + 315)]);
+    const report = await m.inspect.inspectExport(file.blob, saved, times);
+    return report.frameDiffs;
+  });
+  for (const diff of result) {
+    expect(diff.meanAbsDiff, `frame at ${diff.timeMs} ms`).toBeLessThan(4);
+    expect(diff.badPixelShare, `frame at ${diff.timeMs} ms`).toBeLessThan(0.005);
+  }
+});

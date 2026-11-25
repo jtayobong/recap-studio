@@ -200,3 +200,13 @@ end, so the muxer never stalls on one track and memory stays flat. Music problem
 export: a missing or undecodable song, or an unavailable audio encoder, produces a silent video
 plus `music.note`, which the UI shows. The rights reminder is a muted line in the export dialog,
 shown only when the story has music (user decision).
+
+### D28. Transitions compose "previous" and "current"; schema v3; renderFrame clips to the frame
+`drawTransition` receives two callbacks, "draw the previous scene" (the plain background for the
+first scene) and "draw this scene", and each kind is a small composition of them: fade, slide up,
+push left, zoom, wipe (a diagonal edge in −45° rotated coordinates so the clip is a rectangle,
+with an accent band on it), flash (white peak at the cut, `easeIn` on both sides so it doesn't
+linger). Adding transition kinds is a schema change: v3 only bumps the version (old documents stay
+valid) so an older app says "saved by a newer version" instead of "invalid data". `renderFrame`
+now clips everything to the frame rectangle first, because moving scenes would otherwise paint
+outside it on any canvas larger than one frame.

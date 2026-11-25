@@ -9,7 +9,7 @@ import { DEFAULT_FONT_PAIR_ID, DEFAULT_PALETTE_ID } from './stylePresets';
  * Bump CURRENT_SCHEMA_VERSION and add a migration in ./migrations.ts whenever the
  * stored shape changes.
  */
-export const CURRENT_SCHEMA_VERSION = 2;
+export const CURRENT_SCHEMA_VERSION = 3;
 
 export const PROJECT_NAME_MAX = 100;
 export const MAX_SCENES = 200;
@@ -27,7 +27,8 @@ export const StyleSchema = z.object({
   fontPairId: z.string().min(1),
 });
 
-export const TransitionSchema = z.enum(['cut', 'fade', 'slide']);
+/** Scene entrance transitions. v3 (M7) added zoom, wipe, push (left) and flash. */
+export const TransitionSchema = z.enum(['cut', 'fade', 'slide', 'push', 'zoom', 'wipe', 'flash']);
 
 export const SceneSchema = z.object({
   id: z.string().min(1),

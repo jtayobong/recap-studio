@@ -42,6 +42,13 @@ Design notes; the open questions are settled (see **Decisions** at the end).
   visible primary/accent on every palette. 2 new system-font pairs (Editorial Serif: Georgia;
   Typewriter Mono: Consolas/SF Mono/Menlo), each stack ending in a generic family. A Font picker
   in the project panel (the app had none). The fonts export test covers all three pairs.
+- **Step 4 done (2026-11-25): transitions + schema v3.** Push left, Zoom, Wipe (diagonal edge with
+  an accent band, built in −45° rotated coordinates) and Flash (white peak at the cut, quick
+  drop-off), composed in `drawTransition` from "draw previous" / "draw current". The first scene
+  now transitions in from the background with every kind (this fixed the old "first-scene slide
+  renders as a fade" gap). `renderFrame` clips to the frame first, so moving scenes never paint
+  outside it. Schema v3 (migration 2→3 changes only the version; tested with a v2 fixture).
+  Export frames mid-transition match the preview for all four new kinds.
 
 ## Suggested breakdown
 

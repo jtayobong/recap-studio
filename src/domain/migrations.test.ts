@@ -53,10 +53,10 @@ describe('migrateProject', () => {
 });
 
 describe('real migrations', () => {
-  it('v1 → v2: a music track gets fade toggles (fade out on, fade in off); nothing else changes', async () => {
+  it('v1 → current: a music track gets fade toggles (fade out on, fade in off); nothing else changes', async () => {
     const v1 = (await import('./fixtures/project-v1.json')).default as Record<string, unknown>;
     const migrated = migrateProject(structuredClone(v1));
-    expect(migrated.schemaVersion).toBe(2);
+    expect(migrated.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
     expect(migrated.audio).toEqual({
       assetId: '2da05e70-8c65-4e2a-9f2d-4b9b9f3b2c33',
       offsetMs: 45000,
@@ -73,12 +73,12 @@ describe('real migrations', () => {
     expect(without(migrated)).toEqual(without(v1));
   });
 
-  it('v1 → v2: a project without music stays without music', async () => {
+  it('v1 → current: a project without music stays without music', async () => {
     const v1 = (await import('./fixtures/project-v1.json')).default as Record<string, unknown>;
     const noMusic = structuredClone(v1);
     delete noMusic.audio;
     const migrated = migrateProject(noMusic);
-    expect(migrated.schemaVersion).toBe(2);
+    expect(migrated.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
     expect('audio' in migrated).toBe(false);
   });
 
@@ -89,4 +89,18 @@ describe('real migrations', () => {
       fadeOut: false,
     });
   });
+
+  it('v2 → v3: only the version changes (new transition kinds need no data changes)', async () => {
+    const v2 = (await import('./fixtures/project-v2.json')).default as Record<string, unknown>;
+    const migrated = migrateProject(structuredClone(v2));
+    expect(migrated.schemaVersion).toBe(3);
+    expect({ ...migrated, schemaVersion: 2 }).toEqual(v2);
+  });
+
+  it('v3 accepts the new transition kinds', () => {
+    const project = createProject({ name: 'T' }, { now: 1, id: 'p' });
+    const scene = { id: 's', templateId: 'title', durationMs: 3000, fields: {}, transitionIn: 'wipe' };
+    expect(migrateProject({ ...project, scenes: [scene] }).scenes[0]?.transitionIn).toBe('wipe');
+  });
 });
+

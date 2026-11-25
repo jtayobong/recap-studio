@@ -1,11 +1,11 @@
 import type { Project } from '../domain/project';
 import { getFontPair, getPalette } from '../domain/stylePresets';
 import { isolated, withAlpha, type Ctx2D, type Theme } from './context';
-import { easeInOutCubic } from './easing';
+import { easeInCubic, easeInOutCubic, easeOutCubic, lerp } from './easing';
 import { NO_MEDIA, type MediaResolver } from './media';
 import { cssFont, fitText } from './text';
 import { getTemplate } from './templates/registry';
-import { activeTransition, getSceneSpans, locateScene, type SceneSpan } from './timeline';
+import { activeTransition, getSceneSpans, locateScene, type ActiveTransition, type SceneSpan } from './timeline';
 
 export type RenderableProject = Pick<Project, 'format' | 'style' | 'scenes'>;
 
@@ -27,6 +27,11 @@ export function renderFrame(ctx: Ctx2D, project: RenderableProject, timeMs: numb
   const theme = themeFor(project);
 
   ctx.save();
+  // Never paint outside the frame (transitions move whole scenes; the caller's canvas may be
+  // larger than one frame, e.g. a contact sheet).
+  ctx.beginPath();
+  ctx.rect(0, 0, width, height);
+  ctx.clip();
   ctx.globalAlpha = 1;
   ctx.fillStyle = theme.palette.background;
   ctx.fillRect(0, 0, width, height);
@@ -43,29 +48,15 @@ export function renderFrame(ctx: Ctx2D, project: RenderableProject, timeMs: numb
   const { span, localMs } = location;
   const transition = activeTransition(location);
   const previous = span.index > 0 ? spans[span.index - 1] : undefined;
+  const drawCurrent = () => drawScene(ctx, span, localMs, width, height, theme, media);
+  // The first scene transitions in from the plain background.
+  const drawPrevious = () =>
+    previous
+      ? drawScene(ctx, previous, previous.scene.durationMs, width, height, theme, media)
+      : drawBackground(ctx, width, height, theme);
 
-  if (transition && previous) {
-    const eased = easeInOutCubic(transition.progress);
-    if (transition.kind === 'fade') {
-      drawScene(ctx, previous, previous.scene.durationMs, width, height, theme, media);
-      withAlpha(ctx, eased, () => drawScene(ctx, span, localMs, width, height, theme, media));
-    } else {
-      // Vertical slide: the next card pushes the previous one up, like a story swipe.
-      isolated(ctx, () => {
-        ctx.translate(0, -height * eased);
-        drawScene(ctx, previous, previous.scene.durationMs, width, height, theme, media);
-      });
-      isolated(ctx, () => {
-        ctx.translate(0, height * (1 - eased));
-        drawScene(ctx, span, localMs, width, height, theme, media);
-      });
-    }
-  } else if (transition) {
-    // First scene: fade in from the palette background.
-    withAlpha(ctx, easeInOutCubic(transition.progress), () => drawScene(ctx, span, localMs, width, height, theme, media));
-  } else {
-    drawScene(ctx, span, localMs, width, height, theme, media);
-  }
+  if (transition) drawTransition(ctx, transition, width, height, theme, drawPrevious, drawCurrent);
+  else drawCurrent();
 
   ctx.restore();
 }
@@ -103,6 +94,115 @@ function drawScene(
       console.error(`Template "${template.id}" threw while rendering`, error);
     }
   });
+}
+
+const FLASH_COLOR = '#ffffff';
+
+/**
+ * Compose the outgoing and incoming scenes for an entrance transition. `progress` is linear 0→1;
+ * each kind eases it. All drawing stays inside save/restore and `withAlpha` (no state leaks).
+ */
+export function drawTransition(
+  ctx: Ctx2D,
+  transition: ActiveTransition,
+  width: number,
+  height: number,
+  theme: Theme,
+  drawPrevious: () => void,
+  drawCurrent: () => void,
+): void {
+  const p = transition.progress;
+  const eased = easeInOutCubic(p);
+  switch (transition.kind) {
+    case 'fade':
+      drawPrevious();
+      withAlpha(ctx, eased, drawCurrent);
+      return;
+
+    case 'slide':
+      // Vertical: the next card pushes the previous one up, like a story swipe.
+      isolated(ctx, () => {
+        ctx.translate(0, -height * eased);
+        drawPrevious();
+      });
+      isolated(ctx, () => {
+        ctx.translate(0, height * (1 - eased));
+        drawCurrent();
+      });
+      return;
+
+    case 'push':
+      // Horizontal: the next card pushes the previous one to the left.
+      isolated(ctx, () => {
+        ctx.translate(-width * eased, 0);
+        drawPrevious();
+      });
+      isolated(ctx, () => {
+        ctx.translate(width * (1 - eased), 0);
+        drawCurrent();
+      });
+      return;
+
+    case 'zoom':
+      // The next scene grows from the middle while it fades in.
+      drawPrevious();
+      withAlpha(ctx, easeOutCubic(p), () => {
+        isolated(ctx, () => {
+          const scale = lerp(0.6, 1, eased);
+          ctx.translate(width / 2, height / 2);
+          ctx.scale(scale, scale);
+          ctx.translate(-width / 2, -height / 2);
+          drawCurrent();
+        });
+      });
+      return;
+
+    case 'wipe': {
+      // A diagonal edge (x + y = d) sweeps from the top-left corner to the bottom-right; the new
+      // scene is revealed behind it, with an accent band riding on the edge. Built in coordinates
+      // rotated by -45°, where the edge is horizontal: there x + y = √2·v.
+      const band = width * 0.08;
+      const d = lerp(-band * 2, width + height + band * 2, eased);
+      const edge = d / Math.SQRT2;
+      const far = (width + height) * 2;
+      drawPrevious();
+      isolated(ctx, () => {
+        ctx.rotate(-Math.PI / 4);
+        ctx.beginPath();
+        ctx.rect(-far, -far, far * 2, far + edge);
+        ctx.rotate(Math.PI / 4);
+        ctx.clip();
+        drawCurrent();
+      });
+      isolated(ctx, () => {
+        ctx.rotate(-Math.PI / 4);
+        ctx.fillStyle = theme.palette.accent;
+        ctx.fillRect(-far, edge - band / Math.SQRT2, far * 2, band / Math.SQRT2);
+      });
+      return;
+    }
+
+    case 'flash':
+      // Brightens to white over the first half, cuts at the peak, fades back over the second half.
+      if (p < 0.5) {
+        drawPrevious();
+        withAlpha(ctx, easeInCubic(p / 0.5), () => fillFrame(ctx, width, height, FLASH_COLOR));
+      } else {
+        drawCurrent();
+        // Drops away quickly after the peak instead of lingering.
+        withAlpha(ctx, easeInCubic((1 - p) / 0.5), () => fillFrame(ctx, width, height, FLASH_COLOR));
+      }
+      return;
+  }
+}
+
+function fillFrame(ctx: Ctx2D, width: number, height: number, color: string): void {
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, width, height);
+}
+
+function drawBackground(ctx: Ctx2D, width: number, height: number, theme: Theme): void {
+  fillFrame(ctx, width, height, theme.palette.background);
 }
 
 function drawEmptyStory(ctx: Ctx2D, width: number, height: number, theme: Theme): void {

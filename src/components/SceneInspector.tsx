@@ -20,6 +20,10 @@ const TRANSITIONS: { value: Transition; label: string }[] = [
   { value: 'cut', label: 'Cut' },
   { value: 'fade', label: 'Fade' },
   { value: 'slide', label: 'Slide up' },
+  { value: 'push', label: 'Push left' },
+  { value: 'zoom', label: 'Zoom' },
+  { value: 'wipe', label: 'Wipe' },
+  { value: 'flash', label: 'Flash' },
 ];
 
 interface SceneInspectorProps {
@@ -100,7 +104,7 @@ export function SceneInspector({ project, scene, index }: SceneInspectorProps) {
             ))}
           </select>
           {isFirst && scene.transitionIn !== 'cut' && (
-            <p className="field__hint">The first scene fades in from the background.</p>
+            <p className="field__hint">The first scene transitions in from the background.</p>
           )}
         </div>
       </section>

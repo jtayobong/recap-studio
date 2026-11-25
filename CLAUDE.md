@@ -187,7 +187,6 @@ React rendering.
   emoji/CJK fallbacks) identically on the same machine, but output can differ *between* machines.
   Self-hosted fonts (M7) must be loaded in the page and in the worker with explicit
   `FontFace.load()`; `self.fonts.ready` never resolves in a worker.
-- For the first scene, a `slide` transition renders as a fade from the background.
 - Preview video is approximate (`<video>` seeking); export decodes clips frame-exactly, so a clip
   can look a frame off in the preview but never in the file.
 - Export speed: ~200 fps for text scenes but ~45–50 fps with full-size photos/clips on the dev

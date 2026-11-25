@@ -65,7 +65,8 @@ e2e/             Playwright specs
 2. Add a migration in `src/domain/migrations.ts`, keyed by the version it upgrades **from**.
 3. Add a test with a real old-version fixture in `migrations.test.ts`.
 
-History: v1 (M1); v2 (M6) added `audio.fadeIn` / `audio.fadeOut`. Old-version fixtures live in
+History: v1 (M1); v2 (M6) added `audio.fadeIn` / `audio.fadeOut`; v3 (M7) added the `push`,
+`zoom`, `wipe` and `flash` transitions. Old-version fixtures live in
 `src/domain/fixtures/`.
 
 ## How rendering works (M2)
