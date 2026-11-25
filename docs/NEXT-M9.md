@@ -154,6 +154,49 @@ MSVC; Visual Studio Build Tools and WebView2 were already present).
   16:9 starter exported and downloaded, project still there after restarting the app).
   Decision record: D34.
 
+### 1c. 60 fps export (added 2026-11-25, not started)
+
+**Goal:** the Export dialog offers 60 fps as well as 30 fps, for smoother motion (count-ups,
+carousels, transitions, Ken Burns zooms), in both 9:16 and 16:9.
+
+**Done when:** a story exported at 60 fps has twice the frames (e.g. 8.5 s → 510), plays for the
+same length with the music in sync, and its frames match the renderer at 60 fps timestamps
+(including mid-transition); 30 fps stays the default and unchanged; the capability check and the
+dialog only offer 60 fps where the browser can encode it. `npm run check`, `npm run test:e2e` and
+`npm run test:e2e:prod` pass.
+
+**Where things stand (checked 2026-11-25):**
+
+- *Mostly ready:* the schema already allows `format.fps` of 24, 25, 30 or 60 (no migration
+  needed); the renderer is time-based (`renderFrame(…, timeMs)`), so it draws any frame rate; the
+  export loop works in frames of `project.format.fps` (`frameCount`, `frameToMs`, `source.add(frame
+  / fps, 1 / fps)`); `bitrateFor` already scales with √(fps / 30) (Standard at 60 fps ≈ 11.3 Mbps);
+  audio is independent of the frame rate; the preview runs on `requestAnimationFrame`, so it is
+  already as smooth as the screen.
+- *Needs work:*
+  - H.264 level: the capability probe uses `avc1.640028` (level 4.0), which allows 1080p only up
+    to ~30 fps; 1080×1920 / 1920×1080 at 60 fps needs level 4.2 (`avc1.64002A`). Check which codec
+    string Mediabunny chooses when encoding at 60 fps, and probe 60 fps separately (a browser may
+    encode 30 but not 60).
+  - Where the choice lives: an **export option** (Export dialog: 30 / 60 fps, the project stays at
+    30) or a **project setting** (`format.fps`, also used for frame stepping in the preview).
+  - Video clips are usually 30 fps (or 24/25): at 60 fps their frames repeat (correct, but no
+    smoother). The frame-exact clip decoding (`exportMedia.ts`) already asks for each output
+    frame's time, so it should just work; needs a test with a 30 fps clip.
+  - Export takes about twice as long (encoder-bound: ~10 s instead of ~5 s for a 30 s story with
+    hardware encoding; ~2× longer in Playwright's software encoder), and files are ~40 % larger.
+  - Size estimate and the dialog's "… · 30 fps · …" line follow the choice.
+- *Tests:* unit (frame counts, bitrate, probe with level 4.2), e2e export at 60 fps (frame
+  comparison at frame-aligned 60 fps times, duration, packet count, audio sync), the WebM/VP9
+  fallback at 60 fps, the desktop smoke test unchanged.
+
+**Open questions (to ask before starting):**
+
+- Export option in the dialog, or a project setting?
+- Which quality presets at 60 fps: the same three (bitrates scaled up), or 60 fps only for
+  Standard/High?
+- Default stays 30 fps?
+
 ### 2. Project bundles (deferred from M8 by the user)
 
 Save a project with its media as one file (e.g. `.recap.zip`) to back up or move to another
@@ -169,7 +212,8 @@ computer, and import it back.
 
 CSV/manual stats import (Spotify-style data without an API), beat detection to sync cuts to music,
 keyframes / a multi-track timeline, a template builder, WebGL effects, square (1:1) output,
-GIF/WebM/4K/60 fps exports, Firefox/Safari support, mobile layout. (Desktop packaging: see 1b.)
+GIF/WebM/4K exports, Firefox/Safari support, mobile layout. (Desktop packaging: see 1b; 60 fps
+export: see 1c.)
 
 ### 4. Known gaps (CLAUDE.md)
 
@@ -179,5 +223,6 @@ exact); audio tiles have no waveform.
 
 ## Open questions for the user
 
-- Which candidate comes next (landscape output is done), or something else?
+- Which candidate comes next (landscape output and the desktop app are done; 60 fps export is
+  planned in 1c), or something else?
 - If project bundles: backup only (same app, another computer), or also for sharing?
