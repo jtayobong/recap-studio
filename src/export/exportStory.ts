@@ -1,11 +1,13 @@
-import { AssetIdSchema, type Asset } from '../domain/asset';
+import type { Asset } from '../domain/asset';
 import type { Project } from '../domain/project';
-import { getTemplate } from '../render/templates/registry';
 import type { EncodeResult } from './encodeStory';
 import type { ExportAsset } from './exportMedia';
 import type { ExportRequest, ExportResponse, WorkerEncodeOptions } from './export.worker';
+import { mediaAssetIds } from './mediaRefs';
 import { bitrateFor, DEFAULT_PRESET, exportFilename, type QualityPresetId } from './presets';
 import { pickTarget, type ExportTarget } from './target';
+
+export { mediaAssetIds } from './mediaRefs';
 
 /**
  * Main-thread export API. Takes a snapshot of the project (later edits don't affect a running
@@ -43,21 +45,6 @@ export class ExportUnsupportedError extends Error {
     super('This browser can’t encode video (no H.264 or VP9 encoder). Try a recent Chrome or Edge.');
     this.name = 'ExportUnsupportedError';
   }
-}
-
-/** Asset ids referenced by media fields of the project's scenes (and the audio track, for M6). */
-export function mediaAssetIds(project: Pick<Project, 'scenes' | 'audio'>): Set<string> {
-  const ids = new Set<string>();
-  for (const scene of project.scenes) {
-    const template = getTemplate(scene.templateId);
-    if (!template) continue;
-    for (const [key, def] of Object.entries(template.fields)) {
-      const value = scene.fields[key];
-      if (def.kind === 'media' && typeof value === 'string' && AssetIdSchema.safeParse(value).success) ids.add(value);
-    }
-  }
-  if (project.audio) ids.add(project.audio.assetId);
-  return ids;
 }
 
 /** Read the rows and files of the assets a project uses. Missing ones are simply left out. */

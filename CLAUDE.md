@@ -89,15 +89,17 @@ src/
   preview/      playbackStore.ts, usePlaybackClock.ts, PreviewCanvas.tsx, PlaybackControls.tsx,
                 usePlaybackShortcuts.ts
   components/   UI pieces (SceneStrip, SceneInspector, FieldEditor, TemplateGallery, SceneThumbnail,
-                MediaLibrary, AssetTile, MediaSlotField, Modal, ConfirmDialog, ProjectCard, …)
+                MediaLibrary, AssetTile, MediaSlotField, FocusPicker, ExportControl, ExportDialog,
+                Modal, ConfirmDialog, ProjectCard, …)
   export/       exportStory.ts (main-thread API: snapshot, target, assets, worker), export.worker.ts,
                 encodeStory.ts (plan pass + frame loop → Mediabunny), exportMedia.ts (frame-exact
                 media: record → plan → prepare → free), videoReader.ts, presets.ts, target.ts,
-                testing/inspectExport.ts (decode + compare, e2e only)
+                testing/inspectExport.ts (decode + compare, e2e only), exportStore.ts (UI-only
+                export state), mediaRefs.ts, index.ts (useExportStore; exporter lazy-loaded)
   pages/        ProjectsPage, EditorPage, SystemPage, NotFoundPage
   lib/          capabilities, storage, format, debounce, keyboard, ids, errors
 e2e/            Playwright specs: projects, preview, editor, media-import, media-library, media-slot,
-                media-preview (reads canvas pixels), media-project, export (decodes the output);
+                media-preview (reads canvas pixels), media-project, export (decodes the output), export-ui;
                 helpers/media.ts generates test images/video in the page (no binary fixtures)
 ```
 
@@ -137,8 +139,8 @@ React rendering.
 7. **Edits go through `sceneActions`**, which also handle selection and the playhead. Continuous
    input (typing, number fields) passes a `coalesceKey` like `field:<sceneId>:<key>` so it is one
    undo step.
-8. **Playback and selection state are UI-only**: separate Zustand stores, never saved, never in
-   undo history.
+8. **Playback, selection and export state are UI-only**: separate Zustand stores, never saved,
+   never in undo history.
 9. **Local-only and safe by default.** No network requests, no third-party scripts or fonts, dev
    server on localhost only, strict CSP in `vite preview`. Never render user content as HTML (an
    ESLint rule bans `dangerouslySetInnerHTML`). Treat imported files and stored data as untrusted.

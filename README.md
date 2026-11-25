@@ -134,6 +134,14 @@ e2e/             Playwright specs
   (or use the arrow keys; Shift for big steps, Home to re-center) to choose what stays in frame.
   The outlined box is what the story shows. **Motion** adds a slow zoom in or out, centered there.
 
-## Next: M5 (export)
+## Export (M5, in progress)
 
-Render the story to an MP4 in a worker with WebCodecs and Mediabunny. See `docs/NEXT-M5.md`.
+- **Export** (editor header) opens the options: *Standard* (~8 Mbps), *High* (~12 Mbps) or
+  *Smaller file* (~5 Mbps) at the full 1080×1920, with a size estimate and a warning if a scene's
+  media is missing. The video is H.264 in MP4, or VP9 in WebM where H.264 encoding isn't available.
+  No sound yet (M6).
+- Rendering happens in a background worker on this computer (about 5 s for a 30 s story on a
+  typical desktop), from a snapshot: you can keep editing meanwhile. Progress and Cancel are in the
+  header; when it's done, **Download** saves the file.
+- The export draws every frame with the same renderer as the preview. Photos are decoded at full
+  size and clips are decoded frame-exactly, so the file matches the preview.

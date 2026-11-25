@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
+import { ExportControl } from '../components/ExportControl';
 import { MediaLibrary } from '../components/MediaLibrary';
 import { PalettePicker } from '../components/PalettePicker';
 import { SceneInspector } from '../components/SceneInspector';
@@ -9,6 +10,7 @@ import { MAX_SCENES, normalizeProjectName, PROJECT_NAME_MAX, projectDurationMs, 
 import { indexOfScene } from '../domain/sceneOps';
 import { useSelectionStore } from '../editor/selectionStore';
 import { useEditorShortcuts } from '../editor/useEditorShortcuts';
+import { useExportStore } from '../export';
 import { formatAspectRatio } from '../lib/format';
 import { assetStatus, mediaCache } from '../media';
 import { PlaybackControls } from '../preview/PlaybackControls';
@@ -38,6 +40,9 @@ export function EditorPage() {
     void load(projectId);
     return () => {
       void close();
+      // Leaving the editor cancels a running export and frees a finished one.
+      useExportStore.getState().cancel();
+      useExportStore.getState().dismiss();
       assetStatus.releaseAll(); // free thumbnail object URLs
       mediaCache.releaseAll(); // free decoded images and video elements
     };
@@ -61,6 +66,8 @@ export function EditorPage() {
         void flushSave();
         event.preventDefault();
       }
+      // Closing the tab would lose a running export.
+      if (useExportStore.getState().state.status === 'exporting') event.preventDefault();
     };
     document.addEventListener('visibilitychange', onHidden);
     window.addEventListener('pagehide', onPageHide);
@@ -117,6 +124,7 @@ function EditorLayout({ project }: { project: Project }) {
         />
         <UndoRedoButtons />
         <SaveIndicator />
+        <ExportControl project={project} />
       </header>
 
       <div className="editor__body">

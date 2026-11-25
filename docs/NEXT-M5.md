@@ -76,8 +76,13 @@ The export module, without UI yet (`src/export/`):
    < 0.2 % of pixels differ noticeably): the worker picks the same fallback fonts as the page.
    When self-hosted fonts arrive (M7), load them in the page *and* in the worker with explicit
    `FontFace.load()` (never `self.fonts.ready`) before frame 0; that test then guards them.
-4. UI: Export button → dialog (quality preset), progress bar, cancel, then download via an object
-   URL (revoked afterwards), file named after the project. Editing stays enabled (snapshot export).
+4. ~~UI~~ done: **Export** in the editor header → dialog (format summary, the three presets with
+   size estimates, missing-media warning) → non-blocking header status (progress + Cancel, then
+   file name/size + Download, or the error + Try again). UI state in `export/exportStore.ts`
+   (UI-only Zustand). The exporter is lazy-loaded; leaving the editor cancels a running export;
+   closing the tab mid-export asks first. Tested in `e2e/export-ui.spec.ts`, also against
+   `vite preview` with the production CSP (the cancel test builds its long story through `/src`
+   imports, so it only runs on the dev server).
 5. Tests: unit tests for the frame-schedule and `assetsAt` logic; an e2e test that exports a short
    story and checks the output's duration and size, plus pixel-compares a couple of decoded frames
    against `renderFrame` in the page.

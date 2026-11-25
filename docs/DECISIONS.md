@@ -162,3 +162,12 @@ Mediabunny's `canvasesAtTimestamps` reads timestamps ahead, so supplying them on
 deadlocked. Missing/undecodable media draws the placeholder and is reported (`mediaFailures`) so the
 UI can warn instead of failing the export. In the worker, `self.fonts.ready` never resolved, so it
 isn't awaited (system fonts need no loading; self-hosted fonts must use explicit `FontFace.load()`).
+
+### D24. Export UI: options dialog, then a non-blocking status in the header
+The user chose to keep editing during an export (snapshot), and a native modal `<dialog>` makes the
+rest of the page inert, so the modal is only for choosing options. Progress, Cancel, Download and
+errors live in the editor header, backed by a UI-only Zustand store (`export/exportStore.ts`). The
+store lazy-loads the exporter, so Mediabunny and the worker are fetched only on the first export
+(main bundle +8 kB). Leaving the editor cancels a running export and frees a finished file; closing
+the tab mid-export asks first. The status area stays in the accessibility tree even when empty,
+because a live region must exist before its content changes to be announced.
