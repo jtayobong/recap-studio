@@ -2,6 +2,7 @@ import { withAlpha } from '../context';
 import { easeInOutCubic, easeOutCubic, lerp, progress } from '../easing';
 import { drawMedia } from '../media';
 import { cssFont, fitText } from '../text';
+import { isLandscape, unitOf } from '../layout';
 import { drawMediaPlaceholder } from './mediaLayout';
 import { defineTemplate } from './types';
 
@@ -56,6 +57,12 @@ export const photoTemplate = defineTemplate({
 
   render(ctx, frame, values, { palette, fonts }) {
     const { width: W, height: H, localMs: t } = frame;
+    const u = unitOf(frame);
+    // The media is full-bleed in both shapes; landscape gets a lower-third caption that keeps to
+    // the left two thirds, so a wide photo stays visible above and beside it.
+    const g = isLandscape(frame)
+      ? { placeholder: { x: W * 0.06, y: H * 0.08, width: W * 0.88, height: H * 0.6 }, captionX: W * 0.06, captionMaxWidth: W * 0.62, captionMaxHeight: H * 0.18, captionLines: 2 }
+      : { placeholder: { x: W * 0.08, y: H * 0.1, width: W * 0.84, height: H * 0.62 }, captionX: W * 0.08, captionMaxWidth: W * 0.84, captionMaxHeight: H * 0.16, captionLines: 3 };
 
     ctx.fillStyle = palette.background;
     ctx.fillRect(0, 0, W, H);
@@ -71,7 +78,7 @@ export const photoTemplate = defineTemplate({
         backdropTintAlpha: 0.7,
       });
     } else {
-      drawMediaPlaceholder(ctx, { x: W * 0.08, y: H * 0.1, width: W * 0.84, height: H * 0.62 }, { palette, fonts }, 'Add a photo or clip');
+      drawMediaPlaceholder(ctx, g.placeholder, { palette, fonts }, 'Add a photo or clip');
     }
 
     // Caption on a soft band at the bottom; slides up after the media settles.
@@ -80,12 +87,12 @@ export const photoTemplate = defineTemplate({
     const body = { family: fonts.body, weight: 800 };
     const fitted = fitText(ctx, caption, {
       font: body,
-      maxWidth: W * 0.84,
-      maxHeight: H * 0.16,
-      maxSize: W * 0.075,
-      minSize: W * 0.04,
+      maxWidth: g.captionMaxWidth,
+      maxHeight: g.captionMaxHeight,
+      maxSize: u * 0.075,
+      minSize: u * 0.04,
       lineHeight: 1.15,
-      maxLines: 3,
+      maxLines: g.captionLines,
     });
     const blockHeight = fitted.lines.length * fitted.lineHeightPx;
     const enter = easeOutCubic(progress(t, 350, 550));
@@ -101,7 +108,7 @@ export const photoTemplate = defineTemplate({
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
       fitted.lines.forEach((line, i) => {
-        ctx.fillText(line, W * 0.08, bottom - blockHeight + fitted.sizePx + i * fitted.lineHeightPx);
+        ctx.fillText(line, g.captionX, bottom - blockHeight + fitted.sizePx + i * fitted.lineHeightPx);
       });
     });
   },

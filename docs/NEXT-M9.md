@@ -32,6 +32,9 @@ test in both formats); the editor UI (preview, strip, focus picker) handles both
   (taller rows, #1 highlighted); empty items are skipped as in portrait.
 - *Compare done:* in 16:9 the two values are upright bars side by side on a shared baseline
   (number above, label below, both numbers at the same size), with the % change on the right.
+- *Photo / Video done:* the media stays full-bleed (cover/contain, focus and Ken Burns work in any
+  frame shape); in 16:9 the caption is a lower third over the left ~60 % (2 lines) and the
+  empty-slot placeholder is a wide box.
 
 **Where things stood (checked 2026-11-25):**
 

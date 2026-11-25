@@ -500,7 +500,7 @@ describe('layout helpers', () => {
   });
 
   it('landscape templates keep their text inside the frame', () => {
-    for (const templateId of ['title', 'big-number', 'top-list', 'compare']) {
+    for (const templateId of ['title', 'big-number', 'top-list', 'compare', 'photo']) {
       const created = createScene(templateId);
       const { ctx, calls } = createMockContext();
       renderFrame(ctx, project([{ ...created, transitionIn: 'cut' }], 'neon-pulse', LANDSCAPE), posterTimeMs(created));
