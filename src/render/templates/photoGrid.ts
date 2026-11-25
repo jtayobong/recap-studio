@@ -1,9 +1,9 @@
 import { isolated, withAlpha } from '../context';
 import { easeOutCubic, lerp, progress } from '../easing';
-import type { FieldDefs, MediaField } from '../fields';
+import type { FieldDefs, FrameShape, MediaField } from '../fields';
 import { drawMedia } from '../media';
 import { cssFont, fitText } from '../text';
-import { aspectOf, clipRounded, drawMediaPlaceholder, gridCells, STORY_SIZE, type GridLayout } from './mediaLayout';
+import { aspectOf, clipRounded, drawMediaPlaceholder, gridCells, REFERENCE_SIZES, type GridLayout } from './mediaLayout';
 import { isLandscape, unitOf } from '../layout';
 import { defineTemplate } from './types';
 
@@ -13,14 +13,17 @@ const SLOTS = 4;
 /** Visible slots per layout. */
 const SLOT_COUNT: Record<GridLayout, number> = { two: 2, three: 3, four: 4 };
 
-/** Crop shape of slot `index` in each layout (for the inspector's focus picker). */
-function slotAspects(index: number): Record<string, number> {
-  const byValue: Record<string, number> = {};
-  for (const layout of LAYOUTS) {
-    const cell = gridCells(layout, STORY_SIZE.width, STORY_SIZE.height)[index];
-    if (cell) byValue[layout] = aspectOf(cell);
+/** Crop shape of slot `index` in each layout and frame shape (for the inspector's focus picker). */
+function slotAspects(index: number): Record<FrameShape, Record<string, number>> {
+  const byShape: Record<FrameShape, Record<string, number>> = { portrait: {}, landscape: {} };
+  for (const shape of ['portrait', 'landscape'] as const) {
+    const { width, height } = REFERENCE_SIZES[shape];
+    for (const layout of LAYOUTS) {
+      const cell = gridCells(layout, width, height)[index];
+      if (cell) byShape[shape][layout] = aspectOf(cell);
+    }
   }
-  return byValue;
+  return byShape;
 }
 
 /** Layouts that show slot `index`. */
@@ -35,7 +38,7 @@ function slotFields(index: number): FieldDefs {
     label: `Photo ${n}`,
     default: '',
     accept: ACCEPT,
-    focus: { x: `focus${n}X`, y: `focus${n}Y`, fit: `fit${n}`, aspect: { field: 'layout', byValue: slotAspects(index) } },
+    focus: { x: `focus${n}X`, y: `focus${n}Y`, fit: `fit${n}`, aspect: { field: 'layout', byShape: slotAspects(index) } },
     visibleWhen,
   };
   return {

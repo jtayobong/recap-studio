@@ -8,8 +8,11 @@ import { cssFont, fitSingleLine } from '../text';
  * picker) that the template draws.
  */
 
-/** Reference output size: only the 9:16 story format is enabled. */
-export const STORY_SIZE = { width: 1080, height: 1920 } as const;
+/** Reference frame per shape, for crop shapes in field descriptors (the focus picker). */
+export const REFERENCE_SIZES = {
+  portrait: { width: 1080, height: 1920 },
+  landscape: { width: 1920, height: 1080 },
+} as const;
 
 export type GridLayout = 'two' | 'three' | 'four';
 

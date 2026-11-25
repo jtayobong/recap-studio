@@ -66,10 +66,27 @@ export interface MediaField extends FieldBase {
     fit?: string;
     /**
      * Shape of the visible area when it isn't the whole frame (grid cells, carousel cards):
-     * width ÷ height per value of a `choice` field, e.g. `{ field: 'layout', byValue: { two: 1.1 } }`.
+     * width ÷ height per frame shape and per value of a `choice` field, e.g.
+     * `{ field: 'layout', byShape: { portrait: { two: 1.1 }, landscape: { two: 0.9 } } }`.
      */
-    aspect?: { field: string; byValue: Readonly<Record<string, number>> };
+    aspect?: { field: string; byShape: Readonly<Record<FrameShape, Readonly<Record<string, number>>>> };
   };
+}
+
+export type FrameShape = 'portrait' | 'landscape';
+
+/**
+ * Crop shape (width ÷ height) of a media slot in a frame of `format`: the slot's own shape for the
+ * current choice value when it has one, otherwise the whole frame.
+ */
+export function slotCropAspect(
+  focus: NonNullable<MediaField['focus']>,
+  values: Readonly<Record<string, unknown>>,
+  format: { width: number; height: number },
+): number {
+  const shape: FrameShape = format.width > format.height ? 'landscape' : 'portrait';
+  const own = focus.aspect?.byShape[shape][String(values[focus.aspect.field])];
+  return own ?? format.width / format.height;
 }
 
 /** Field keys that a media slot edits itself (its focus point), so the form skips them. */

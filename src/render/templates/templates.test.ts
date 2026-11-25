@@ -90,15 +90,38 @@ describe('Photo grid', () => {
     expect(withMedia({ layout: 'four', media1: ID }).texts()).toEqual(['Photo 2', 'Photo 3', 'Photo 4']);
   });
 
-  it('gives each slot the crop shape of its cell, per layout, for the focus picker', async () => {
-    const { gridCells, STORY_SIZE } = await import('./mediaLayout');
+  it('gives each slot the crop shape of its cell, per layout and frame shape, for the focus picker', async () => {
+    const { gridCells } = await import('./mediaLayout');
+    const { slotCropAspect } = await import('../fields');
     const field = getTemplate('photo-grid')!.fields.media1;
-    if (field?.kind !== 'media') throw new Error('expected a media field');
-    const top = gridCells('three', STORY_SIZE.width, STORY_SIZE.height)[0]!;
-    expect(field.focus?.aspect?.byValue.three).toBeCloseTo(top.width / top.height);
+    if (field?.kind !== 'media' || !field.focus) throw new Error('expected a media field with focus');
+    const tall = gridCells('three', 1080, 1920)[0]!;
+    const wide = gridCells('three', 1920, 1080)[0]!;
+    expect(slotCropAspect(field.focus, { layout: 'three' }, { width: 1080, height: 1920 })).toBeCloseTo(tall.width / tall.height);
+    expect(slotCropAspect(field.focus, { layout: 'three' }, { width: 1920, height: 1080 })).toBeCloseTo(wide.width / wide.height);
+    expect(Math.abs(tall.width / tall.height - wide.width / wide.height)).toBeGreaterThan(0.05); // a different crop
     const slot4 = getTemplate('photo-grid')!.fields.media4;
     if (slot4?.kind !== 'media') throw new Error('expected a media field');
-    expect(Object.keys(slot4.focus?.aspect?.byValue ?? {})).toEqual(['four']); // only the 2×2 layout has a 4th cell
+    for (const shape of ['portrait', 'landscape'] as const) {
+      expect(Object.keys(slot4.focus?.aspect?.byShape[shape] ?? {})).toEqual(['four']); // only 2×2 has a 4th cell
+    }
+  });
+
+  it('falls back to the whole frame for slots without their own crop shape', async () => {
+    const { slotCropAspect } = await import('../fields');
+    const photo = getTemplate('photo')!.fields.media;
+    if (photo?.kind !== 'media' || !photo.focus) throw new Error('expected a media field with focus');
+    expect(slotCropAspect(photo.focus, {}, { width: 1920, height: 1080 })).toBeCloseTo(16 / 9);
+    expect(slotCropAspect(photo.focus, {}, { width: 1080, height: 1920 })).toBeCloseTo(9 / 16);
+  });
+
+  it('gives carousel cards their landscape crop shape in a 16:9 project', async () => {
+    const { carouselCard } = await import('./mediaLayout');
+    const { slotCropAspect } = await import('../fields');
+    const field = getTemplate('carousel')!.fields.media1;
+    if (field?.kind !== 'media' || !field.focus) throw new Error('expected a media field with focus');
+    const card = carouselCard('left', 1920, 1080);
+    expect(slotCropAspect(field.focus, { direction: 'left' }, { width: 1920, height: 1080 })).toBeCloseTo(card.width / card.height);
   });
 
   it('lays the cells out side by side in landscape, inside the frame and without overlap', async () => {

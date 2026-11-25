@@ -3,17 +3,18 @@ import { easeInOutCubic, easeOutCubic, lerp, progress } from '../easing';
 import type { FieldDefs, MediaField } from '../fields';
 import { drawMedia, type Rect } from '../media';
 import { cssFont, fitText } from '../text';
-import { aspectOf, carouselCard, clipRounded, drawMediaPlaceholder, STORY_SIZE, type CarouselDirection } from './mediaLayout';
+import { aspectOf, carouselCard, clipRounded, drawMediaPlaceholder, REFERENCE_SIZES, type CarouselDirection } from './mediaLayout';
 import { isLandscape, unitOf } from '../layout';
 import { defineTemplate } from './types';
 
 const ACCEPT = ['image', 'video'] as const;
 export const CAROUSEL_SLOTS = 6;
 
-const cardAspects = {
-  up: aspectOf(carouselCard('up', STORY_SIZE.width, STORY_SIZE.height)),
-  left: aspectOf(carouselCard('left', STORY_SIZE.width, STORY_SIZE.height)),
+const cardAspects = (shape: keyof typeof REFERENCE_SIZES) => {
+  const { width, height } = REFERENCE_SIZES[shape];
+  return { up: aspectOf(carouselCard('up', width, height)), left: aspectOf(carouselCard('left', width, height)) };
 };
+const cardAspectsByShape = { portrait: cardAspects('portrait'), landscape: cardAspects('landscape') };
 
 function slotFields(index: number): FieldDefs {
   const n = index + 1;
@@ -25,7 +26,7 @@ function slotFields(index: number): FieldDefs {
     label: `Photo ${n}`,
     default: '',
     accept: ACCEPT,
-    focus: { x: `focus${n}X`, y: `focus${n}Y`, aspect: { field: 'direction', byValue: cardAspects } },
+    focus: { x: `focus${n}X`, y: `focus${n}Y`, aspect: { field: 'direction', byShape: cardAspectsByShape } },
     visibleWhen,
   };
   return {

@@ -45,6 +45,10 @@ test in both formats); the editor UI (preview, strip, focus picker) handles both
 - *Outro done (step 2 complete):* in 16:9 the rings and title sit on the left and the message is
   a column on the right, clear of the rings. All 8 templates now have a landscape layout; the
   text-bounds test covers every template in 16:9 and portrait output is unchanged.
+- *Step 3 done (focus picker):* `MediaField.focus.aspect` is now `{ field, byShape: { portrait,
+  landscape } }` (still plain data), computed from `REFERENCE_SIZES` in `mediaLayout.ts` (replaces
+  `STORY_SIZE`). `slotCropAspect(focus, values, format)` in `render/fields.ts` picks the crop shape
+  for the project's format (slot shape, else the whole frame); the inspector uses it.
 
 **Where things stood (checked 2026-11-25):**
 

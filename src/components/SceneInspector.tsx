@@ -11,7 +11,7 @@ import {
   setSceneFields,
   setSceneTransition,
 } from '../editor/sceneActions';
-import { fieldsEditedBySlots, isFieldVisible, resolveFields, type FieldDef } from '../render/fields';
+import { fieldsEditedBySlots, isFieldVisible, resolveFields, slotCropAspect, type FieldDef } from '../render/fields';
 import type { FocusBinding } from './FocusPicker';
 import { getTemplate } from '../render/templates/registry';
 import { FieldEditor, NumberInput } from './FieldEditor';
@@ -131,13 +131,12 @@ function SceneFields({ scene, project }: { scene: Scene; project: Project }) {
 
   const focusFor = (def: FieldDef, key: string): FocusBinding | undefined => {
     if (def.kind !== 'media' || !def.focus) return undefined;
-    const { x, y, fit, aspect } = def.focus;
+    const { x, y, fit } = def.focus;
     const cropped = fit === undefined || values[fit] === 'cover';
-    const slotAspect = aspect ? aspect.byValue[String(values[aspect.field])] : undefined;
     return {
       x: Number(values[x]),
       y: Number(values[y]),
-      cropAspect: cropped ? (slotAspect ?? project.format.width / project.format.height) : undefined,
+      cropAspect: cropped ? slotCropAspect(def.focus, values, project.format) : undefined,
       onChange: (nx, ny, gesture) => setSceneFields(scene.id, { [x]: nx, [y]: ny }, `focus:${key}:${gesture}`),
     };
   };
