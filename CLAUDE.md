@@ -195,7 +195,7 @@ React rendering.
   scaling of large bitmaps every frame and video decode. Fine for now; revisit in M8.
 - Leaving the editor discards a finished export that wasn't downloaded yet (no warning).
 - Video clips are always silent: their own sound is ignored in preview and export (only the story
-  music plays). A "keep clip sound" option is an open question for M7/M8.
+  music plays). A "keep clip sound" toggle (mixed under the music) is planned for M8.
 - Preview music is an `<audio>` element re-synced past 0.2 s drift; the export mix is exact.
 - Audio assets have no waveform thumbnail (the tile shows ♪ and the duration).
 - The main JS chunk is ~560 kB (508 kB before M4), over Vite's 500 kB warning (the exporter and
