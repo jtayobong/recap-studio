@@ -19,7 +19,17 @@ layout with no overlapping or clipped text (checked on contact sheets and by the
 test in both formats); the editor UI (preview, strip, focus picker) handles both shapes.
 `npm run check`, `npm run test:e2e` and `npm run test:e2e:prod` pass.
 
-**Where things stand (checked 2026-11-25):**
+**Progress (started 2026-11-25):**
+
+- *Step 1 done:* `render/layout.ts` (`isLandscape`, `unitOf` = the shorter side; equals the width
+  in portrait, so portrait sizes are unchanged). Templates pick a portrait or landscape geometry
+  object and share the drawing code. Title (text column left, sun right) and Big Number (centred
+  stack spread for the shorter frame) have landscape layouts. Guard:
+  `render/portraitBaseline.test.ts` hashes every template's draw calls in 9:16 (204 cases); with
+  `PORTRAIT_BASELINE=<file>` it records once and then fails on any portrait change. The "every
+  template" render test now runs in both formats.
+
+**Where things stood (checked 2026-11-25):**
 
 - *Already format-agnostic:* the project stores `format: { width, height, fps }` (no schema change
   needed for 1920×1080), and `FORMAT_PRESETS.landscape` exists but is `enabled: false`; the New

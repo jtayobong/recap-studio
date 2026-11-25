@@ -6,7 +6,8 @@ import { getPalette, PALETTES } from '../domain/stylePresets';
 import { NO_MEDIA, type MediaResolver } from './media';
 import { renderFrame, type RenderableProject } from './renderFrame';
 import { kenBurnsZoom, KEN_BURNS_MAX_ZOOM } from './templates/photo';
-import { createScene, createStarterScenes, getTemplate, TEMPLATES } from './templates/registry';
+import { createScene, createStarterScenes, getTemplate, posterTimeMs, TEMPLATES } from './templates/registry';
+import { isLandscape, unitOf } from './layout';
 import { createMockContext } from './testing/mockContext';
 import { fitText, wrapLines } from './text';
 import {
@@ -51,8 +52,11 @@ const testTheme = {
   fonts: { id: 'f', name: 'f', display: 'sans-serif', body: 'sans-serif' },
 };
 
-const project = (scenes: Scene[], paletteId = 'neon-pulse'): RenderableProject => ({
-  format: { width: 1080, height: 1920, fps: 30 },
+const PORTRAIT: RenderableProject['format'] = { width: 1080, height: 1920, fps: 30 };
+const LANDSCAPE: RenderableProject['format'] = { width: 1920, height: 1080, fps: 30 };
+
+const project = (scenes: Scene[], paletteId = 'neon-pulse', format = PORTRAIT): RenderableProject => ({
+  format,
   style: { paletteId, fontPairId: 'heavy-grotesk' },
   scenes,
 });
@@ -351,21 +355,23 @@ describe('renderFrame', () => {
     }
   });
 
-  it('draws every registered template at many points in time, in every palette, with and without media', () => {
+  it('draws every registered template at many points in time, in every palette and format, with and without media', () => {
     const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
     const scenes = TEMPLATES.map((t) => {
       const created = createScene(t.id);
       return { ...created, fields: { ...created.fields, ...mediaFieldsFor(t.id) } };
     });
     const total = scenes.reduce((sum, s) => sum + s.durationMs, 0);
-    for (const media of [NO_MEDIA, fakeMedia]) {
-      for (const paletteId of PALETTES.map((p) => p.id)) {
-        const p = project(scenes, paletteId);
-        for (let t = 0; t <= total; t += 250) {
-          const { ctx, texts, calls } = createMockContext();
-          renderFrame(ctx, p, t, media);
-          expect(texts().some((text) => text.includes('failed to draw'))).toBe(false);
-          expect(calls.filter((c) => c.method === 'save').length).toBe(calls.filter((c) => c.method === 'restore').length);
+    for (const format of [PORTRAIT, LANDSCAPE]) {
+      for (const media of [NO_MEDIA, fakeMedia]) {
+        for (const paletteId of PALETTES.map((p) => p.id)) {
+          const p = project(scenes, paletteId, format);
+          for (let t = 0; t <= total; t += 250) {
+            const { ctx, texts, calls } = createMockContext();
+            renderFrame(ctx, p, t, media);
+            expect(texts().some((text) => text.includes('failed to draw'))).toBe(false);
+            expect(calls.filter((c) => c.method === 'save').length).toBe(calls.filter((c) => c.method === 'restore').length);
+          }
         }
       }
     }
@@ -482,5 +488,25 @@ describe('renderFrame clipping', () => {
     expect(firstClip).toBeGreaterThan(-1);
     expect(firstClip).toBeLessThan(firstFill);
     expect(calls.find((c) => c.method === 'rect')?.args).toEqual([0, 0, 1080, 1920]);
+  });
+});
+
+describe('layout helpers', () => {
+  it('tell the shapes apart and size by the shorter side', () => {
+    expect(isLandscape(LANDSCAPE)).toBe(true);
+    expect(isLandscape(PORTRAIT)).toBe(false);
+    expect(unitOf(LANDSCAPE)).toBe(1080);
+    expect(unitOf(PORTRAIT)).toBe(1080);
+  });
+
+  it('landscape Title and Big Number keep their text inside the frame', () => {
+    for (const templateId of ['title', 'big-number']) {
+      const created = createScene(templateId);
+      const { ctx, calls } = createMockContext();
+      renderFrame(ctx, project([{ ...created, transitionIn: 'cut' }], 'neon-pulse', LANDSCAPE), posterTimeMs(created));
+      const baselines = calls.filter((c) => c.method === 'fillText').map((c) => Number(c.args[2]));
+      expect(baselines.length).toBeGreaterThan(0);
+      for (const y of baselines) expect(y).toBeLessThan(1080);
+    }
   });
 });
