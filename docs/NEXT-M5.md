@@ -71,8 +71,11 @@ The export module, without UI yet (`src/export/`):
 
 1. ~~Spike~~ done (above).
 2. ~~Export module~~ done (above).
-3. Fonts: `document.fonts.load` (or `FontFace` in the worker) before frame 0. System font stacks
-   today; see Known gaps in CLAUDE.md.
+3. ~~Fonts~~ done: nothing to load for system font stacks. An e2e test exports text with accents,
+   emoji, CJK and Hangul for every font pair and compares it with the preview (mean |Δ| < 1,
+   < 0.2 % of pixels differ noticeably): the worker picks the same fallback fonts as the page.
+   When self-hosted fonts arrive (M7), load them in the page *and* in the worker with explicit
+   `FontFace.load()` (never `self.fonts.ready`) before frame 0; that test then guards them.
 4. UI: Export button → dialog (quality preset), progress bar, cancel, then download via an object
    URL (revoked afterwards), file named after the project. Editing stays enabled (snapshot export).
 5. Tests: unit tests for the frame-schedule and `assetsAt` logic; an e2e test that exports a short

@@ -170,8 +170,10 @@ React rendering.
 ## Known gaps / tech debt
 
 - Project cards on the Projects page use a static `StoryPreviewTile`, not a rendered frame.
-- Fonts are system stacks (`Arial Black` for display). Self-hosted font files and
-  `document.fonts.load` before export are still to do.
+- Fonts are system stacks (`Arial Black` for display); preview and export worker render them (and
+  emoji/CJK fallbacks) identically on the same machine, but output can differ *between* machines.
+  Self-hosted fonts (M7) must be loaded in the page and in the worker with explicit
+  `FontFace.load()`; `self.fonts.ready` never resolves in a worker.
 - For the first scene, a `slide` transition renders as a fade from the background.
 - Preview video is approximate (`<video>` seeking); frame-exact decoding comes with Mediabunny in
   M5. The exporter must wait for every asset of a frame before drawing it (see `docs/NEXT-M5.md`).

@@ -209,3 +209,48 @@ test('photos and clips are in the export, frame-exact; missing media is reported
   ]);
   expect(Object.keys(result.failures)).toEqual([result.goneId]);
 });
+
+test('text renders the same in the export worker as in the preview, for every font pair and fallback scripts', async ({ page }, testInfo) => {
+  const result = await page.evaluate(async () => {
+    const m = (window as unknown as { __m: Modules }).__m;
+    const presets = await import('/src/domain/stylePresets.ts' as string);
+    const reports: { fontPairId: string; diffs: { timeMs: number; meanAbsDiff: number; badPixelShare: number }[] }[] = [];
+    for (const pair of presets.FONT_PAIRS as { id: string }[]) {
+      const project = await m.db.projectRepository.create({ name: `Fonts ${pair.id}` });
+      const title = m.registry.createScene('title');
+      const number = m.registry.createScene('big-number');
+      const saved = await m.db.projectRepository.save({
+        ...project,
+        style: { ...project.style, fontPairId: pair.id },
+        scenes: [
+          {
+            ...title,
+            transitionIn: 'cut' as const,
+            // Accents, a dash, emoji and CJK all need fallback fonts beyond the stack.
+            fields: { ...title.fields, kicker: 'Ça va? — Grüße', title: 'Café ☀️\n東京 2026', subtitle: 'Ünïcödé, emoji 🎧🔥 and 한국어' },
+          },
+          { ...number, fields: { ...number.fields, label: 'Kilómetros 🚲', unit: 'km ✓' } },
+        ],
+      });
+      // Let the page's own fonts settle before rendering the reference frames.
+      await document.fonts.ready;
+      const file = await m.exporter.exportStory(saved, m.db.assetRepository);
+      const report = await m.inspect.inspectExport(file.blob, saved, [1500, 3000, 7000]);
+      reports.push({ fontPairId: pair.id, diffs: report.frameDiffs });
+    }
+    return reports;
+  });
+
+  const summary = result
+    .flatMap((r) => r.diffs.map((d) => `${r.fontPairId} t=${d.timeMs}: mean |Δ| ${d.meanAbsDiff.toFixed(2)}, pixels Δ>48 ${(d.badPixelShare * 100).toFixed(3)}%`))
+    .join('\n');
+  console.log(`\n${summary}`);
+  testInfo.annotations.push({ type: 'fonts', description: summary });
+  expect(result.length).toBeGreaterThan(0);
+  for (const report of result) {
+    for (const diff of report.diffs) {
+      expect(diff.meanAbsDiff, `${report.fontPairId} at ${diff.timeMs} ms`).toBeLessThan(4);
+      expect(diff.badPixelShare, `${report.fontPairId} at ${diff.timeMs} ms`).toBeLessThan(0.005);
+    }
+  }
+});
