@@ -16,6 +16,7 @@ import { formatAspectRatio } from '../lib/format';
 import { assetStatus, mediaCache } from '../media';
 import { PlaybackControls } from '../preview/PlaybackControls';
 import { PreviewCanvas } from '../preview/PreviewCanvas';
+import { PreviewMusic } from '../preview/PreviewMusic';
 import { usePlaybackStore } from '../preview/playbackStore';
 import { usePlaybackClock } from '../preview/usePlaybackClock';
 import { usePlaybackShortcuts } from '../preview/usePlaybackShortcuts';
@@ -138,7 +139,8 @@ function EditorLayout({ project }: { project: Project }) {
           <div className="editor__canvas-slot">
             <PreviewCanvas format={project.format} />
           </div>
-          <PlaybackControls durationMs={durationMs} fps={project.format.fps} />
+          <PlaybackControls durationMs={durationMs} fps={project.format.fps} hasMusic={project.audio !== undefined} />
+          <PreviewMusic />
         </section>
 
         <aside className="editor__panel" aria-label="Inspector">

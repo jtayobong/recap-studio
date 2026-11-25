@@ -4,13 +4,16 @@ import { usePlaybackStore } from './playbackStore';
 interface PlaybackControlsProps {
   durationMs: number;
   fps: number;
+  /** Show the mute button (only stories with music have something to mute). */
+  hasMusic?: boolean;
 }
 
-export function PlaybackControls({ durationMs, fps }: PlaybackControlsProps) {
+export function PlaybackControls({ durationMs, fps, hasMusic = false }: PlaybackControlsProps) {
   const timeMs = usePlaybackStore((s) => s.timeMs);
   const playing = usePlaybackStore((s) => s.playing);
   const loop = usePlaybackStore((s) => s.loop);
-  const { pause, seek, setLoop } = usePlaybackStore.getState();
+  const muted = usePlaybackStore((s) => s.muted);
+  const { pause, seek, setLoop, toggleMuted } = usePlaybackStore.getState();
   const empty = durationMs <= 0;
 
   return (
@@ -57,6 +60,19 @@ export function PlaybackControls({ durationMs, fps }: PlaybackControlsProps) {
         <input type="checkbox" checked={loop} onChange={(event) => setLoop(event.target.checked)} />
         Loop
       </label>
+
+      {hasMusic && (
+        <button
+          type="button"
+          className="button button--icon"
+          onClick={toggleMuted}
+          aria-label="Mute music"
+          aria-pressed={muted}
+          title="Mute music in the preview (M)"
+        >
+          {muted ? '🔇' : '🔊'}
+        </button>
+      )}
     </div>
   );
 }

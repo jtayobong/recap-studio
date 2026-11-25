@@ -47,6 +47,10 @@ npm run preview      # production build on :4173 with a strict CSP
 npx playwright install chromium   # once per machine
 ```
 
+Playwright reuses a dev server already listening on :5173 (`reuseExistingServer`). If e2e results
+look inexplicable (code that passed earlier now fails), check for an orphaned `vite` process from
+an interrupted run and stop it, or run against a fresh server on another port.
+
 ## Environment
 
 - Developer machine: **Windows**, PowerShell, Node **26** (minimum is 22.12 because of Vitest 5),
@@ -72,6 +76,7 @@ Prefer **no new dependencies**. If one is genuinely needed, say why and ask firs
 src/
   domain/       Pure model. project.ts (Zod schemas, CURRENT_SCHEMA_VERSION, createProject),
                 asset.ts (AssetSchema, supported MIME types, MEDIA_LIMITS, remapAssetIds),
+                music.ts (music timing + fade/gain rules shared by preview and export),
                 migrations.ts, sceneOps.ts (pure scene-list operations), stylePresets.ts
   db/           database.ts (Dexie schema, v2), projectRepository.ts, assetRepository.ts,
                 opfsStore.ts (streaming OPFS file store), index.ts (app singletons),
@@ -89,7 +94,7 @@ src/
                 media.ts (MediaResolver, cover/contain geometry, drawMedia),
                 templates/ (types, registry, title, bigNumber, photo), testing/mockContext.ts
   preview/      playbackStore.ts, usePlaybackClock.ts, PreviewCanvas.tsx, PlaybackControls.tsx,
-                usePlaybackShortcuts.ts
+                usePlaybackShortcuts.ts, PreviewMusic.tsx + musicSync.ts (music follows the playhead)
   components/   UI pieces (SceneStrip, SceneInspector, FieldEditor, TemplateGallery, SceneThumbnail,
                 MediaLibrary, AssetTile, MediaSlotField, FocusPicker, ExportControl, ExportDialog,
                 MusicSection,
@@ -187,7 +192,7 @@ React rendering.
   machine (30 s story ≈ 17–20 s). Unprofiled; likely candidates are high-quality `drawImage`
   scaling of large bitmaps every frame and video decode. Fine for now; revisit in M8.
 - Leaving the editor discards a finished export that wasn't downloaded yet (no warning).
-- Audio (M6): import and the music track UI work; preview playback and export mixing are next.
+- Audio (M6): import, the music track UI and preview playback work; export mixing is next.
 - The main JS chunk is ~552 kB (508 kB before M4), over Vite's 500 kB warning (the exporter and
   Mediabunny are already lazy-loaded). Route-level code
   splitting (e.g. lazy `SystemPage`/editor) would fix it; not urgent for a local app.

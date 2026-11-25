@@ -8,10 +8,13 @@ export interface PlaybackState {
   timeMs: number;
   playing: boolean;
   loop: boolean;
+  /** Preview music muted (UI-only; the export always includes the music). */
+  muted: boolean;
   play(): void;
   pause(): void;
   seek(timeMs: number): void;
   setLoop(loop: boolean): void;
+  toggleMuted(): void;
   reset(): void;
 }
 
@@ -19,10 +22,12 @@ export const usePlaybackStore = create<PlaybackState>()((set) => ({
   timeMs: 0,
   playing: false,
   loop: false,
+  muted: false,
   play: () => set({ playing: true }),
   pause: () => set({ playing: false }),
   seek: (timeMs) => set({ timeMs: Math.max(0, timeMs) }),
   setLoop: (loop) => set({ loop }),
+  toggleMuted: () => set((state) => ({ muted: !state.muted })),
   reset: () => set({ timeMs: 0, playing: false }),
 }));
 

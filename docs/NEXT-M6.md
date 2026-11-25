@@ -36,6 +36,12 @@ Design notes; the open questions are settled (see **Decisions** at the end).
   which part of the song plays. Actions in `editor/musicActions.ts` (undoable; one undo step per
   slider drag). Sliders keep arrow/Home/End keys from also moving the playhead. A song used as
   the music shows "Story music" in the library.
+- **Step 3 done (2026-11-25): music in the preview.** `domain/music.ts` holds the shared rules
+  (song time, when the music stops, gain = volume × fade in × fade out) for preview and export.
+  `preview/musicSync.ts` steers an audio element: seek when starting, play along, re-seek only past
+  0.2 s drift, volume per frame, pause outside the music. `PreviewMusic` is a hidden `<audio>`
+  driven by store subscriptions (no React re-renders). Mute is UI-only (playback store), with a
+  button next to Loop and the **M** key; it keeps the music in sync, just silent.
 
 ## Suggested breakdown
 

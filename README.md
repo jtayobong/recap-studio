@@ -100,6 +100,7 @@ History: v1 (M1); v2 (M6) added `audio.fadeIn` / `audio.fadeOut`. Old-version fi
 | Alt+← / Alt+→ | Move the focused scene |
 | Delete | Delete the focused scene |
 | Esc | Back to project settings |
+| M | Mute / unmute the music in the preview |
 
 ## Adding a scene template
 
@@ -158,4 +159,6 @@ One music track per story, in sync in the preview and mixed into the export. See
   the slot, or drop a file. Set where in the song it starts, the volume, and whether it fades in
   (1 s) and out at the end (1.5 s). It starts with the story and plays once; if it ends early,
   the rest is silent. All of this is undoable.
-- Still to come in M6: hearing the music in the preview, and mixing it into the export.
+- **In the preview** the music plays along with the playhead (jumping to the right place when you
+  seek), with its volume and fades. **🔊 / M** mutes it in the preview only.
+- Still to come in M6: mixing the music into the export.

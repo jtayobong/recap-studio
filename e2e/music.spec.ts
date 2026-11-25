@@ -79,6 +79,9 @@ test('choose a song, set start point, volume and fades; undo; reload; delete', a
 
 test('a project saved before M6 (schema v1) opens, with its music track migrated', async ({ page }) => {
   await page.goto('/');
+  // Wait until the app has created its database (the empty state renders after the first query);
+  // opening it ourselves earlier would create an empty database without the app's stores.
+  await expect(page.getByRole('heading', { name: 'Make your first recap' })).toBeVisible();
   const id = '9a3c1e4b-2f6d-4c8a-b1e7-5d0f2a9c7e31';
   // Write a raw v1 document straight into IndexedDB, as an older app version would have.
   await page.evaluate(async (id) => {
@@ -87,23 +90,28 @@ test('a project saved before M6 (schema v1) opens, with its music track migrated
       open.onerror = () => reject(open.error);
       open.onsuccess = () => {
         const db = open.result;
-        const tx = db.transaction('projects', 'readwrite');
-        tx.objectStore('projects').put({
-          id,
-          schemaVersion: 1,
-          name: 'From the old app',
-          format: { width: 1080, height: 1920, fps: 30 },
-          style: { paletteId: 'neon-pulse', fontPairId: 'heavy-grotesk' },
-          scenes: [{ id: 's1', templateId: 'title', durationMs: 3000, fields: {}, transitionIn: 'fade' }],
-          audio: { assetId: '2da05e70-8c65-4e2a-9f2d-4b9b9f3b2c33', offsetMs: 0, volume: 0.5 },
-          createdAt: 1,
-          updatedAt: 2,
-        });
-        tx.oncomplete = () => {
+        try {
+          const tx = db.transaction('projects', 'readwrite');
+          tx.objectStore('projects').put({
+            id,
+            schemaVersion: 1,
+            name: 'From the old app',
+            format: { width: 1080, height: 1920, fps: 30 },
+            style: { paletteId: 'neon-pulse', fontPairId: 'heavy-grotesk' },
+            scenes: [{ id: 's1', templateId: 'title', durationMs: 3000, fields: {}, transitionIn: 'fade' }],
+            audio: { assetId: '2da05e70-8c65-4e2a-9f2d-4b9b9f3b2c33', offsetMs: 0, volume: 0.5 },
+            createdAt: 1,
+            updatedAt: 2,
+          });
+          tx.oncomplete = () => {
+            db.close();
+            resolve();
+          };
+          tx.onerror = () => reject(tx.error);
+        } catch (error) {
           db.close();
-          resolve();
-        };
-        tx.onerror = () => reject(tx.error);
+          reject(error);
+        }
       };
     });
   }, id);
@@ -112,4 +120,67 @@ test('a project saved before M6 (schema v1) opens, with its music track migrated
   await page.getByRole('link', { name: 'Open From the old app' }).click();
   // The referenced song isn't in this browser's library: shown as missing, not a crash.
   await expect(songSlot(page)).toContainText('Missing media');
+});
+
+async function audioState(page: Page) {
+  return page.getByTestId('preview-music').evaluate((el) => {
+    const audio = el as HTMLAudioElement;
+    return { paused: audio.paused, time: audio.currentTime, volume: audio.volume, muted: audio.muted };
+  });
+}
+
+const playheadSeconds = async (page: Page) => {
+  const text = (await page.getByTestId('playhead-time').textContent()) ?? '0:00.0';
+  const [m, s] = text.split(':');
+  return Number(m) * 60 + Number(s);
+};
+
+test('the preview plays the music in sync with the playhead; mute and the song end work', async ({ page }) => {
+  await projectWithLibrary(page, 'Music preview');
+  await songSlot(page).getByRole('button', { name: 'Choose…' }).click();
+  await page.getByRole('dialog', { name: 'Choose song' }).getByRole('button', { name: 'anthem.wav' }).click();
+  await music(page).getByLabel('Start the song at').fill('2000');
+  await music(page).getByLabel('Volume').fill('50');
+  await expect(music(page)).toContainText('0:02 of 0:12');
+  expect((await audioState(page)).paused).toBe(true);
+
+  // Play: the song runs from 0:02 + playhead, at the chosen volume.
+  await page.getByRole('button', { name: 'Play' }).click();
+  await page.waitForTimeout(1200);
+  let audio = await audioState(page);
+  let playhead = await playheadSeconds(page);
+  expect(audio.paused).toBe(false);
+  expect(Math.abs(audio.time - (2 + playhead))).toBeLessThan(0.35);
+  expect(audio.volume).toBeCloseTo(0.5, 2);
+
+  // Pause stops it; seeking while paused and playing again resyncs.
+  await page.getByRole('button', { name: 'Pause' }).click();
+  await expect.poll(async () => (await audioState(page)).paused).toBe(true);
+  await page.getByLabel('Playhead').fill('5000');
+  await page.getByRole('button', { name: 'Play' }).click();
+  await page.waitForTimeout(400);
+  audio = await audioState(page);
+  playhead = await playheadSeconds(page);
+  expect(Math.abs(audio.time - (2 + playhead))).toBeLessThan(0.35);
+  expect(playhead).toBeGreaterThan(5);
+
+  // Mute (button, then the M key) silences without stopping.
+  await page.getByRole('button', { name: 'Mute music' }).click();
+  await expect(page.getByRole('button', { name: 'Mute music' })).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(async () => (await audioState(page)).muted).toBe(true);
+  expect((await audioState(page)).paused).toBe(false);
+  await page.keyboard.press('m');
+  await expect.poll(async () => (await audioState(page)).muted).toBe(false);
+  await page.getByRole('button', { name: 'Pause' }).click();
+
+  // A start point near the end: the song stops 1 s into the story while the preview keeps playing.
+  await music(page).getByLabel('Start the song at').fill('11000');
+  await expect(music(page)).toContainText('The song ends 0:01 into the story');
+  await page.getByRole('button', { name: 'Go to start' }).click();
+  await page.getByRole('button', { name: 'Play' }).click();
+  await page.waitForTimeout(400);
+  expect((await audioState(page)).paused).toBe(false);
+  await page.waitForTimeout(1300);
+  expect(await playheadSeconds(page)).toBeGreaterThan(1.2);
+  expect((await audioState(page)).paused).toBe(true);
 });

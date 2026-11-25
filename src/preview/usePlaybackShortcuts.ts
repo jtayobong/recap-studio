@@ -5,7 +5,7 @@ import { usePlaybackStore } from './playbackStore';
 import { togglePlayback } from './PlaybackControls';
 
 /**
- * Space: play/pause · ←/→: one frame (Shift: one second) · Home/End: start/end.
+ * Space: play/pause · ←/→: one frame (Shift: one second) · Home/End: start/end · M: mute music.
  * Ignored while typing in a field or when a dialog is open.
  */
 export function usePlaybackShortcuts(durationMs: number, fps: number): void {
@@ -37,6 +37,10 @@ export function usePlaybackShortcuts(durationMs: number, fps: number): void {
         case 'End':
           pause();
           seek(durationMs);
+          break;
+        case 'm':
+        case 'M':
+          usePlaybackStore.getState().toggleMuted();
           break;
         default:
           return;
