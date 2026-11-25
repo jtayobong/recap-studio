@@ -72,8 +72,14 @@ export function gridCells(layout: GridLayout, width: number, height: number): Re
 
 export type CarouselDirection = 'up' | 'left';
 
-/** Card size of the carousel strip for a direction. */
+/**
+ * Card size of the carousel strip for a direction. In landscape the cards are wide but leave the
+ * neighbours peeking in (sideways) or the title room (upwards).
+ */
 export function carouselCard(direction: CarouselDirection, width: number, height: number): { width: number; height: number } {
+  if (width > height) {
+    return direction === 'left' ? { width: height * 0.9, height: height * 0.62 } : { width: width * 0.56, height: height * 0.6 };
+  }
   return direction === 'left'
     ? { width: width * 0.72, height: height * 0.56 }
     : { width: width * 0.84, height: height * 0.4 };

@@ -4,6 +4,7 @@ import type { FieldDefs, MediaField } from '../fields';
 import { drawMedia, type Rect } from '../media';
 import { cssFont, fitText } from '../text';
 import { aspectOf, carouselCard, clipRounded, drawMediaPlaceholder, STORY_SIZE, type CarouselDirection } from './mediaLayout';
+import { isLandscape, unitOf } from '../layout';
 import { defineTemplate } from './types';
 
 const ACCEPT = ['image', 'video'] as const;
@@ -65,14 +66,17 @@ export function carouselProgress(t: number, durationMs: number): number {
 export function carouselCards(direction: CarouselDirection, count: number, p: number, width: number, height: number): Rect[] {
   const card = carouselCard(direction, width, height);
   const along = direction === 'left' ? card.width : card.height;
-  const gap = width * 0.05;
+  const gap = Math.min(width, height) * 0.05;
+  // Card centre down the frame: lower in landscape, where the title takes a bigger share.
+  const wide = width > height;
+  const centreY = wide ? 0.58 : direction === 'left' ? 0.52 : 0.55;
   const step = along + gap;
   const travel = Math.max(0, count - 1) * step * p;
   return Array.from({ length: count }, (_, i) => {
     const offset = i * step - travel;
     return direction === 'left'
-      ? { x: (width - card.width) / 2 + offset, y: height * 0.52 - card.height / 2, width: card.width, height: card.height }
-      : { x: (width - card.width) / 2, y: height * 0.55 - card.height / 2 + offset, width: card.width, height: card.height };
+      ? { x: (width - card.width) / 2 + offset, y: height * centreY - card.height / 2, width: card.width, height: card.height }
+      : { x: (width - card.width) / 2, y: height * centreY - card.height / 2 + offset, width: card.width, height: card.height };
   });
 }
 
@@ -91,6 +95,10 @@ export const carouselTemplate = defineTemplate({
     const { width: W, height: H, localMs: t, durationMs } = frame;
     const v = values as Record<string, string | number | boolean>;
     const direction: CarouselDirection = v.direction === 'up' ? 'up' : 'left';
+    const u = unitOf(frame);
+    const wide = isLandscape(frame);
+    const titleX = wide ? W * 0.06 : W * 0.08;
+    const titleTop = wide ? H * 0.07 : H * 0.06;
 
     ctx.fillStyle = palette.background;
     ctx.fillRect(0, 0, W, H);
@@ -107,7 +115,7 @@ export const carouselTemplate = defineTemplate({
       const assetId = String(v[`media${n}`] ?? '');
       const media = assetId ? frame.media.frame(assetId, t) : undefined;
       isolated(ctx, () => {
-        clipRounded(ctx, card, W * 0.035);
+        clipRounded(ctx, card, u * 0.035);
         if (media && (ACCEPT as readonly string[]).includes(media.kind)) {
           drawMedia(ctx, media, card, { fit: 'cover', focusX: Number(v[`focus${n}X`]), focusY: Number(v[`focus${n}Y`]) });
         } else {
@@ -121,10 +129,10 @@ export const carouselTemplate = defineTemplate({
       const font = { family: fonts.display, weight: 900 };
       const fitted = fitText(ctx, title, {
         font,
-        maxWidth: W * 0.84,
-        maxHeight: H * 0.12,
-        maxSize: W * 0.09,
-        minSize: W * 0.05,
+        maxWidth: wide ? W * 0.88 : W * 0.84,
+        maxHeight: wide ? H * 0.16 : H * 0.12,
+        maxSize: u * 0.09,
+        minSize: u * 0.05,
         lineHeight: 1.05,
         maxLines: 2,
       });
@@ -132,14 +140,14 @@ export const carouselTemplate = defineTemplate({
       // Vertical strips run under the title, so give it a solid band.
       if (direction === 'up') {
         ctx.fillStyle = palette.background;
-        ctx.fillRect(0, 0, W, H * 0.06 + fitted.lines.length * fitted.lineHeightPx + H * 0.03);
+        ctx.fillRect(0, 0, W, titleTop + fitted.lines.length * fitted.lineHeightPx + (wide ? H * 0.04 : H * 0.03));
       }
       withAlpha(ctx, enter, () => {
         ctx.font = cssFont(font, fitted.sizePx);
         ctx.fillStyle = palette.text;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'alphabetic';
-        fitted.lines.forEach((line, i) => ctx.fillText(line, W * 0.08, H * 0.06 + fitted.sizePx + i * fitted.lineHeightPx - (1 - enter) * 20));
+        fitted.lines.forEach((line, i) => ctx.fillText(line, titleX, titleTop + fitted.sizePx + i * fitted.lineHeightPx - (1 - enter) * 20));
       });
     }
   },

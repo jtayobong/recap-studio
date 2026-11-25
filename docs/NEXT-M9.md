@@ -39,6 +39,9 @@ test in both formats); the editor UI (preview, strip, focus picker) handles both
   + 2 stacked on the right, and 2 × 2; margins/gaps from the shorter side. The layout option
   "2 photos (stacked)" is now just "2 photos". Still to do (step 3): the focus picker's crop shapes
   for grid cells are computed for 9:16 only.
+- *Photo carousel done:* sideways stays the default in both shapes. In 16:9 the sideways cards
+  are ~1.45:1 (the next card peeks in), upward cards are wide and slide under the title band;
+  cards sit lower to leave the title room. Crop shapes in the focus picker: step 3, as for the grid.
 
 **Where things stood (checked 2026-11-25):**
 

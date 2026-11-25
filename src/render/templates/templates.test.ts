@@ -141,6 +141,18 @@ describe('Photo carousel', () => {
     expect(up[2]!.y + up[2]!.height / 2).toBeCloseTo(1920 * 0.55);
   });
 
+  it('in landscape, keeps cards below the title and inside the frame height, the next one peeking in', async () => {
+    const { carouselCards } = await import('./carousel');
+    for (const direction of ['left', 'up'] as const) {
+      const [first, second] = carouselCards(direction, 3, 0, 1920, 1080);
+      expect(first!.x + first!.width / 2).toBeCloseTo(960);
+      expect(first!.y).toBeGreaterThan(1080 * 0.2);
+      expect(first!.y + first!.height).toBeLessThan(1080);
+      if (direction === 'left') expect(second!.x).toBeLessThan(1920);
+      else expect(second!.y).toBeLessThan(1080);
+    }
+  });
+
   it('scrolls continuously: never standing still mid-scene', async () => {
     const { carouselProgress } = await import('./carousel');
     let previous = -1;
