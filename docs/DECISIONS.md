@@ -142,3 +142,12 @@ values are written together with `setSceneFields`. Each gesture (a drag, a run o
 re-center) gets its own coalesce key: with a single shared key, the 1 s coalescing window merged
 separate quick gestures into one undo step (found by the e2e test). Ken Burns (`motion`) zooms
 up to 1.12× over the whole scene, centered on the focus point, and only when cropping.
+
+### D22. Mediabunny 1.65.2 for encoding/muxing; export in a dedicated worker
+Added for M5 (planned since D2). Pinned to 1.65.2, not the day-old 1.66.4: new releases get a couple
+of weeks before we adopt them. MPL-2.0 (file-level copyleft; using it unmodified is fine), no
+install scripts, only `@types` dependencies. The M5 spike showed a dedicated worker with an
+OffscreenCanvas exports at about the same speed as the main thread (~200 fps at 1080×1920 on the dev
+machine) while keeping the UI free, so export runs in a worker. Bitrates must be passed as
+`new Quality({ bitrate })` (a bare number is a 0–1 quality level). `mediabunny` is listed in Vite's
+`optimizeDeps.include` so its lazy import doesn't trigger a dev reload.

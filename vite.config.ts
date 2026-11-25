@@ -27,6 +27,10 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(process.env.npm_package_version ?? '0.0.0'),
   },
+  optimizeDeps: {
+    // Loaded lazily (export); pre-bundle at startup so the first import doesn't force a dev reload.
+    include: ['mediabunny'],
+  },
   server: {
     // Never expose the editor to the local network by default.
     host: 'localhost',

@@ -60,8 +60,8 @@ npx playwright install chromium   # once per machine
 ## Stack
 
 Vite 7 · React 19 · TypeScript 5 (strict) · React Router 7 · Zustand 5 · Zod 4 · Dexie 4
-(+ dexie-react-hooks) · Vitest 5 + fake-indexeddb · Playwright · ESLint 10 + typescript-eslint +
-eslint-plugin-react-hooks 7. Planned: Mediabunny (WebCodecs muxing/encoding) for M5.
+(+ dexie-react-hooks) · Mediabunny 1.65 (WebCodecs encoding/muxing, export) · Vitest 5 +
+fake-indexeddb · Playwright · ESLint 10 + typescript-eslint + eslint-plugin-react-hooks 7.
 
 Prefer **no new dependencies**. If one is genuinely needed, say why and ask first.
 
@@ -90,6 +90,8 @@ src/
                 usePlaybackShortcuts.ts
   components/   UI pieces (SceneStrip, SceneInspector, FieldEditor, TemplateGallery, SceneThumbnail,
                 MediaLibrary, AssetTile, MediaSlotField, Modal, ConfirmDialog, ProjectCard, …)
+  export/       encodeStory.ts (frame loop → Mediabunny), export.worker.ts, spike.ts (M5 spike
+                harness + inspectExport, used by e2e/export-spike.spec.ts)
   pages/        ProjectsPage, EditorPage, SystemPage, NotFoundPage
   lib/          capabilities, storage, format, debounce, keyboard, ids, errors
 e2e/            Playwright specs: projects, preview, editor, media-import, media-library, media-slot,
