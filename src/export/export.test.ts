@@ -37,7 +37,7 @@ function projectWith(fieldsPerScene: Record<string, unknown>[], audio?: string):
   return {
     ...project,
     scenes: fieldsPerScene.map((fields) => ({ ...createScene(fields.templateId === 'title' ? 'title' : 'photo'), fields })),
-    ...(audio ? { audio: { assetId: audio, offsetMs: 0, volume: 1 } } : {}),
+    ...(audio ? { audio: { assetId: audio, offsetMs: 0, volume: 1, fadeIn: false, fadeOut: true } } : {}),
   };
 }
 

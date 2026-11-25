@@ -1,0 +1,26 @@
+{
+  "id": "9a3c1e4b-2f6d-4c8a-b1e7-5d0f2a9c7e31",
+  "schemaVersion": 1,
+  "name": "Summer 2026",
+  "format": { "width": 1080, "height": 1920, "fps": 30 },
+  "style": { "paletteId": "citrus-pop", "fontPairId": "heavy-grotesk" },
+  "scenes": [
+    {
+      "id": "1d2e3f40-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
+      "templateId": "title",
+      "durationMs": 3500,
+      "fields": { "kicker": "Your year, replayed", "title": "My 2026\nRecap", "subtitle": "Let's look back." },
+      "transitionIn": "fade"
+    },
+    {
+      "id": "6f7a8b9c-0d1e-4f2a-9b3c-4d5e6f7a8b9c",
+      "templateId": "photo",
+      "durationMs": 4000,
+      "fields": { "media": "0b8f3c5e-6a43-4c0e-9d0b-2f7f7d1f0a11", "caption": "Beach day", "fit": "cover" },
+      "transitionIn": "slide"
+    }
+  ],
+  "audio": { "assetId": "2da05e70-8c65-4e2a-9f2d-4b9b9f3b2c33", "offsetMs": 45000, "volume": 0.8 },
+  "createdAt": 1764000000000,
+  "updatedAt": 1764003600000
+}

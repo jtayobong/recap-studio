@@ -83,7 +83,8 @@ src/
                 <video> pool for the preview, thumbnail resolver for the strip),
                 index.ts (importer, assetStatus, mediaCache singletons)
   store/        createEditorStore.ts: loaded project, debounced serialized autosave, undo/redo
-  editor/       sceneActions.ts (editor commands), selectionStore.ts, useEditorShortcuts.ts
+  editor/       sceneActions.ts (editor commands), musicActions.ts (music track), selectionStore.ts,
+                useEditorShortcuts.ts
   render/       renderFrame.ts, timeline.ts, easing.ts, text.ts, fields.ts, context.ts,
                 media.ts (MediaResolver, cover/contain geometry, drawMedia),
                 templates/ (types, registry, title, bigNumber, photo), testing/mockContext.ts
@@ -91,6 +92,7 @@ src/
                 usePlaybackShortcuts.ts
   components/   UI pieces (SceneStrip, SceneInspector, FieldEditor, TemplateGallery, SceneThumbnail,
                 MediaLibrary, AssetTile, MediaSlotField, FocusPicker, ExportControl, ExportDialog,
+                MusicSection,
                 Modal, ConfirmDialog, ProjectCard, …)
   export/       exportStory.ts (main-thread API: snapshot, target, assets, worker), export.worker.ts,
                 encodeStory.ts (plan pass + frame loop → Mediabunny), exportMedia.ts (frame-exact
@@ -100,7 +102,8 @@ src/
   pages/        ProjectsPage, EditorPage, SystemPage, NotFoundPage
   lib/          capabilities, storage, format, debounce, keyboard, ids, errors
 e2e/            Playwright specs: projects, preview, editor, media-import, media-library, media-slot,
-                media-preview (reads canvas pixels), media-project, export (decodes the output), export-ui;
+                media-preview (reads canvas pixels), media-project, export (decodes the output), export-ui,
+                music;
                 helpers/media.ts generates test images/video in the page (no binary fixtures)
 ```
 
@@ -184,7 +187,7 @@ React rendering.
   machine (30 s story ≈ 17–20 s). Unprofiled; likely candidates are high-quality `drawImage`
   scaling of large bitmaps every frame and video decode. Fine for now; revisit in M8.
 - Leaving the editor discards a finished export that wasn't downloaded yet (no warning).
-- Audio (M6): import works; the music track UI, preview playback and export mixing are next.
+- Audio (M6): import and the music track UI work; preview playback and export mixing are next.
 - The main JS chunk is ~552 kB (508 kB before M4), over Vite's 500 kB warning (the exporter and
   Mediabunny are already lazy-loaded). Route-level code
   splitting (e.g. lazy `SystemPage`/editor) would fix it; not urgent for a local app.

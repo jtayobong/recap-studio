@@ -258,7 +258,8 @@ function DeleteMessage({ asset, usage }: { asset: Asset; usage: number }) {
         “{asset.filename}” will be removed from this project and deleted from this computer’s storage. This can’t be
         undone.
       </p>
-      {usage > 0 && (
+      {usage > 0 && asset.kind === 'audio' && <p>It’s the story’s music. The story will have no music.</p>}
+      {usage > 0 && asset.kind !== 'audio' && (
         <p>
           It’s used in {usage} {usage === 1 ? 'scene' : 'scenes'}. {usage === 1 ? 'That scene' : 'Those scenes'} will
           show an empty media slot.

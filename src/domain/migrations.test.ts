@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { migrateProject, migrateRaw, ProjectDataError, type Migration } from './migrations';
+import { MIGRATIONS, migrateProject, migrateRaw, ProjectDataError, type Migration } from './migrations';
 import { createProject, CURRENT_SCHEMA_VERSION } from './project';
 
 describe('migrateRaw', () => {
@@ -49,5 +49,44 @@ describe('migrateProject', () => {
     const project = createProject({ name: 'Broken' }, { now: 5, id: 'p' });
     const corrupt = { ...project, format: { ...project.format, fps: 7 } };
     expect(() => migrateProject(corrupt)).toThrow(/format\.fps/);
+  });
+});
+
+describe('real migrations', () => {
+  it('v1 → v2: a music track gets fade toggles (fade out on, fade in off); nothing else changes', async () => {
+    const v1 = (await import('./fixtures/project-v1.json')).default as Record<string, unknown>;
+    const migrated = migrateProject(structuredClone(v1));
+    expect(migrated.schemaVersion).toBe(2);
+    expect(migrated.audio).toEqual({
+      assetId: '2da05e70-8c65-4e2a-9f2d-4b9b9f3b2c33',
+      offsetMs: 45000,
+      volume: 0.8,
+      fadeIn: false,
+      fadeOut: true,
+    });
+    const without = (p: Record<string, unknown>) => {
+      const copy = { ...p };
+      delete copy.schemaVersion;
+      delete copy.audio;
+      return copy;
+    };
+    expect(without(migrated)).toEqual(without(v1));
+  });
+
+  it('v1 → v2: a project without music stays without music', async () => {
+    const v1 = (await import('./fixtures/project-v1.json')).default as Record<string, unknown>;
+    const noMusic = structuredClone(v1);
+    delete noMusic.audio;
+    const migrated = migrateProject(noMusic);
+    expect(migrated.schemaVersion).toBe(2);
+    expect('audio' in migrated).toBe(false);
+  });
+
+  it('v1 → v2: keeps explicit fade values if a v1 file somehow has them', () => {
+    const migrate = MIGRATIONS[1]!;
+    expect(migrate({ schemaVersion: 1, audio: { assetId: 'a', offsetMs: 0, volume: 1, fadeOut: false } }).audio).toMatchObject({
+      fadeIn: false,
+      fadeOut: false,
+    });
   });
 });

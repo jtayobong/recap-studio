@@ -12,6 +12,13 @@ interface AssetTileProps {
 
 const KIND_LABEL: Record<Asset['kind'], string> = { image: 'Photo', video: 'Video', audio: 'Music' };
 
+/** Where an asset is used. Audio is only ever the story's music (one track per story). */
+export function usageLabel(asset: Asset, usage: number): string {
+  if (usage === 0) return 'Not used';
+  if (asset.kind === 'audio') return 'Story music';
+  return `In ${usage} ${usage === 1 ? 'scene' : 'scenes'}`;
+}
+
 export function describeAsset(asset: Asset): string {
   const parts = [KIND_LABEL[asset.kind]];
   if (asset.width && asset.height) parts.push(`${asset.width}×${asset.height}`);
@@ -63,7 +70,7 @@ export function AssetTile({ asset, usage, onDelete }: AssetTileProps) {
           {asset.filename}
         </span>
         <span className="asset-tile__meta">
-          {usage > 0 ? `In ${usage} ${usage === 1 ? 'scene' : 'scenes'}` : 'Not used'}
+          {usageLabel(asset, usage)}
           <span className="visually-hidden">. {details}</span>
         </span>
       </div>

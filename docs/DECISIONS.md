@@ -180,3 +180,12 @@ first; if there's no picture, the probe throws `NoVideoTrackError` and the impor
 file as `audio/mp4` / `audio/webm` (size limit re-checked against the audio limit). Audio assets
 have no thumbnail (the tile shows ♪ and the duration), and the preview cache never tries to decode
 them as images.
+
+### D26. Project schema v2: music fades; `offsetMs` is the start point in the song
+The user chose optional fades (fade in ~1 s off by default, fade out ~1.5 s on by default), which
+are stored per project, so `AudioTrackSchema` gained `fadeIn`/`fadeOut` and the schema went to v2.
+Migration 1→2 adds `fadeIn: false, fadeOut: true` to an existing track and leaves projects without
+music untouched; it's tested with a real v1 fixture (`src/domain/fixtures/project-v1.json`) and in
+the browser with a raw v1 IndexedDB row. `offsetMs` (unchanged) is defined as where in the song
+playback starts; the music always begins with the story and plays once. Fade lengths are the
+`MUSIC_FADE_IN_MS`/`MUSIC_FADE_OUT_MS` constants shared by preview and export.

@@ -65,6 +65,9 @@ e2e/             Playwright specs
 2. Add a migration in `src/domain/migrations.ts`, keyed by the version it upgrades **from**.
 3. Add a test with a real old-version fixture in `migrations.test.ts`.
 
+History: v1 (M1); v2 (M6) added `audio.fadeIn` / `audio.fadeOut`. Old-version fixtures live in
+`src/domain/fixtures/`.
+
 ## How rendering works (M2)
 
 - `renderFrame(ctx, project, timeMs)` draws one complete frame. It is pure: the output depends only
@@ -149,5 +152,10 @@ e2e/             Playwright specs
 
 ## Next: M6 (audio, in progress)
 
-One music track per story, in sync in the preview and mixed into the export. Music can already be
-imported into the library. See `docs/NEXT-M6.md`.
+One music track per story, in sync in the preview and mixed into the export. See `docs/NEXT-M6.md`.
+
+- **Music** (project panel, with no scene selected): choose a song from the library, drag one onto
+  the slot, or drop a file. Set where in the song it starts, the volume, and whether it fades in
+  (1 s) and out at the end (1.5 s). It starts with the story and plays once; if it ends early,
+  the rest is silent. All of this is undoable.
+- Still to come in M6: hearing the music in the preview, and mixing it into the export.

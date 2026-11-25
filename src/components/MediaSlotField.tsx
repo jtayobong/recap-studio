@@ -27,7 +27,9 @@ function acceptText(accept: readonly AssetKind[]): string {
   const photos = accept.includes('image');
   const clips = accept.includes('video');
   if (photos && clips) return 'photos and clips';
-  return photos ? 'photos' : clips ? 'clips' : 'media';
+  if (photos) return 'photos';
+  if (clips) return 'clips';
+  return accept.includes('audio') ? 'music' : 'media';
 }
 
 /**

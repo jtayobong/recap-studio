@@ -14,8 +14,8 @@ Design notes; the open questions are settled (see **Decisions** at the end).
 - The project schema already has `audio?: { assetId, offsetMs, volume }` (`AudioTrackSchema`);
   only the fade toggles are new (schema v2, see Decisions). `remapAssetIds`, `countAssetReferences`,
   `clearAssetReferences` and `mediaAssetIds` already handle `project.audio`.
-- Assets: `kind: 'audio'` exists in `AssetSchema`, but no audio MIME types are accepted yet
-  (`SUPPORTED_MIME_TYPES`), the sniffer has no audio signatures, and there are no audio limits.
+- Assets: `kind: 'audio'` existed in `AssetSchema` (formats, sniffing and limits were added in
+  step 1).
 - Export: `exportStory` already gathers `project.audio`'s file and hands it to the worker; the
   worker ignores it. Mediabunny can encode audio (`AudioBufferSource` / `AudioSampleSource`,
   codecs `aac` and `opus`) and decode it in the worker (`AudioSampleSink`).
@@ -29,6 +29,13 @@ Design notes; the open questions are settled (see **Decisions** at the end).
   still sniff as video; when probing finds no picture (`NoVideoTrackError`) the importer imports
   them as `audio/mp4` / `audio/webm`. Limits 100 MB / 10 min; duration via an `<audio>` element.
   Library tiles show ♪ + duration; photo/clip slots and the preview cache ignore audio.
+- **Step 2 done (2026-11-25): music track UI + schema v2.** `audio` gained `fadeIn`/`fadeOut`
+  (migration 1→2 tested with a real v1 fixture, `domain/fixtures/project-v1.json`, and in the
+  browser with a raw v1 row). Music section in the project panel (`MusicSection`): song slot
+  (reuses `MediaSlotField`, audio only), start point slider, volume, fade toggles and a summary of
+  which part of the song plays. Actions in `editor/musicActions.ts` (undoable; one undo step per
+  slider drag). Sliders keep arrow/Home/End keys from also moving the playhead. A song used as
+  the music shows "Story music" in the library.
 
 ## Suggested breakdown
 

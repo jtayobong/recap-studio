@@ -1408,6 +1408,23 @@ a.button {
   font-size: 0.8rem;
 }
 
+/* ---------- Music ---------- */
+.music-section {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 1.4rem;
+}
+
+.music-settings {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.music-settings input[type='range'] {
+  width: 100%;
+  accent-color: var(--primary);
+}
+
 /* ---------- Inspector ---------- */
 .inspector {
   display: grid;

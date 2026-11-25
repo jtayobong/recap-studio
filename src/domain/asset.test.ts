@@ -67,7 +67,7 @@ describe('remapAssetIds', () => {
         { id: 's1', templateId: 'photo', durationMs: 3000, fields: { media: 'old-a', caption: 'Hi' }, transitionIn: 'fade' },
         { id: 's2', templateId: 'title', durationMs: 3000, fields: { text: 'No media' }, transitionIn: 'cut' },
       ],
-      audio: { assetId: 'old-b', offsetMs: 0, volume: 1 },
+      audio: { assetId: 'old-b', offsetMs: 0, volume: 1, fadeIn: false, fadeOut: true },
     };
   }
 
@@ -102,7 +102,7 @@ describe('asset references', () => {
       { id: 's2', templateId: 'collage', durationMs: 3000, fields: { left: 'a', right: 'a' }, transitionIn: 'fade' },
       { id: 's3', templateId: 'title', durationMs: 3000, fields: { text: 'b' }, transitionIn: 'cut' },
     ],
-    audio: { assetId: 'c', offsetMs: 0, volume: 1 },
+    audio: { assetId: 'c', offsetMs: 0, volume: 1, fadeIn: false, fadeOut: true },
   };
 
   it('counts scenes (once each) and the audio track', () => {

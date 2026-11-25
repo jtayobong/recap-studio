@@ -16,7 +16,14 @@ import { CURRENT_SCHEMA_VERSION, ProjectSchema, type Project } from './project';
 export type RawProject = Record<string, unknown>;
 export type Migration = (raw: RawProject) => RawProject;
 
-export const MIGRATIONS: Readonly<Record<number, Migration>> = {};
+export const MIGRATIONS: Readonly<Record<number, Migration>> = {
+  /** v1 → v2 (M6): the music track gets fade toggles; existing tracks fade out, don't fade in. */
+  1: (raw) => {
+    const next: RawProject = { ...raw, schemaVersion: 2 };
+    if (isPlainObject(raw.audio)) next.audio = { fadeIn: false, fadeOut: true, ...raw.audio };
+    return next;
+  },
+};
 
 export class ProjectDataError extends Error {
   constructor(message: string) {

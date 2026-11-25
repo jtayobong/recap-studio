@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'rea
 import { Link, useParams } from 'react-router';
 import { ExportControl } from '../components/ExportControl';
 import { MediaLibrary } from '../components/MediaLibrary';
+import { MusicSection } from '../components/MusicSection';
 import { PalettePicker } from '../components/PalettePicker';
 import { SceneInspector } from '../components/SceneInspector';
 import { SceneStrip } from '../components/SceneStrip';
@@ -180,6 +181,8 @@ function ProjectPanel({ project, durationMs }: { project: Project; durationMs: n
           update((p) => (p.style.paletteId === paletteId ? p : { ...p, style: { ...p.style, paletteId } }))
         }
       />
+
+      <MusicSection project={project} />
 
       <p className="muted inspector__tip">Select a scene in the strip below to edit its text and timing.</p>
 

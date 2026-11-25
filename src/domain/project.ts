@@ -9,7 +9,7 @@ import { DEFAULT_FONT_PAIR_ID, DEFAULT_PALETTE_ID } from './stylePresets';
  * Bump CURRENT_SCHEMA_VERSION and add a migration in ./migrations.ts whenever the
  * stored shape changes.
  */
-export const CURRENT_SCHEMA_VERSION = 1;
+export const CURRENT_SCHEMA_VERSION = 2;
 
 export const PROJECT_NAME_MAX = 100;
 export const MAX_SCENES = 200;
@@ -38,10 +38,22 @@ export const SceneSchema = z.object({
   transitionIn: TransitionSchema,
 });
 
+/** Fade lengths for the music track (M6 decisions: fade in ~1 s, fade out ~1.5 s). */
+export const MUSIC_FADE_IN_MS = 1000;
+export const MUSIC_FADE_OUT_MS = 1500;
+
+/**
+ * The story's music (one track). It always starts with the story; `offsetMs` is where in the song
+ * playback starts ("start at 0:45"). It plays once: if the song ends before the story, the rest is
+ * silent. Fades apply at the start of the story and at whichever ends first, song or story.
+ * Schema v2 added `fadeIn`/`fadeOut`.
+ */
 export const AudioTrackSchema = z.object({
   assetId: z.string().min(1),
   offsetMs: z.number().int().min(0),
   volume: z.number().min(0).max(1),
+  fadeIn: z.boolean(),
+  fadeOut: z.boolean(),
 });
 
 export const ProjectSchema = z.object({
@@ -61,6 +73,11 @@ export type Style = z.infer<typeof StyleSchema>;
 export type Transition = z.infer<typeof TransitionSchema>;
 export type Scene = z.infer<typeof SceneSchema>;
 export type AudioTrack = z.infer<typeof AudioTrackSchema>;
+
+/** A new music track for `assetId`: from the start of the song, full volume, fade out only. */
+export function defaultAudioTrack(assetId: string): AudioTrack {
+  return { assetId, offsetMs: 0, volume: 1, fadeIn: false, fadeOut: true };
+}
 export type Project = z.infer<typeof ProjectSchema>;
 
 export const FORMAT_PRESETS = {
