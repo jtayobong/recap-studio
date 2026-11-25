@@ -68,6 +68,13 @@ test('choose a song, set start point, volume and fades; undo; reload; delete', a
   await expect(music(page)).toContainText('0:11 of 0:12');
   await expect(music(page).getByLabel('Volume')).toHaveValue('80');
 
+  // With music, the export dialog shows the rights note.
+  await page.getByRole('button', { name: 'Export', exact: true }).click();
+  const exportDialog = page.getByRole('dialog', { name: 'Export video' });
+  await expect(exportDialog).toContainText('Make sure you have the rights to use this music before sharing the video.');
+  await expect(exportDialog).not.toContainText('This story has no music.');
+  await exportDialog.getByRole('button', { name: 'Cancel' }).click();
+
   // Deleting the song from the library removes the music.
   await library(page).getByRole('listitem', { name: 'anthem.wav' }).hover();
   await page.getByRole('button', { name: 'Delete anthem.wav' }).click();

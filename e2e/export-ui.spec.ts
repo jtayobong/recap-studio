@@ -26,6 +26,9 @@ test('export from the editor: choose quality, watch progress, keep editing, down
   const dialog = page.getByRole('dialog', { name: 'Export video' });
   await expect(dialog).toContainText('9:16 · 1080×1920 · 30 fps · 0:09');
   await expect(dialog.getByRole('radio', { name: /Standard/ })).toBeChecked();
+  // No music: no rights note, and the dialog says so.
+  await expect(dialog).toContainText('This story has no music.');
+  await expect(dialog).not.toContainText('rights to use this music');
   await dialog.getByRole('radio', { name: /High/ }).check();
   await dialog.getByRole('button', { name: 'Start export' }).click();
   await expect(dialog).toBeHidden();

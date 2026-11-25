@@ -100,7 +100,8 @@ src/
                 MusicSection,
                 Modal, ConfirmDialog, ProjectCard, …)
   export/       exportStory.ts (main-thread API: snapshot, target, assets, worker), export.worker.ts,
-                encodeStory.ts (plan pass + frame loop → Mediabunny), exportMedia.ts (frame-exact
+                encodeStory.ts (plan pass + frame loop → Mediabunny, interleaved music),
+                musicStream.ts + musicMix.ts (decode + mix the song), exportMedia.ts (frame-exact
                 media: record → plan → prepare → free), videoReader.ts, presets.ts, target.ts,
                 testing/inspectExport.ts (decode + compare, e2e only), exportStore.ts (UI-only
                 export state), mediaRefs.ts, index.ts (useExportStore; exporter lazy-loaded)
@@ -192,7 +193,7 @@ React rendering.
   machine (30 s story ≈ 17–20 s). Unprofiled; likely candidates are high-quality `drawImage`
   scaling of large bitmaps every frame and video decode. Fine for now; revisit in M8.
 - Leaving the editor discards a finished export that wasn't downloaded yet (no warning).
-- Audio (M6): import, the music track UI and preview playback work; export mixing is next.
+- Audio (M6): import, music track UI, preview playback and export mixing work; wrap-up pending.
 - The main JS chunk is ~552 kB (508 kB before M4), over Vite's 500 kB warning (the exporter and
   Mediabunny are already lazy-loaded). Route-level code
   splitting (e.g. lazy `SystemPage`/editor) would fix it; not urgent for a local app.

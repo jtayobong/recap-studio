@@ -143,8 +143,8 @@ History: v1 (M1); v2 (M6) added `audio.fadeIn` / `audio.fadeOut`. Old-version fi
 
 - **Export** (editor header) opens the options: *Standard* (~8 Mbps), *High* (~12 Mbps) or
   *Smaller file* (~5 Mbps) at the full 1080×1920, with a size estimate and a warning if a scene's
-  media is missing. The video is H.264 in MP4, or VP9 in WebM where H.264 encoding isn't available.
-  No sound yet (M6).
+  media is missing. The video is H.264 + AAC in MP4, or VP9 + Opus in WebM where H.264 encoding
+  isn't available. The story's music (M6) is mixed in.
 - Rendering happens in a background worker on this computer (about 5 s for a 30 s story on a
   typical desktop), from a snapshot: you can keep editing meanwhile. Progress and Cancel are in the
   header; when it's done, **Download** saves the file.
@@ -161,4 +161,6 @@ One music track per story, in sync in the preview and mixed into the export. See
   the rest is silent. All of this is undoable.
 - **In the preview** the music plays along with the playhead (jumping to the right place when you
   seek), with its volume and fades. **🔊 / M** mutes it in the preview only.
-- Still to come in M6: mixing the music into the export.
+- **In the export** the music is mixed in with the same start point, volume and fades (AAC in MP4,
+  Opus in WebM). If the song is missing or can't be decoded, the video still exports, without music,
+  and the header says why. The export dialog reminds you to check you have the rights to the music.

@@ -1,4 +1,4 @@
-import { ALL_FORMATS, BlobSource, CanvasSink, Input } from 'mediabunny';
+import { ALL_FORMATS, AudioSampleSink, BlobSource, CanvasSink, Input } from 'mediabunny';
 import type { MediaFrame, MediaResolver } from '../../render/media';
 import { renderFrame, type RenderableProject } from '../../render/renderFrame';
 
@@ -160,4 +160,50 @@ export function referenceMedia(assets: Record<string, { kind: 'image' | 'video' 
     }
     return { frame: (id, clipMs) => ready.get(`${id}@${clipMs}`) };
   };
+}
+
+export interface AudioReport {
+  codec: string | null;
+  sampleRate: number;
+  channels: number;
+  durationS: number;
+  /** Root-mean-square level (0–1, first channel) in each requested window [startS, endS). */
+  rms: number[];
+}
+
+/** Decode an export's audio track and measure its level in time windows; null if it has none. */
+export async function inspectAudio(file: Blob, windowsS: [number, number][]): Promise<AudioReport | null> {
+  const input = new Input({ source: new BlobSource(file), formats: ALL_FORMATS });
+  try {
+    const track = await input.getPrimaryAudioTrack();
+    if (!track) return null;
+    const sums = windowsS.map(() => ({ sum: 0, count: 0 }));
+    for await (const sample of new AudioSampleSink(track).samples()) {
+      try {
+        const options = { planeIndex: 0, format: 'f32-planar' as const };
+        const plane = new Float32Array(sample.allocationSize(options) / 4);
+        sample.copyTo(plane, options);
+        for (let i = 0; i < plane.length; i += 1) {
+          const t = sample.timestamp + i / sample.sampleRate;
+          windowsS.forEach(([start, end], w) => {
+            if (t >= start && t < end) {
+              sums[w]!.sum += plane[i]! * plane[i]!;
+              sums[w]!.count += 1;
+            }
+          });
+        }
+      } finally {
+        sample.close();
+      }
+    }
+    return {
+      codec: track.codec,
+      sampleRate: track.sampleRate,
+      channels: track.numberOfChannels,
+      durationS: await track.computeDuration(),
+      rms: sums.map(({ sum, count }) => (count > 0 ? Math.sqrt(sum / count) : 0)),
+    };
+  } finally {
+    input.dispose();
+  }
 }

@@ -14,6 +14,7 @@ const file = (): ExportedFile => ({
   totalFrames: 30,
   elapsedMs: 100,
   mediaFailures: {},
+  music: { included: false },
 });
 
 /** A fake exporter the test drives by hand: report progress, then finish or fail. */

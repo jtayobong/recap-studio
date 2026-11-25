@@ -1,6 +1,17 @@
 /// <reference lib="webworker" />
 import { encodeStory, type EncodeOptions, type EncodeResult } from './encodeStory';
+import type { AudioTrack } from '../domain/project';
+import { getSceneSpans, totalDurationMs } from '../render/timeline';
 import { createExportMedia, type ExportAsset } from './exportMedia';
+import {
+  canEncodeMusic,
+  MUSIC_BITRATE,
+  MUSIC_CHANNELS,
+  MUSIC_SAMPLE_RATE,
+  musicCodecFor,
+  openMusicStream,
+  type MusicStream,
+} from './musicStream';
 import { MediabunnyVideoReader } from './videoReader';
 
 /**
@@ -14,7 +25,10 @@ import { MediabunnyVideoReader } from './videoReader';
  *   ← { type: 'error', message, cancelled }
  */
 
-export type WorkerEncodeOptions = Omit<EncodeOptions, 'signal' | 'onProgress' | 'media'>;
+export type WorkerEncodeOptions = Omit<EncodeOptions, 'signal' | 'onProgress' | 'media' | 'audio'> & {
+  /** The story's music track settings; its file is in `assets`. */
+  music?: AudioTrack;
+};
 
 export type ExportRequest =
   | { type: 'start'; options: WorkerEncodeOptions; assets: Record<string, ExportAsset> }
@@ -39,6 +53,7 @@ scope.onmessage = async (event: MessageEvent<ExportRequest>) => {
   }
   if (controller) return; // one export per worker at a time
   controller = new AbortController();
+  let music: MusicStream | null = null;
   try {
     // Fonts: the app uses system font stacks, which need no loading. Don't await
     // `self.fonts.ready` here: in a dedicated worker it never resolved (Chromium, M5 step 2).
@@ -50,9 +65,34 @@ scope.onmessage = async (event: MessageEvent<ExportRequest>) => {
       },
       openVideo: (file, timestampsS) => MediabunnyVideoReader.open(file, timestampsS),
     });
-    const result = await encodeStory({
-      ...request.options,
+
+    // Music: optional. If it can't be included, the video still exports and says why.
+    const { music: track, ...encodeOptions } = request.options;
+    let musicNote: string | undefined;
+    const musicFile = track ? request.assets[track.assetId] : undefined;
+    const audioCodec = musicCodecFor(encodeOptions.container);
+    if (track && musicFile?.kind === 'audio') {
+      try {
+        if (!(await canEncodeMusic(audioCodec))) {
+          musicNote = `This browser can't encode ${audioCodec.toUpperCase()} audio, so the video has no music.`;
+        } else {
+          const storyMs = totalDurationMs(getSceneSpans(encodeOptions.project.scenes));
+          music = await openMusicStream(musicFile.file, track, Math.min(storyMs, encodeOptions.endMs ?? storyMs));
+          if (!music) musicNote = 'The song’s start point is past its end, so the video has no music.';
+        }
+      } catch (error) {
+        musicNote = `The music couldn’t be read (${error instanceof Error ? error.message : String(error)}), so the video has no music.`;
+      }
+    } else if (track) {
+      musicNote = 'The song is no longer in the library, so the video has no music.';
+    }
+
+    const encoded = await encodeStory({
+      ...encodeOptions,
       media,
+      audio: music
+        ? { codec: audioCodec, bitrate: MUSIC_BITRATE, sampleRate: MUSIC_SAMPLE_RATE, numberOfChannels: MUSIC_CHANNELS, samples: music.samples }
+        : undefined,
       signal: controller.signal,
       onProgress: ({ frame, totalFrames }) => {
         const now = performance.now();
@@ -62,11 +102,13 @@ scope.onmessage = async (event: MessageEvent<ExportRequest>) => {
         }
       },
     });
+    const result: EncodeResult = { ...encoded, music: { included: encoded.music.included, note: musicNote } };
     post({ type: 'done', result }, [result.data]);
   } catch (error) {
     const cancelled = error instanceof DOMException && error.name === 'AbortError';
     post({ type: 'error', message: error instanceof Error ? error.message : String(error), cancelled });
   } finally {
+    music?.dispose();
     controller = null;
   }
 };

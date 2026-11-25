@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { makeWav } from './helpers/media';
 import type * as DbExports from '../src/db/index';
 import type * as ExportExports from '../src/export/exportStory';
 import type * as InspectExports from '../src/export/testing/inspectExport';
@@ -356,4 +357,102 @@ test('M5 done-when: a 30 s story with title, big-number, photo and clip scenes e
     expect(diff.meanAbsDiff, `frame at ${diff.timeMs} ms`).toBeLessThan(4);
     expect(diff.badPixelShare, `frame at ${diff.timeMs} ms`).toBeLessThan(0.005);
   }
+});
+
+/** Starter story (8.5 s) with `song` imported and set as music with `settings`. Returns the project id. */
+async function storyWithMusic(page: Page, song: Buffer, settings: Record<string, unknown>): Promise<string> {
+  return page.evaluate(
+    async ({ base64, settings }) => {
+      const m = (window as unknown as { __m: Modules }).__m;
+      const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+      const project = await m.db.projectRepository.create({ name: 'With music' });
+      const asset = await m.media.importer.importFile(new File([bytes], 'song.wav'), project.id);
+      await m.db.projectRepository.save({
+        ...project,
+        scenes: m.registry.createStarterScenes(),
+        audio: { assetId: asset.id, offsetMs: 0, volume: 1, fadeIn: false, fadeOut: true, ...settings },
+      });
+      return project.id;
+    },
+    { base64: song.toString('base64'), settings },
+  );
+}
+
+async function exportAndMeasure(page: Page, projectId: string, windows: [number, number][], container?: 'mp4' | 'webm') {
+  return page.evaluate(
+    async ({ projectId, windows, container }) => {
+      const m = (window as unknown as { __m: Modules }).__m;
+      const project = (await m.db.projectRepository.get(projectId))!;
+      const file = await m.exporter.exportStory(project, m.db.assetRepository, container ? { target: m.target.targetFor(container) } : {});
+      const audio = await m.inspect.inspectAudio(file.blob, windows);
+      const video = await m.inspect.inspectExport(file.blob, project, [2000]);
+      return { music: file.music, audio, videoDurationS: video.durationS, frameDiff: video.frameDiffs[0]!.meanAbsDiff };
+    },
+    { projectId, windows, container },
+  );
+}
+
+test('the music is mixed into the export: start point, volume, a timing marker and the fade-out', async ({ page }, testInfo) => {
+  // 12 s tone with a silent gap at 4–5 s of the song. Starting the song at 2 s puts the gap at
+  // 2–3 s of the story; the story (8.5 s) ends before the song, with a 1.5 s fade-out.
+  const projectId = await storyWithMusic(page, makeWav(12_000, 440, 44_100, [[4000, 5000]]), { offsetMs: 2000, volume: 0.5 });
+  const windows: [number, number][] = [
+    [0.5, 1.5], // music at half volume: 0.354 × 0.5 ≈ 0.177
+    [2.2, 2.8], // the gap, moved by the start point
+    [3.5, 6.5], // music again
+    [7.2, 7.6], // fade-out starts at 7.0 s: a bit quieter
+    [8.25, 8.45], // nearly silent at the end
+  ];
+  const result = await exportAndMeasure(page, projectId, windows);
+  testInfo.annotations.push({ type: 'audio', description: JSON.stringify(result) });
+
+  expect(result.music).toEqual({ included: true });
+  expect(result.audio).not.toBeNull();
+  const audio = result.audio!;
+  expect(audio.codec).toBe('aac');
+  expect(audio.sampleRate).toBe(48_000);
+  expect(audio.channels).toBe(2);
+  expect(audio.durationS).toBeGreaterThan(8.4);
+  expect(audio.durationS).toBeLessThan(8.7);
+  const [before, gap, after, fading, end] = audio.rms;
+  expect(before).toBeGreaterThan(0.15);
+  expect(before).toBeLessThan(0.2);
+  expect(gap).toBeLessThan(0.01);
+  expect(after).toBeGreaterThan(0.15);
+  expect(after).toBeLessThan(0.2);
+  expect(fading).toBeLessThan(after! * 0.95);
+  expect(fading).toBeGreaterThan(after! * 0.5);
+  expect(end).toBeLessThan(0.03);
+  // The video is unchanged by adding music.
+  expect(result.videoDurationS).toBeCloseTo(8.5, 1);
+  expect(result.frameDiff).toBeLessThan(4);
+});
+
+test('a song that ends before the story stops early (with fade); WebM gets Opus; fade-in starts silent', async ({ page }) => {
+  // Start 10 s into a 12 s song: the music stops 2 s into the 8.5 s story.
+  const early = await storyWithMusic(page, makeWav(12_000, 440, 22_050), { offsetMs: 10_000, fadeIn: true });
+  const result = await exportAndMeasure(page, early, [[0, 0.05], [1.0, 1.3], [3, 8]], 'webm');
+  expect(result.music).toEqual({ included: true });
+  const audio = result.audio!;
+  expect(audio.codec).toBe('opus');
+  expect(audio.durationS).toBeGreaterThan(1.9);
+  expect(audio.durationS).toBeLessThan(2.2);
+  const [start, middle, after] = audio.rms;
+  expect(start).toBeLessThan(0.05); // fade-in starts from silence
+  expect(middle).toBeGreaterThan(0.2); // full volume: 0.354
+  expect(after).toBe(0); // nothing after the song ended
+  expect(result.videoDurationS).toBeCloseTo(8.5, 1);
+});
+
+test('missing music doesn’t stop the export: the video has no audio track and says why', async ({ page }) => {
+  const projectId = await storyWithMusic(page, makeWav(3000), {});
+  await page.evaluate(async (projectId) => {
+    const m = (window as unknown as { __m: Modules }).__m;
+    const project = (await m.db.projectRepository.get(projectId))!;
+    await m.db.assetRepository.remove(project.audio!.assetId);
+  }, projectId);
+  const result = await exportAndMeasure(page, projectId, [[0, 1]]);
+  expect(result.music).toEqual({ included: false, note: 'The song is no longer in the library, so the video has no music.' });
+  expect(result.audio).toBeNull();
+  expect(result.videoDurationS).toBeCloseTo(8.5, 1);
 });

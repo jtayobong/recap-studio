@@ -67,7 +67,8 @@ function ExportOptions({ project, onStart, onClose }: Omit<ExportDialogProps, 'o
           );
         })}
         <p id={`${groupId}-hint`} className="field__hint">
-          MP4 (H.264) where your browser supports it, otherwise WebM (VP9). No sound yet.
+          MP4 (H.264 video, AAC sound) where your browser supports it, otherwise WebM (VP9, Opus).
+          {project.audio ? '' : ' This story has no music.'}
         </p>
       </fieldset>
 
@@ -75,6 +76,12 @@ function ExportOptions({ project, onStart, onClose }: Omit<ExportDialogProps, 'o
         <p className="export-options__warning" role="note">
           {missingScenes === 1 ? '1 scene uses' : `${missingScenes} scenes use`} media that is no longer in the library.
           {missingScenes === 1 ? ' It' : ' They'} will show an empty placeholder in the video.
+        </p>
+      )}
+
+      {project.audio && (
+        <p className="muted export-options__note">
+          Make sure you have the rights to use this music before sharing the video.
         </p>
       )}
 

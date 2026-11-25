@@ -38,6 +38,8 @@ export interface ExportedFile {
   elapsedMs: number;
   /** Media that couldn't be drawn (shown as placeholders): asset id → reason. */
   mediaFailures: Record<string, string>;
+  /** Whether the story's music is in the file, and why not if it was left out. */
+  music: { included: boolean; note?: string };
 }
 
 export class ExportUnsupportedError extends Error {
@@ -106,6 +108,7 @@ export async function exportStory(project: Project, source: ExportAssetSource, o
       codec: target.codec,
       bitrate,
       endMs: options.endMs,
+      music: snapshot.audio,
     },
     assets,
     (frame, total) => options.onProgress?.(total > 0 ? frame / total : 1),
@@ -113,8 +116,9 @@ export async function exportStory(project: Project, source: ExportAssetSource, o
   );
 
   // Assets referenced but not found at all never reached the worker; report them too.
+  // (The music is reported separately, in `music.note`.)
   const mediaFailures = { ...result.mediaFailures };
-  for (const id of mediaAssetIds(snapshot)) {
+  for (const id of mediaAssetIds({ scenes: snapshot.scenes })) {
     if (!assets[id] && !mediaFailures[id]) mediaFailures[id] = 'missing from the library';
   }
 
@@ -126,5 +130,6 @@ export async function exportStory(project: Project, source: ExportAssetSource, o
     totalFrames: result.totalFrames,
     elapsedMs: result.totalMs,
     mediaFailures,
+    music: result.music,
   };
 }

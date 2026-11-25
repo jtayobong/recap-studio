@@ -44,9 +44,13 @@ export function ExportControl({ project }: { project: Project }) {
     const failures = Object.keys(file.mediaFailures).length;
     status = (
       <>
-        <span className="export-status__label" title={`${file.totalFrames} frames, made in ${formatDuration(file.elapsedMs)}`}>
+        <span
+          className="export-status__label"
+          title={[`${file.totalFrames} frames, made in ${formatDuration(file.elapsedMs)}`, file.music.note].filter(Boolean).join('\n')}
+        >
           ✓ {file.filename} ({formatBytes(file.blob.size)})
           {failures > 0 && <span className="export-status__warning"> · {failures} missing media shown as placeholders</span>}
+          {file.music.note && <span className="export-status__warning"> · no music</span>}
         </span>
         <a className="button button--primary button--small" href={state.url} download={file.filename}>
           Download

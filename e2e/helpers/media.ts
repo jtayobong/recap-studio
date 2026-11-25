@@ -55,12 +55,18 @@ export async function makeWebm(page: Page, durationMs = 1200): Promise<Buffer> {
   return Buffer.from(base64, 'base64');
 }
 
-/** A mono 16-bit PCM WAV with a sine tone, built in Node. */
-export function makeWav(durationMs: number, frequency = 440, sampleRate = 22_050): Buffer {
+/**
+ * A mono 16-bit PCM WAV with a sine tone (amplitude 0.5, so RMS ≈ 0.354), built in Node.
+ * `silences` are [startMs, endMs) ranges of the file that are silent, as timing markers.
+ */
+export function makeWav(durationMs: number, frequency = 440, sampleRate = 22_050, silences: [number, number][] = []): Buffer {
   const samples = Math.round((durationMs / 1000) * sampleRate);
   const data = Buffer.alloc(samples * 2);
   for (let i = 0; i < samples; i += 1) {
-    data.writeInt16LE(Math.round(Math.sin((2 * Math.PI * frequency * i) / sampleRate) * 0.5 * 32767), i * 2);
+    const ms = (i / sampleRate) * 1000;
+    const silent = silences.some(([start, end]) => ms >= start && ms < end);
+    const value = silent ? 0 : Math.sin((2 * Math.PI * frequency * i) / sampleRate) * 0.5;
+    data.writeInt16LE(Math.round(value * 32767), i * 2);
   }
   const header = Buffer.alloc(44);
   header.write('RIFF', 0, 'ascii');

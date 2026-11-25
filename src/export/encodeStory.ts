@@ -1,10 +1,13 @@
 import {
+  AudioSampleSource,
   BufferTarget,
   CanvasSource,
   Mp4OutputFormat,
   Output,
   Quality,
   WebMOutputFormat,
+  type AudioCodec,
+  type AudioSample,
   type VideoCodec,
 } from 'mediabunny';
 import { renderFrame, type RenderableProject } from '../render/renderFrame';
@@ -32,6 +35,14 @@ export interface EncodeOptions {
   endMs?: number;
   /** Without it, media slots draw placeholders. */
   media?: ExportMedia;
+  /** The music, already mixed into story time (see musicStream.ts). Without it: no audio track. */
+  audio?: {
+    codec: AudioCodec;
+    bitrate: number;
+    sampleRate: number;
+    numberOfChannels: number;
+    samples: AsyncIterable<AudioSample>;
+  };
   signal?: AbortSignal;
   onProgress?: (progress: { frame: number; totalFrames: number }) => void;
 }
@@ -46,6 +57,8 @@ export interface EncodeResult {
   totalMs: number;
   /** Assets that couldn't be drawn (missing or undecodable) → reason. Those slots show placeholders. */
   mediaFailures: Record<string, string>;
+  /** Whether the file has the story's music; `note` explains why not when it was left out. */
+  music: { included: boolean; note?: string };
 }
 
 export const KEY_FRAME_INTERVAL_S = 2;
@@ -79,6 +92,40 @@ export async function encodeStory(options: EncodeOptions): Promise<EncodeResult>
   });
   output.addVideoTrack(source, { frameRate: fps });
 
+  // Music is fed interleaved with the video, about a second ahead of it, so the muxer never waits
+  // on one track while the other runs far ahead, and memory stays flat.
+  const audio = options.audio;
+  const audioSource = audio
+    ? new AudioSampleSource({
+        codec: audio.codec,
+        quality: new Quality({ bitrate: audio.bitrate }),
+        transform: { sampleRate: audio.sampleRate, numberOfChannels: audio.numberOfChannels },
+      })
+    : undefined;
+  if (audioSource) output.addAudioTrack(audioSource);
+  let audioIterator: AsyncIterator<AudioSample> | undefined;
+  let audioUntilS = 0;
+  let audioDone = !audioSource;
+  const pumpAudio = async (untilS: number) => {
+    if (!audioSource || !audio) return;
+    audioIterator ??= audio.samples[Symbol.asyncIterator]();
+    while (!audioDone && audioUntilS < untilS) {
+      const next = await audioIterator.next();
+      if (next.done) {
+        audioDone = true;
+        audioSource.close();
+        break;
+      }
+      audioUntilS = next.value.timestamp + next.value.duration;
+      try {
+        await audioSource.add(next.value);
+      } finally {
+        next.value.close();
+      }
+    }
+  };
+  const AUDIO_LEAD_S = 1;
+
   let drawMs = 0;
   const media = options.media;
   try {
@@ -100,9 +147,11 @@ export async function encodeStory(options: EncodeOptions): Promise<EncodeResult>
       drawMs += performance.now() - drawStart;
       media?.endFrame(frame);
       // Awaiting respects encoder backpressure, so memory stays flat for long stories.
+      await pumpAudio(frame / fps + AUDIO_LEAD_S);
       await source.add(frame / fps, 1 / fps);
       options.onProgress?.({ frame: frame + 1, totalFrames });
     }
+    await pumpAudio(Number.POSITIVE_INFINITY);
     await output.finalize();
   } catch (error) {
     if (output.state !== 'finalized' && output.state !== 'canceled') await output.cancel().catch(() => undefined);
@@ -120,5 +169,6 @@ export async function encodeStory(options: EncodeOptions): Promise<EncodeResult>
     drawMs,
     totalMs: performance.now() - started,
     mediaFailures: Object.fromEntries(options.media?.failures() ?? []),
+    music: { included: options.audio !== undefined },
   };
 }

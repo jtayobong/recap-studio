@@ -189,3 +189,14 @@ music untouched; it's tested with a real v1 fixture (`src/domain/fixtures/projec
 the browser with a raw v1 IndexedDB row. `offsetMs` (unchanged) is defined as where in the song
 playback starts; the music always begins with the story and plays once. Fade lengths are the
 `MUSIC_FADE_IN_MS`/`MUSIC_FADE_OUT_MS` constants shared by preview and export.
+
+### D27. Music export: decoded and mixed in the worker, interleaved with the video
+`OfflineAudioContext` isn't available in workers, so the song is decoded with Mediabunny
+(`AudioSampleSink`) in the export worker and mixed by hand: `mixMusicBlock` trims each block to the
+music's span, applies `musicGain` (the same function the preview uses for its `<audio>` volume) per
+frame and shifts it to story time. Mediabunny resamples to 48 kHz stereo (valid for both AAC and
+Opus) and encodes at 160 kbps. Audio is added ~1 s ahead of the video frames rather than all at the
+end, so the muxer never stalls on one track and memory stays flat. Music problems never fail an
+export: a missing or undecodable song, or an unavailable audio encoder, produces a silent video
+plus `music.note`, which the UI shows. The rights reminder is a muted line in the export dialog,
+shown only when the story has music (user decision).

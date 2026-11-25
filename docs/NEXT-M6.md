@@ -42,6 +42,19 @@ Design notes; the open questions are settled (see **Decisions** at the end).
   0.2 s drift, volume per frame, pause outside the music. `PreviewMusic` is a hidden `<audio>`
   driven by store subscriptions (no React re-renders). Mute is UI-only (playback store), with a
   button next to Loop and the **M** key; it keeps the music in sync, just silent.
+- **Step 4 done (2026-11-25): music in the export.** The worker decodes the song with Mediabunny
+  (`musicStream.ts`, from the start point to where the music stops) and mixes each block with
+  `mixMusicBlock` (`musicMix.ts`: trim + `musicGain` per frame + story timing, the same rules as the
+  preview). Encoded as AAC (MP4) or Opus (WebM), resampled to 48 kHz stereo, 160 kbps, fed
+  interleaved ~1 s ahead of the video. If the song is missing, undecodable or the codec can't be
+  encoded, the video still exports without music and `music.note` says why (shown in the header).
+  The export dialog shows the rights note only when the story has music.
+  e2e decodes the exported audio: a silent marker in the song lands exactly where the start point
+  puts it, levels match the volume, the fade-out ramps, an early-ending song stops early, fade-in
+  starts silent, WebM gets Opus.
+
+**The M6 done-when is met** (export with correctly timed audio, preview in sync). Remaining: the
+milestone wrap-up (status tables, NEXT-M7 handoff).
 
 ## Suggested breakdown
 
