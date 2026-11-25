@@ -28,6 +28,8 @@ test in both formats); the editor UI (preview, strip, focus picker) handles both
   `render/portraitBaseline.test.ts` hashes every template's draw calls in 9:16 (204 cases); with
   `PORTRAIT_BASELINE=<file>` it records once and then fails on any portrait change. The "every
   template" render test now runs in both formats.
+- *Top 5 done:* in 16:9 the title is a column on the left and the ranked list fills the right
+  (taller rows, #1 highlighted); empty items are skipped as in portrait.
 
 **Where things stood (checked 2026-11-25):**
 

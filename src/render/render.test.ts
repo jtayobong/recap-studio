@@ -499,8 +499,8 @@ describe('layout helpers', () => {
     expect(unitOf(PORTRAIT)).toBe(1080);
   });
 
-  it('landscape Title and Big Number keep their text inside the frame', () => {
-    for (const templateId of ['title', 'big-number']) {
+  it('landscape templates keep their text inside the frame', () => {
+    for (const templateId of ['title', 'big-number', 'top-list']) {
       const created = createScene(templateId);
       const { ctx, calls } = createMockContext();
       renderFrame(ctx, project([{ ...created, transitionIn: 'cut' }], 'neon-pulse', LANDSCAPE), posterTimeMs(created));

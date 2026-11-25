@@ -1,6 +1,7 @@
 import { isolated, withAlpha } from '../context';
 import { easeOutBack, easeOutCubic, progress } from '../easing';
 import { cssFont, fitSingleLine, fitText } from '../text';
+import { isLandscape, unitOf } from '../layout';
 import { defineTemplate } from './types';
 
 /** Gap between items entering. */
@@ -28,7 +29,17 @@ export const topListTemplate = defineTemplate({
     const { width: W, height: H, localMs: t } = frame;
     const display = { family: fonts.display, weight: 900 };
     const body = { family: fonts.body, weight: 800 };
-    const left = W * 0.08;
+    const u = unitOf(frame);
+    // Portrait: title on top, list below. Landscape: title column on the left, list on the right.
+    const g = isLandscape(frame)
+      ? {
+          title: { x: W * 0.07, top: H * 0.14, maxWidth: W * 0.3, maxHeight: H * 0.5, maxLines: 3 },
+          list: { left: W * 0.42, top: H * 0.09, rowHeight: H * 0.165, width: W * 0.52, textMaxWidth: W * 0.42, textOffset: u * 0.14 },
+        }
+      : {
+          title: { x: W * 0.08, top: H * 0.12, maxWidth: W * 0.84, maxHeight: H * 0.16, maxLines: 2 },
+          list: { left: W * 0.08, top: H * 0.34, rowHeight: H * 0.11, width: W * 0.88, textMaxWidth: W * 0.68, textOffset: W * 0.14 },
+        };
 
     ctx.fillStyle = palette.background;
     ctx.fillRect(0, 0, W, H);
@@ -36,17 +47,17 @@ export const topListTemplate = defineTemplate({
     // A tall accent bar on the left grows in.
     const bar = easeOutCubic(progress(t, 0, 600));
     ctx.fillStyle = palette.surface;
-    ctx.fillRect(0, H * (1 - bar), W * 0.035, H * bar);
+    ctx.fillRect(0, H * (1 - bar), u * 0.035, H * bar);
 
     // Title.
     const title = fitText(ctx, values.title, {
       font: display,
-      maxWidth: W * 0.84,
-      maxHeight: H * 0.16,
-      maxSize: W * 0.1,
-      minSize: W * 0.05,
+      maxWidth: g.title.maxWidth,
+      maxHeight: g.title.maxHeight,
+      maxSize: u * 0.1,
+      minSize: u * 0.05,
       lineHeight: 1.05,
-      maxLines: 2,
+      maxLines: g.title.maxLines,
     });
     const titleIn = easeOutCubic(progress(t, 100, 450));
     withAlpha(ctx, titleIn, () => {
@@ -55,7 +66,7 @@ export const topListTemplate = defineTemplate({
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
       title.lines.forEach((line, i) => {
-        ctx.fillText(line, left, H * 0.12 + title.sizePx + i * title.lineHeightPx - (1 - titleIn) * 30);
+        ctx.fillText(line, g.title.x, g.title.top + title.sizePx + i * title.lineHeightPx - (1 - titleIn) * 30);
       });
     });
 
@@ -63,8 +74,7 @@ export const topListTemplate = defineTemplate({
     const items = [values.item1, values.item2, values.item3, values.item4, values.item5]
       .map((text, i) => ({ text: text.trim(), rank: i + 1 }))
       .filter((item) => item.text !== '');
-    const top = H * 0.34;
-    const rowHeight = H * 0.11;
+    const { left, top, rowHeight } = g.list;
     items.forEach((item, i) => {
       const enter = progress(t, FIRST_ITEM_MS + i * STAGGER_MS, 500);
       const slide = easeOutCubic(enter);
@@ -77,16 +87,16 @@ export const topListTemplate = defineTemplate({
           if (isFirst) {
             const pop = easeOutBack(enter);
             ctx.fillStyle = palette.primary;
-            ctx.fillRect(left - W * 0.02, y - rowHeight * 0.1, (W * 0.88) * pop, rowHeight * 0.9);
+            ctx.fillRect(left - u * 0.02, y - rowHeight * 0.1, g.list.width * pop, rowHeight * 0.9);
           }
-          const rankSize = W * 0.11;
+          const rankSize = u * 0.11;
           ctx.font = cssFont(display, rankSize);
           ctx.textBaseline = 'middle';
           ctx.textAlign = 'left';
           ctx.fillStyle = isFirst ? palette.background : palette.accent;
           ctx.fillText(String(item.rank), left, y + rowHeight * 0.35);
-          const textLeft = left + W * 0.14;
-          const textSize = fitSingleLine(ctx, item.text, body, W * 0.68, W * 0.065, W * 0.035);
+          const textLeft = left + g.list.textOffset;
+          const textSize = fitSingleLine(ctx, item.text, body, g.list.textMaxWidth, u * 0.065, u * 0.035);
           ctx.font = cssFont(body, textSize);
           ctx.fillStyle = isFirst ? palette.background : palette.text;
           ctx.fillText(item.text, textLeft, y + rowHeight * 0.35);
