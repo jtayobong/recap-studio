@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useBlocker, useParams } from 'react-router';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { ExportControl } from '../components/ExportControl';
 import { FontPicker } from '../components/FontPicker';
 import { MediaLibrary } from '../components/MediaLibrary';
@@ -12,7 +13,7 @@ import { MAX_SCENES, normalizeProjectName, PROJECT_NAME_MAX, projectDurationMs, 
 import { indexOfScene } from '../domain/sceneOps';
 import { useSelectionStore } from '../editor/selectionStore';
 import { useEditorShortcuts } from '../editor/useEditorShortcuts';
-import { useExportStore } from '../export';
+import { exportWouldBeLost, useExportStore } from '../export';
 import { formatAspectRatio } from '../lib/format';
 import { assetStatus, mediaCache } from '../media';
 import { PlaybackControls } from '../preview/PlaybackControls';
@@ -69,8 +70,8 @@ export function EditorPage() {
         void flushSave();
         event.preventDefault();
       }
-      // Closing the tab would lose a running export.
-      if (useExportStore.getState().state.status === 'exporting') event.preventDefault();
+      // Closing the tab would lose a running export or a file not downloaded yet.
+      if (exportWouldBeLost(useExportStore.getState().state)) event.preventDefault();
     };
     document.addEventListener('visibilitychange', onHidden);
     window.addEventListener('pagehide', onPageHide);
@@ -101,7 +102,12 @@ export function EditorPage() {
     return <EditorMessage title="Opening project…" />;
   }
 
-  return <EditorLayout project={project} />;
+  return (
+    <>
+      <EditorLayout project={project} />
+      <LeaveGuard />
+    </>
+  );
 }
 
 function EditorLayout({ project }: { project: Project }) {
@@ -292,5 +298,36 @@ function EditorMessage({ title, children }: { title: string; children?: ReactNod
       <h1>{title}</h1>
       {children && <div>{children}</div>}
     </main>
+  );
+}
+
+/**
+ * Asks before leaving the editor (the Projects link, the browser's Back button) while an export is
+ * running or its file hasn't been downloaded: leaving cancels or discards it.
+ */
+function LeaveGuard() {
+  const exportState = useExportStore((s) => s.state);
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      exportWouldBeLost(useExportStore.getState().state) && currentLocation.pathname !== nextLocation.pathname,
+  );
+  const running = exportState.status === 'exporting';
+  return (
+    <ConfirmDialog
+      open={blocker.state === 'blocked'}
+      title="Leave the editor?"
+      confirmLabel={running ? 'Leave and cancel export' : 'Leave without downloading'}
+      destructive
+      onConfirm={() => blocker.proceed?.()}
+      onClose={() => {
+        if (blocker.state === 'blocked') blocker.reset();
+      }}
+    >
+      <p>
+        {running
+          ? 'An export is still running. Leaving the editor cancels it.'
+          : 'Your exported video hasn’t been downloaded yet. Leaving the editor discards it.'}
+      </p>
+    </ConfirmDialog>
   );
 }

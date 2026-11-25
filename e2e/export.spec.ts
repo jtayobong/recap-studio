@@ -334,6 +334,7 @@ test('M5 done-when: a 30 s story with title, big-number, photo and clip scenes e
     return {
       frames: file.totalFrames,
       elapsedMs: file.elapsedMs,
+      timings: file.timings,
       bytes: file.blob.size,
       container: file.target.container,
       failures: file.mediaFailures,
@@ -343,6 +344,7 @@ test('M5 done-when: a 30 s story with title, big-number, photo and clip scenes e
 
   const summary = [
     `30 s story: ${result.frames} frames in ${(result.elapsedMs / 1000).toFixed(1)} s (${(result.frames / (result.elapsedMs / 1000)).toFixed(0)} fps), ${(result.bytes / 1e6).toFixed(1)} MB ${result.container}/${result.report.codec}`,
+    `  time: draw ${Math.round(result.timings.draw)} ms, media ${Math.round(result.timings.prepare)} ms, encoder ${Math.round(result.timings.encode)} ms, audio ${Math.round(result.timings.audio)} ms`,
     `decoded: ${result.report.width}×${result.report.height}, ${result.report.durationS.toFixed(3)} s, ${result.report.packetCount} packets`,
     ...result.report.frameDiffs.map((d) => `  t=${d.timeMs} ms: mean |Δ| ${d.meanAbsDiff.toFixed(2)}, pixels Δ>48 ${(d.badPixelShare * 100).toFixed(3)}%`),
   ].join('\n');

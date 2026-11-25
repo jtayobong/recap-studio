@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createProject } from '../domain/project';
 import type { ExportedFile, ExportStoryOptions } from './exportStory';
-import { createExportStore } from './exportStore';
+import { createExportStore, exportWouldBeLost } from './exportStore';
 
 const project = createProject({ name: 'Store' }, { now: 1 });
 const source = { get: async () => undefined, readFile: async () => undefined };
@@ -13,6 +13,7 @@ const file = (): ExportedFile => ({
   bitrate: 8_000_000,
   totalFrames: 30,
   elapsedMs: 100,
+  timings: { draw: 0, prepare: 0, encode: 0, audio: 0 },
   mediaFailures: {},
   music: { included: false },
 });
@@ -108,3 +109,19 @@ describe('export store', () => {
     expect(state().status).toBe('exporting');
   });
 });
+
+describe('leaving the editor', () => {
+  it('would lose work while exporting, and until the file is downloaded', async () => {
+    const { store, fake, state } = setup();
+    expect(exportWouldBeLost(state())).toBe(false);
+    const running = store.getState().start(project, 'standard');
+    expect(exportWouldBeLost(state())).toBe(true);
+    fake.finish();
+    await running;
+    expect(exportWouldBeLost(state())).toBe(true);
+    store.getState().markDownloaded();
+    expect(state()).toMatchObject({ status: 'done', downloaded: true });
+    expect(exportWouldBeLost(state())).toBe(false);
+  });
+});
+

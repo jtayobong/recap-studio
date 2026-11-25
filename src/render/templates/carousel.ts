@@ -16,12 +16,16 @@ const cardAspects = {
 
 function slotFields(index: number): FieldDefs {
   const n = index + 1;
+  // One more slot appears as the previous one is filled (a filled slot always stays visible).
+  const visibleWhen =
+    index === 0 ? undefined : { anyOf: [{ field: `media${index}`, filled: true as const }, { field: `media${n}`, filled: true as const }] };
   const media: MediaField = {
     kind: 'media',
     label: `Photo ${n}`,
     default: '',
     accept: ACCEPT,
     focus: { x: `focus${n}X`, y: `focus${n}Y`, aspect: { field: 'direction', byValue: cardAspects } },
+    visibleWhen,
   };
   return {
     [`media${n}`]: media,

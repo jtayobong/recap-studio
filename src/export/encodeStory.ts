@@ -53,6 +53,12 @@ export interface EncodeResult {
   totalFrames: number;
   /** Time spent drawing frames (renderFrame), in ms. */
   drawMs: number;
+  /** Time spent decoding/preparing media for frames, in ms. */
+  prepareMs: number;
+  /** Time spent handing frames to the encoder (incl. waiting for it to catch up), in ms. */
+  encodeMs: number;
+  /** Time spent mixing and adding audio, in ms. */
+  audioMs: number;
   /** Wall-clock time for the whole export, in ms. */
   totalMs: number;
   /** Assets that couldn't be drawn (missing or undecodable) → reason. Those slots show placeholders. */
@@ -127,6 +133,9 @@ export async function encodeStory(options: EncodeOptions): Promise<EncodeResult>
   const AUDIO_LEAD_S = 1;
 
   let drawMs = 0;
+  let prepareMs = 0;
+  let encodeMs = 0;
+  let audioMs = 0;
   const media = options.media;
   try {
     if (media) {
@@ -141,14 +150,20 @@ export async function encodeStory(options: EncodeOptions): Promise<EncodeResult>
     await output.start();
     for (let frame = 0; frame < totalFrames; frame += 1) {
       if (signal?.aborted) throw signal.reason ?? new DOMException('Export cancelled', 'AbortError');
+      const prepareStart = performance.now();
       if (media) await media.prepare(frame);
+      prepareMs += performance.now() - prepareStart;
       const drawStart = performance.now();
       renderFrame(ctx, project, frameToMs(frame, fps), media?.resolver);
       drawMs += performance.now() - drawStart;
       media?.endFrame(frame);
       // Awaiting respects encoder backpressure, so memory stays flat for long stories.
+      const audioStart = performance.now();
       await pumpAudio(frame / fps + AUDIO_LEAD_S);
+      audioMs += performance.now() - audioStart;
+      const encodeStart = performance.now();
       await source.add(frame / fps, 1 / fps);
+      encodeMs += performance.now() - encodeStart;
       options.onProgress?.({ frame: frame + 1, totalFrames });
     }
     await pumpAudio(Number.POSITIVE_INFINITY);
@@ -167,6 +182,9 @@ export async function encodeStory(options: EncodeOptions): Promise<EncodeResult>
     mimeType: options.container === 'mp4' ? 'video/mp4' : 'video/webm',
     totalFrames,
     drawMs,
+    prepareMs,
+    encodeMs,
+    audioMs,
     totalMs: performance.now() - started,
     mediaFailures: Object.fromEntries(options.media?.failures() ?? []),
     music: { included: options.audio !== undefined },

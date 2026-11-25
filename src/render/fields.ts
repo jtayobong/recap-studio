@@ -8,7 +8,13 @@ import { AssetIdSchema, type AssetKind } from '../domain/asset';
  *  - generate the inspector form automatically (M3); `media` slots get a library picker (M4)
  */
 
-export interface TextField {
+/** Properties every field kind shares. */
+interface FieldBase {
+  /** Show this field in the inspector only when the condition holds (see `isFieldVisible`). */
+  visibleWhen?: VisibleWhen;
+}
+
+export interface TextField extends FieldBase {
   kind: 'text';
   label: string;
   default: string;
@@ -16,7 +22,7 @@ export interface TextField {
   multiline?: boolean;
 }
 
-export interface NumberField {
+export interface NumberField extends FieldBase {
   kind: 'number';
   label: string;
   default: number;
@@ -26,13 +32,13 @@ export interface NumberField {
   step: number;
 }
 
-export interface BooleanField {
+export interface BooleanField extends FieldBase {
   kind: 'boolean';
   label: string;
   default: boolean;
 }
 
-export interface ChoiceField {
+export interface ChoiceField extends FieldBase {
   kind: 'choice';
   label: string;
   default: string;
@@ -44,7 +50,7 @@ export interface ChoiceField {
  * that the id is well-formed; whether the asset exists (and is of an accepted kind) is decided at
  * draw time by the media resolver, which falls back to a placeholder.
  */
-export interface MediaField {
+export interface MediaField extends FieldBase {
   kind: 'media';
   label: string;
   default: '';
@@ -77,6 +83,16 @@ export function fieldsEditedBySlots(defs: FieldDefs): Set<string> {
   }
   return keys;
 }
+
+/**
+ * When the inspector shows a field (plain data; hidden fields keep their values):
+ * `{ field, oneOf }`: another field's value is one of these; `{ field, filled: true }`: another
+ * field is not empty; `{ anyOf }`: any of the conditions holds.
+ */
+export type VisibleWhen =
+  | { field: string; oneOf: readonly string[] }
+  | { field: string; filled: true }
+  | { anyOf: readonly VisibleWhen[] };
 
 export type FieldDef = TextField | NumberField | BooleanField | ChoiceField | MediaField;
 export type FieldDefs = Record<string, FieldDef>;
@@ -119,4 +135,16 @@ export function resolveFields<D extends FieldDefs>(defs: D, raw: Record<string, 
 
 export function defaultFields<D extends FieldDefs>(defs: D): FieldValues<D> {
   return resolveFields(defs, undefined);
+}
+
+/** Whether the inspector shows `def` given the scene's resolved values. */
+export function isFieldVisible(def: FieldDef, values: Readonly<Record<string, unknown>>): boolean {
+  return def.visibleWhen === undefined || conditionHolds(def.visibleWhen, values);
+}
+
+function conditionHolds(condition: VisibleWhen, values: Readonly<Record<string, unknown>>): boolean {
+  if ('anyOf' in condition) return condition.anyOf.some((c) => conditionHolds(c, values));
+  const value = values[condition.field];
+  if ('oneOf' in condition) return condition.oneOf.includes(String(value));
+  return value !== undefined && value !== '' && value !== false;
 }

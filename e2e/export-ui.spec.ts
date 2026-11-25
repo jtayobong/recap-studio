@@ -96,4 +96,61 @@ test('the export dialog warns about scenes whose media was deleted', async ({ pa
   await expect(page.getByRole('dialog', { name: 'Export video' })).toContainText(
     '1 scene uses media that is no longer in the library. It will show an empty placeholder in the video.',
   );
+  // Escape closes the dialog (a user close is still reported after the Modal close-event fix).
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Export video' })).toBeHidden();
+  await page.getByRole('button', { name: 'Export', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Export video' })).toBeVisible();
 });
+
+test('leaving the editor asks first while an export is running or not yet downloaded', async ({ page }) => {
+  await createProject(page, 'Leave guard');
+  await addBasicStory(page);
+  await page.getByRole('button', { name: 'Export', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Export video' }).getByRole('button', { name: 'Start export' }).click();
+  await expect(exportStatus(page)).toContainText('✓ leave-guard.mp4', { timeout: 60_000 });
+
+  // Not downloaded yet: leaving asks; staying keeps the file.
+  await page.getByRole('link', { name: '← Projects' }).click();
+  const confirm = page.getByRole('dialog', { name: 'Leave the editor?' });
+  await expect(confirm).toContainText('hasn’t been downloaded yet');
+  await confirm.getByRole('button', { name: 'Cancel' }).click();
+  await expect(page).toHaveURL(/\/project\//);
+  await expect(exportStatus(page)).toContainText('✓ leave-guard.mp4');
+
+  // The browser's Back button is guarded too.
+  await page.goBack();
+  await expect(confirm).toBeVisible();
+  await confirm.getByRole('button', { name: 'Cancel' }).click();
+  await expect(page).toHaveURL(/\/project\//);
+
+  // After downloading, leaving doesn't ask.
+  const download = page.waitForEvent('download');
+  await exportStatus(page).getByRole('link', { name: 'Download' }).click();
+  await download;
+  await page.getByRole('link', { name: '← Projects' }).click();
+  await expect(page.getByRole('heading', { name: 'Your projects' })).toBeVisible();
+});
+
+test('leaving during an export can cancel it', async ({ page }) => {
+  await createProject(page, 'Long export');
+  await page.evaluate(async () => {
+    const db = await import('/src/db/index.ts' as string);
+    const registry = await import('/src/render/templates/registry.ts' as string);
+    const id = location.pathname.split('/').pop()!;
+    const project = await db.projectRepository.get(id);
+    const scenes = ['title', 'big-number', 'title'].map((t: string) => ({ ...registry.createScene(t), durationMs: 60_000 }));
+    await db.projectRepository.save({ ...project, scenes });
+  });
+  await page.reload();
+  await page.getByRole('button', { name: 'Export', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Export video' }).getByRole('button', { name: 'Start export' }).click();
+  await expect(exportStatus(page)).toContainText(/Exporting… \d+%/);
+
+  await page.getByRole('link', { name: '← Projects' }).click();
+  const confirm = page.getByRole('dialog', { name: 'Leave the editor?' });
+  await expect(confirm).toContainText('An export is still running');
+  await confirm.getByRole('button', { name: 'Leave and cancel export' }).click();
+  await expect(page.getByRole('heading', { name: 'Your projects' })).toBeVisible();
+});
+

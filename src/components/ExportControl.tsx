@@ -10,7 +10,7 @@ import { ExportDialog } from './ExportDialog';
  */
 export function ExportControl({ project }: { project: Project }) {
   const state = useExportStore((s) => s.state);
-  const { start, cancel, dismiss } = useExportStore.getState();
+  const { start, cancel, dismiss, markDownloaded } = useExportStore.getState();
   const [choosing, setChoosing] = useState(false);
   const empty = project.scenes.length === 0;
 
@@ -52,7 +52,7 @@ export function ExportControl({ project }: { project: Project }) {
           {failures > 0 && <span className="export-status__warning"> · {failures} missing media shown as placeholders</span>}
           {file.music.note && <span className="export-status__warning"> · no music</span>}
         </span>
-        <a className="button button--primary button--small" href={state.url} download={file.filename}>
+        <a className="button button--primary button--small" href={state.url} download={file.filename} onClick={markDownloaded}>
           Download
         </a>
         <button type="button" className="button button--ghost button--small" onClick={dismiss} aria-label="Dismiss export">

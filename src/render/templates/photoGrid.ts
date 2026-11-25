@@ -22,14 +22,20 @@ function slotAspects(index: number): Record<string, number> {
   return byValue;
 }
 
+/** Layouts that show slot `index`. */
+const layoutsWithSlot = (index: number) => LAYOUTS.filter((layout) => SLOT_COUNT[layout] > index);
+
 function slotFields(index: number): FieldDefs {
   const n = index + 1;
+  // Slots the layout doesn't use are hidden in the inspector, unless they still hold media.
+  const visibleWhen = index < 2 ? undefined : { anyOf: [{ field: 'layout', oneOf: layoutsWithSlot(index) }, { field: `media${n}`, filled: true as const }] };
   const media: MediaField = {
     kind: 'media',
     label: `Photo ${n}`,
     default: '',
     accept: ACCEPT,
     focus: { x: `focus${n}X`, y: `focus${n}Y`, fit: `fit${n}`, aspect: { field: 'layout', byValue: slotAspects(index) } },
+    visibleWhen,
   };
   return {
     [`media${n}`]: media,
@@ -37,6 +43,7 @@ function slotFields(index: number): FieldDefs {
     [`focus${n}Y`]: { kind: 'number', label: `Photo ${n} focus down`, default: 0.5, min: 0, max: 1, step: 0.01 },
     [`fit${n}`]: {
       kind: 'choice',
+      visibleWhen,
       label: `Photo ${n} fit`,
       default: 'cover',
       options: [

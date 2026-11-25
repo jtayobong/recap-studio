@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from 'react-router';
+import { createBrowserRouter, Outlet, RouterProvider } from 'react-router';
 import { AppShell } from './components/AppShell';
 import { CapabilityGate } from './components/CapabilityGate';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -7,22 +7,41 @@ import { NotFoundPage } from './pages/NotFoundPage';
 import { ProjectsPage } from './pages/ProjectsPage';
 import { SystemPage } from './pages/SystemPage';
 
+/** Every route sits behind the capability check. */
+function Root() {
+  return (
+    <CapabilityGate>
+      <Outlet />
+    </CapabilityGate>
+  );
+}
+
+/**
+ * A data router (not `<BrowserRouter>`), so pages can block navigation (`useBlocker`: the editor
+ * asks before leaving with an unsaved export) and routes can be lazy-loaded.
+ */
+const router = createBrowserRouter([
+  {
+    element: <Root />,
+    children: [
+      {
+        element: <AppShell />,
+        children: [
+          { index: true, element: <ProjectsPage /> },
+          { path: 'system', element: <SystemPage /> },
+          { path: '*', element: <NotFoundPage /> },
+        ],
+      },
+      // The editor is full-screen, outside the app shell.
+      { path: 'project/:projectId', element: <EditorPage /> },
+    ],
+  },
+]);
+
 export function App() {
   return (
     <ErrorBoundary>
-      <BrowserRouter>
-        <CapabilityGate>
-          <Routes>
-            <Route element={<AppShell />}>
-              <Route index element={<ProjectsPage />} />
-              <Route path="system" element={<SystemPage />} />
-              <Route path="*" element={<NotFoundPage />} />
-            </Route>
-            {/* The editor is full-screen, outside the app shell. */}
-            <Route path="project/:projectId" element={<EditorPage />} />
-          </Routes>
-        </CapabilityGate>
-      </BrowserRouter>
+      <RouterProvider router={router} />
     </ErrorBoundary>
   );
 }

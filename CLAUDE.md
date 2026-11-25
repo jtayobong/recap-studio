@@ -142,7 +142,8 @@ React rendering.
    - format numbers with a fixed locale (`en-US`)
    - set `posterMs` (when the scene looks complete); it drives selection and thumbnails
    - `renderFrame` respects the caller's transform (thumbnails draw on a scaled context)
-5. **Template fields are plain descriptors** (`render/fields.ts`: text/number/boolean/choice/media).
+5. **Template fields are plain descriptors** (`render/fields.ts`: text/number/boolean/choice/media,
+   each with an optional plain-data `visibleWhen` for the inspector).
    `resolveFields` coerces stored values and never throws; the inspector form is generated from
    the descriptors. A `media` value is a well-formed asset id or `''`; existence and kind are
    checked at draw time. Add new field kinds there.
@@ -191,13 +192,12 @@ React rendering.
   `FontFace.load()`; `self.fonts.ready` never resolves in a worker.
 - Preview video is approximate (`<video>` seeking); export decodes clips frame-exactly, so a clip
   can look a frame off in the preview but never in the file.
-- Export speed: ~200 fps for text scenes but ~45–50 fps with full-size photos/clips on the dev
-  machine (30 s story ≈ 17–20 s). Unprofiled; likely candidates are high-quality `drawImage`
-  scaling of large bitmaps every frame and video decode. Fine for now; revisit in M8.
-- Leaving the editor discards a finished export that wasn't downloaded yet (no warning).
+- Export speed is dominated by the video encoder (≈97 % of the time; drawing and media decoding are
+  negligible, see `ExportedFile.timings`). In real Edge/Chrome with hardware encoding a 30 s story
+  with photos and clips exports in ~5 s (190 fps); Playwright's bundled Chromium encodes in
+  software and is ~3.7× slower, so don't read e2e export timings as user-facing speed.
 - Preview music is an `<audio>` element re-synced past 0.2 s drift; the export mix is exact.
 - Audio assets have no waveform thumbnail (the tile shows ♪ and the duration).
-- The inspector shows all Photo grid (4) and carousel (6) slots even when fewer are used.
 - The main JS chunk is ~560 kB (508 kB before M4), over Vite's 500 kB warning (the exporter and
   Mediabunny are already lazy-loaded; the export worker is ~694 kB, loaded on first export). Route-level code
   splitting (e.g. lazy `SystemPage`/editor) would fix it; not urgent for a local app.

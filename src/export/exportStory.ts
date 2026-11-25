@@ -36,6 +36,8 @@ export interface ExportedFile {
   bitrate: number;
   totalFrames: number;
   elapsedMs: number;
+  /** Where the export's time went (ms), for diagnostics. */
+  timings: { draw: number; prepare: number; encode: number; audio: number };
   /** Media that couldn't be drawn (shown as placeholders): asset id → reason. */
   mediaFailures: Record<string, string>;
   /** Whether the story's music is in the file, and why not if it was left out. */
@@ -129,6 +131,7 @@ export async function exportStory(project: Project, source: ExportAssetSource, o
     bitrate,
     totalFrames: result.totalFrames,
     elapsedMs: result.totalMs,
+    timings: { draw: result.drawMs, prepare: result.prepareMs, encode: result.encodeMs, audio: result.audioMs },
     mediaFailures,
     music: result.music,
   };

@@ -93,3 +93,22 @@ test('deleting media that a scene uses empties the slot', async ({ page }) => {
   await expect(tile(page, 'beach.png')).toHaveCount(0);
   await expect(slot(page)).toContainText('Empty');
 });
+
+test('the inspector shows only the photo slots a grid layout or carousel uses', async ({ page }) => {
+  await projectWithMedia(page);
+  await page.getByRole('button', { name: /Photo grid/ }).click();
+  const slots = inspector(page).getByRole('group', { name: /^Photo \d$/ });
+  await expect(slots).toHaveCount(3); // default layout: 1 big + 2
+  await inspector(page).getByLabel('Layout').selectOption('four');
+  await expect(slots).toHaveCount(4);
+  await inspector(page).getByLabel('Layout').selectOption('two');
+  await expect(slots).toHaveCount(2);
+  await expect(inspector(page).getByLabel('Photo 3 fit')).toHaveCount(0);
+
+  await page.getByRole('button', { name: /Photo carousel/ }).click();
+  await expect(slots).toHaveCount(1);
+  await inspector(page).getByRole('group', { name: 'Photo 1' }).getByRole('button', { name: 'Choose…' }).click();
+  await page.getByRole('dialog', { name: 'Choose photo 1' }).getByRole('button', { name: 'beach.png' }).click();
+  await expect(slots).toHaveCount(2); // the next slot appears
+});
+

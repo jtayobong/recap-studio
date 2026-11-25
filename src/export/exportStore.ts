@@ -11,7 +11,7 @@ import type { QualityPresetId } from './presets';
 export type ExportState =
   | { status: 'idle'; notice?: string }
   | { status: 'exporting'; projectId: string; fraction: number; startedAt: number }
-  | { status: 'done'; projectId: string; file: ExportedFile; url: string }
+  | { status: 'done'; projectId: string; file: ExportedFile; url: string; downloaded: boolean }
   | { status: 'error'; projectId: string; message: string; preset: QualityPresetId };
 
 interface ExportStore {
@@ -20,6 +20,8 @@ interface ExportStore {
   cancel(): void;
   /** Back to idle; frees the finished file. */
   dismiss(): void;
+  /** The user clicked Download (leaving the editor no longer needs a warning). */
+  markDownloaded(): void;
 }
 
 export function createExportStore(
@@ -67,7 +69,7 @@ export function createExportStore(
             },
           });
           if (controller !== current) return; // cancelled/replaced meanwhile
-          set({ state: { status: 'done', projectId: project.id, file, url: createUrl(file.blob) } });
+          set({ state: { status: 'done', projectId: project.id, file, url: createUrl(file.blob), downloaded: false } });
         } catch (error) {
           if (controller !== current) return;
           const cancelled = error instanceof DOMException && error.name === 'AbortError';
@@ -88,6 +90,11 @@ export function createExportStore(
         set({ state: { status: 'idle', notice: 'Export cancelled.' } });
       },
 
+      markDownloaded() {
+        const { state } = get();
+        if (state.status === 'done' && !state.downloaded) set({ state: { ...state, downloaded: true } });
+      },
+
       dismiss() {
         if (get().state.status === 'exporting') return;
         release();
@@ -98,3 +105,8 @@ export function createExportStore(
 }
 
 export type ExportStoreHook = ReturnType<typeof createExportStore>;
+
+/** Whether leaving the editor would lose work: an export running, or a file not yet downloaded. */
+export function exportWouldBeLost(state: ExportState): boolean {
+  return state.status === 'exporting' || (state.status === 'done' && !state.downloaded);
+}

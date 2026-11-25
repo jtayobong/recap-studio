@@ -20,18 +20,27 @@ Design notes; the open questions are settled (see **Decisions** at the end).
   (`audioMix.ts` resampler + block mixer, `audioSources.ts` Mediabunny decoding) replaces the
   music-only path; clips without an audio track stay silent. e2e measures 330/880 Hz tones
   separately (Goertzel) to prove the clip is heard and the music ducks only during its scene.
+- **Step 2 done (2026-11-25): editor & export polish.**
+  - *Export speed:* profiled with a timing breakdown in the export result (`timings`): the video
+    encoder is ~97 % of the time; drawing (~75 ms) and media decoding (~0.4 s) for a 30 s story are
+    negligible. In the installed Edge (hardware H.264) the same story exports in 4.7 s (190 fps)
+    vs 17.3 s in Playwright's software-encoding Chromium. No code change needed; docs corrected.
+  - *Leaving with an unsaved export:* the app now uses a data router (`createBrowserRouter`), and
+    the editor's `LeaveGuard` (`useBlocker`) asks before leaving (link or browser Back) while an
+    export runs or its file isn't downloaded; tab close asks too.
+  - *Inspector:* `visibleWhen` on field descriptors; the grid shows only its layout's slots, the
+    carousel reveals one slot at a time; filled slots always stay visible.
+  - *Bug found:* `Modal` reported its own programmatic close (an async `close` event) as a user
+    close, which could instantly dismiss a dialog reopened right after (the Back-button prompt).
 
 ## Collected for M8 (from earlier milestones)
 
 - **Clip sound** (M7 decision): a "Keep clip sound" toggle on scenes with a video clip, with the
   music ducking under it, in preview and export. Needs audio mixing of clip tracks in the worker
   (and unmuted clip elements in the preview).
-- **Export speed with media**: ~45–50 fps with full-size photos/clips (30 s ≈ 17–20 s). Profile
-  first; likely candidates are high-quality `drawImage` of large bitmaps every frame (pre-scale to
-  output size once) and video decode.
-- **Leaving the editor discards a finished, undownloaded export** without warning.
-- **Inspector noise**: the Photo grid shows all 4 slots and the carousel all 6, even when the layout
-  uses fewer; a field-descriptor `visibleWhen` (plain data) would hide unused ones.
+- ~~Export speed with media~~ (step 2: encoder-bound; fast with hardware encoding).
+- ~~Leaving the editor discards a finished, undownloaded export~~ (step 2: asks first).
+- ~~Inspector noise~~ (step 2: `visibleWhen`).
 - **Storage**: quota warnings before it's full (System page already estimates usage), and a way to
   see/clean large media.
 - ~~**Project bundle export/import**~~ deferred past M8 (user decision): zip of the project JSON +

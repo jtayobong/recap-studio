@@ -11,7 +11,7 @@ import {
   setSceneFields,
   setSceneTransition,
 } from '../editor/sceneActions';
-import { fieldsEditedBySlots, resolveFields, type FieldDef } from '../render/fields';
+import { fieldsEditedBySlots, isFieldVisible, resolveFields, type FieldDef } from '../render/fields';
 import type { FocusBinding } from './FocusPicker';
 import { getTemplate } from '../render/templates/registry';
 import { FieldEditor, NumberInput } from './FieldEditor';
@@ -145,7 +145,7 @@ function SceneFields({ scene, project }: { scene: Scene; project: Project }) {
   return (
     <div className="form">
       {Object.entries(template.fields)
-        .filter(([key]) => !skip.has(key))
+        .filter(([key, def]) => !skip.has(key) && isFieldVisible(def, values))
         .map(([key, def]) => (
           <FieldEditor
             key={key}

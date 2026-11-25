@@ -229,3 +229,13 @@ needed more than "encode the song": the export now decodes each source with Medi
 resamples to 48 kHz stereo (linear interpolation), and sums blocks with per-frame gains and 15 ms
 fades at clip edges (`audioMix.ts`, pure and unit-tested). Clips without an audio track are silent,
 not an error. Preview mute now silences all preview sound.
+
+### D31. Data router for navigation blocking; export speed is the encoder's
+The app moved from `<BrowserRouter>` to `createBrowserRouter` so the editor can block navigation
+(`useBlocker`) while an export is running or undownloaded, including the browser's Back button
+(a click handler on the link alone wouldn't catch that); it also enables lazy routes. Profiling
+the export (`timings` in the result) showed ~97 % of the time is the video encoder itself, so the
+"slow export with media" gap was the test browser's software encoder: real Edge with hardware
+encoding is ~3.7× faster. No pre-scaling or decode work was added, because it wouldn't help.
+`Modal` now ignores the close event its own programmatic close causes (it fires asynchronously and
+could dismiss a dialog reopened in the meantime).
