@@ -1,0 +1,310 @@
+import { describe, expect, it, vi } from 'vitest';
+import type { Scene } from '../domain/project';
+import { clamp01, easeInOutCubic, easeOutBack, easeOutCubic, easeOutExpo, lerp, progress, seededRandom } from './easing';
+import { defaultFields, resolveFields, type FieldDefs } from './fields';
+import { renderFrame, type RenderableProject } from './renderFrame';
+import { createScene, createStarterScenes, getTemplate, TEMPLATES } from './templates/registry';
+import { createMockContext } from './testing/mockContext';
+import { fitText, wrapLines } from './text';
+import {
+  activeTransition,
+  formatTimecode,
+  frameToMs,
+  getSceneSpans,
+  locateScene,
+  msToFrame,
+  totalDurationMs,
+  TRANSITION_MS,
+} from './timeline';
+
+const scene = (id: string, durationMs: number, overrides: Partial<Scene> = {}): Scene => ({
+  id,
+  templateId: 'title',
+  durationMs,
+  fields: {},
+  transitionIn: 'cut',
+  ...overrides,
+});
+
+const project = (scenes: Scene[], paletteId = 'neon-pulse'): RenderableProject => ({
+  format: { width: 1080, height: 1920, fps: 30 },
+  style: { paletteId, fontPairId: 'heavy-grotesk' },
+  scenes,
+});
+
+describe('easing', () => {
+  it('starts at 0 and ends at 1', () => {
+    for (const ease of [easeOutCubic, easeInOutCubic, easeOutExpo, easeOutBack]) {
+      expect(ease(0)).toBeCloseTo(0);
+      expect(ease(1)).toBeCloseTo(1);
+    }
+  });
+
+  it('clamps input outside 0…1', () => {
+    expect(easeOutCubic(-1)).toBe(0);
+    expect(easeOutCubic(2)).toBe(1);
+    expect(clamp01(5)).toBe(1);
+  });
+
+  it('easeOutBack overshoots before settling', () => {
+    expect(Math.max(...[0.6, 0.7, 0.8, 0.9].map(easeOutBack))).toBeGreaterThan(1);
+  });
+
+  it('computes progress windows', () => {
+    expect(progress(0, 100, 200)).toBe(0);
+    expect(progress(200, 100, 200)).toBe(0.5);
+    expect(progress(900, 100, 200)).toBe(1);
+    expect(progress(100, 100, 0)).toBe(1);
+    expect(lerp(10, 20, 0.25)).toBe(12.5);
+  });
+
+  it('seededRandom is deterministic and in range', () => {
+    expect(seededRandom(42)).toBe(seededRandom(42));
+    expect(seededRandom(1)).not.toBe(seededRandom(2));
+    for (let i = 0; i < 100; i += 1) {
+      const r = seededRandom(i);
+      expect(r).toBeGreaterThanOrEqual(0);
+      expect(r).toBeLessThan(1);
+    }
+  });
+});
+
+describe('timeline', () => {
+  const spans = getSceneSpans([scene('a', 3000), scene('b', 2000), scene('c', 1000)]);
+
+  it('lays scenes end to end', () => {
+    expect(spans.map((s) => [s.startMs, s.endMs])).toEqual([
+      [0, 3000],
+      [3000, 5000],
+      [5000, 6000],
+    ]);
+    expect(totalDurationMs(spans)).toBe(6000);
+    expect(totalDurationMs([])).toBe(0);
+  });
+
+  it('locates the scene under the playhead', () => {
+    expect(locateScene(spans, 0)).toMatchObject({ span: { index: 0 }, localMs: 0 });
+    expect(locateScene(spans, 2999)).toMatchObject({ span: { index: 0 }, localMs: 2999 });
+    expect(locateScene(spans, 3000)).toMatchObject({ span: { index: 1 }, localMs: 0 });
+    expect(locateScene(spans, 5500)).toMatchObject({ span: { index: 2 }, localMs: 500 });
+  });
+
+  it('clamps outside the story and shows the last frame at the end', () => {
+    expect(locateScene(spans, -50)).toMatchObject({ span: { index: 0 }, localMs: 0 });
+    expect(locateScene(spans, 6000)).toMatchObject({ span: { index: 2 }, localMs: 1000 });
+    expect(locateScene(spans, 99_999)).toMatchObject({ span: { index: 2 }, localMs: 1000 });
+    expect(locateScene([], 100)).toBeNull();
+  });
+
+  it('reports entrance transitions, capped at half the scene', () => {
+    const [fade] = getSceneSpans([scene('f', 4000, { transitionIn: 'fade' })]);
+    expect(activeTransition({ span: fade!, localMs: TRANSITION_MS / 2 })).toEqual({ kind: 'fade', progress: 0.5 });
+    expect(activeTransition({ span: fade!, localMs: TRANSITION_MS })).toBeNull();
+
+    const [short] = getSceneSpans([scene('s', 400, { transitionIn: 'slide' })]);
+    expect(activeTransition({ span: short!, localMs: 100 })).toEqual({ kind: 'slide', progress: 0.5 });
+
+    const [cut] = getSceneSpans([scene('c', 4000)]);
+    expect(activeTransition({ span: cut!, localMs: 0 })).toBeNull();
+  });
+
+  it('converts frames and formats timecodes', () => {
+    expect(msToFrame(1000, 30)).toBe(30);
+    expect(msToFrame(frameToMs(7, 30), 30)).toBe(7);
+    expect(formatTimecode(0)).toBe('0:00.0');
+    expect(formatTimecode(3250)).toBe('0:03.2');
+    expect(formatTimecode(65_000)).toBe('1:05.0');
+  });
+});
+
+describe('fields', () => {
+  const defs = {
+    title: { kind: 'text', label: 'Title', default: 'Hi', maxLength: 5 },
+    body: { kind: 'text', label: 'Body', default: '', maxLength: 50, multiline: true },
+    count: { kind: 'number', label: 'Count', default: 3, min: 0, max: 10, step: 1 },
+    ratio: { kind: 'number', label: 'Ratio', default: 0.5, min: 0, max: 1, step: 0.1 },
+    on: { kind: 'boolean', label: 'On', default: true },
+    mode: {
+      kind: 'choice',
+      label: 'Mode',
+      default: 'a',
+      options: [
+        { value: 'a', label: 'A' },
+        { value: 'b', label: 'B' },
+      ],
+    },
+  } satisfies FieldDefs;
+
+  it('fills in defaults', () => {
+    expect(defaultFields(defs)).toEqual({ title: 'Hi', body: '', count: 3, ratio: 0.5, on: true, mode: 'a' });
+  });
+
+  it('coerces and clamps stored values', () => {
+    const values = resolveFields(defs, {
+      title: 'Way too long',
+      body: 'line 1\r\nline 2',
+      count: 99,
+      ratio: 0.333,
+      on: 'yes',
+      mode: 'b',
+      extra: 'dropped',
+    });
+    expect(values).toEqual({ title: 'Way t', body: 'line 1\nline 2', count: 10, ratio: 0.3, on: true, mode: 'b' });
+    expect('extra' in values).toBe(false);
+  });
+
+  it('rejects wrong types and invalid choices', () => {
+    expect(resolveFields(defs, { title: 42, count: Number.NaN, mode: 'z' })).toMatchObject({
+      title: 'Hi',
+      count: 3,
+      mode: 'a',
+    });
+  });
+
+  it('flattens newlines in single-line text', () => {
+    expect(resolveFields(defs, { title: 'a\nb' }).title).toBe('a b');
+  });
+});
+
+describe('text layout', () => {
+  const font = { family: 'sans-serif', weight: 400 };
+
+  it('wraps words and keeps explicit newlines', () => {
+    const { ctx } = createMockContext();
+    // Mock width = chars × size × 0.6 → at 10px each char is 6px.
+    expect(wrapLines(ctx, 'aaa bbb ccc', font, 10, 45)).toEqual(['aaa bbb', 'ccc']);
+    expect(wrapLines(ctx, 'one\ntwo', font, 10, 1000)).toEqual(['one', 'two']);
+  });
+
+  it('shrinks text until it fits', () => {
+    const { ctx } = createMockContext();
+    const fitted = fitText(ctx, 'HELLO', {
+      font,
+      maxWidth: 100,
+      maxHeight: 1000,
+      maxSize: 100,
+      minSize: 5,
+      lineHeight: 1,
+    });
+    expect(5 * fitted.sizePx * 0.6).toBeLessThanOrEqual(100);
+    expect(fitted.sizePx).toBeGreaterThan(25);
+  });
+
+  it('never goes below the minimum size', () => {
+    const { ctx } = createMockContext();
+    const fitted = fitText(ctx, 'x'.repeat(500), {
+      font,
+      maxWidth: 10,
+      maxHeight: 10,
+      maxSize: 50,
+      minSize: 8,
+      lineHeight: 1,
+    });
+    expect(fitted.sizePx).toBe(8);
+  });
+});
+
+describe('templates', () => {
+  it('have unique ids and valid defaults', () => {
+    expect(new Set(TEMPLATES.map((t) => t.id)).size).toBe(TEMPLATES.length);
+    for (const template of TEMPLATES) {
+      expect(template.defaultDurationMs).toBeGreaterThanOrEqual(1000);
+      const created = createScene(template.id, 'x');
+      expect(created).toMatchObject({ id: 'x', templateId: template.id, durationMs: template.defaultDurationMs });
+    }
+  });
+
+  it('createScene rejects unknown templates', () => {
+    expect(() => createScene('nope')).toThrow(/Unknown scene template/);
+  });
+
+  it('starter story is a title then a big number', () => {
+    expect(createStarterScenes().map((s) => s.templateId)).toEqual(['title', 'big-number']);
+  });
+
+  it('big number counts up from zero to the final value', () => {
+    const template = getTemplate('big-number')!;
+    const theme = { palette: { background: '#000', surface: '#111', primary: '#f0f', accent: '#0f0', text: '#fff', id: 'x', name: 'x' }, fonts: { id: 'f', name: 'f', display: 'sans-serif', body: 'sans-serif' } };
+    const drawAt = (localMs: number) => {
+      const { ctx, texts } = createMockContext();
+      template.draw(ctx, { width: 1080, height: 1920, localMs, durationMs: 5000 }, { value: 1234 }, theme);
+      return texts();
+    };
+    expect(drawAt(250)).toContain('0');
+    expect(drawAt(4000)).toContain('1,234');
+  });
+});
+
+describe('renderFrame', () => {
+  const starter = project([scene('t', 3500, { templateId: 'title', transitionIn: 'fade' }), scene('n', 5000, { templateId: 'big-number', transitionIn: 'slide' })]);
+
+  it('is deterministic: the same time draws the same frame', () => {
+    for (const t of [0, 400, 1200, 3600, 7000]) {
+      const a = createMockContext();
+      const b = createMockContext();
+      renderFrame(a.ctx, starter, t);
+      renderFrame(b.ctx, starter, t);
+      expect(a.calls).toEqual(b.calls);
+    }
+  });
+
+  it('balances every save with a restore', () => {
+    for (const t of [0, 3600, 8500]) {
+      const { ctx, calls } = createMockContext();
+      renderFrame(ctx, starter, t);
+      const saves = calls.filter((c) => c.method === 'save').length;
+      expect(calls.filter((c) => c.method === 'restore').length).toBe(saves);
+    }
+  });
+
+  it('draws every template at many points in time, in every palette, without error cards', () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    for (const paletteId of ['neon-pulse', 'citrus-pop', 'midnight-wave', 'mint-riot']) {
+      const p = project(createStarterScenes(), paletteId);
+      for (let t = 0; t <= 8500; t += 250) {
+        const { ctx, texts } = createMockContext();
+        renderFrame(ctx, p, t);
+        expect(texts().some((text) => text.includes('failed to draw'))).toBe(false);
+      }
+    }
+    expect(errors).not.toHaveBeenCalled();
+    errors.mockRestore();
+  });
+
+  it('draws both scenes during a slide transition', () => {
+    const { ctx, texts } = createMockContext();
+    renderFrame(ctx, starter, 3500 + TRANSITION_MS / 2);
+    const drawn = texts();
+    expect(drawn).toContain('Recap'); // outgoing title
+    expect(drawn).toContain('You listened for'); // incoming big number
+  });
+
+  it('shows a placeholder for an empty story', () => {
+    const { ctx, texts } = createMockContext();
+    renderFrame(ctx, project([]), 0);
+    expect(texts().join(' ')).toMatch(/Add a scene/);
+  });
+
+  it('shows a message card for unknown templates instead of throwing', () => {
+    const { ctx, texts } = createMockContext();
+    renderFrame(ctx, project([scene('u', 2000, { templateId: 'from-the-future' })]), 500);
+    expect(texts().join(' ')).toMatch(/Unknown scene type/);
+  });
+
+  it('contains a template that throws', () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const template = getTemplate('title')!;
+    const original = template.draw;
+    template.draw = () => {
+      throw new Error('boom');
+    };
+    try {
+      const { ctx, texts } = createMockContext();
+      expect(() => renderFrame(ctx, project([scene('t', 2000)]), 1000)).not.toThrow();
+      expect(texts().join(' ')).toMatch(/Title scene failed to draw/);
+    } finally {
+      template.draw = original;
+      errors.mockRestore();
+    }
+  });
+});

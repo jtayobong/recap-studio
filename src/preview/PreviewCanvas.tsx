@@ -1,0 +1,60 @@
+import { useEffect, useRef } from 'react';
+import type { Format } from '../domain/project';
+import { renderFrame } from '../render/renderFrame';
+import { useEditorStore } from '../store/editorStore';
+import { usePlaybackStore } from './playbackStore';
+
+/**
+ * The live preview. The canvas always has the project's full output resolution
+ * (e.g. 1080×1920) and is scaled down with CSS, so preview pixels match export pixels.
+ *
+ * Drawing happens outside React: we subscribe to the stores directly and redraw at most
+ * once per animation frame, so playback doesn't re-render any components.
+ */
+export function PreviewCanvas({ format }: { format: Format }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d', { alpha: false });
+    if (!canvas || !ctx) return;
+
+    let scheduled = 0;
+    const draw = () => {
+      scheduled = 0;
+      const project = useEditorStore.getState().project;
+      if (project) renderFrame(ctx, project, usePlaybackStore.getState().timeMs);
+    };
+    const requestDraw = () => {
+      if (!scheduled) scheduled = requestAnimationFrame(draw);
+    };
+
+    draw();
+    const unsubscribeProject = useEditorStore.subscribe((state, previous) => {
+      if (state.project !== previous.project) requestDraw();
+    });
+    const unsubscribePlayback = usePlaybackStore.subscribe((state, previous) => {
+      if (state.timeMs !== previous.timeMs) requestDraw();
+    });
+    // System fonts can finish loading after the first paint; redraw when they do.
+    void document.fonts?.ready.then(requestDraw);
+
+    return () => {
+      unsubscribeProject();
+      unsubscribePlayback();
+      if (scheduled) cancelAnimationFrame(scheduled);
+    };
+  }, [format.width, format.height]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="preview-canvas"
+      width={format.width}
+      height={format.height}
+      role="img"
+      aria-label="Story preview"
+      data-testid="preview-canvas"
+    />
+  );
+}

@@ -1,0 +1,117 @@
+import { z } from 'zod';
+import { newId } from '../lib/ids';
+import { DEFAULT_FONT_PAIR_ID, DEFAULT_PALETTE_ID } from './stylePresets';
+
+/**
+ * The project document. This is the single source of truth that the editor edits,
+ * the renderer (M2) draws, and the exporter (M5) encodes.
+ *
+ * Bump CURRENT_SCHEMA_VERSION and add a migration in ./migrations.ts whenever the
+ * stored shape changes.
+ */
+export const CURRENT_SCHEMA_VERSION = 1;
+
+export const PROJECT_NAME_MAX = 100;
+export const MAX_SCENES = 200;
+export const SCENE_MIN_MS = 250;
+export const SCENE_MAX_MS = 60_000;
+
+export const FormatSchema = z.object({
+  width: z.number().int().min(16).max(3840),
+  height: z.number().int().min(16).max(3840),
+  fps: z.union([z.literal(24), z.literal(25), z.literal(30), z.literal(60)]),
+});
+
+export const StyleSchema = z.object({
+  paletteId: z.string().min(1),
+  fontPairId: z.string().min(1),
+});
+
+export const TransitionSchema = z.enum(['cut', 'fade', 'slide']);
+
+export const SceneSchema = z.object({
+  id: z.string().min(1),
+  templateId: z.string().min(1),
+  durationMs: z.number().int().min(SCENE_MIN_MS).max(SCENE_MAX_MS),
+  /** Template-specific values, validated against the template's own schema (M2/M3). */
+  fields: z.record(z.string(), z.unknown()),
+  transitionIn: TransitionSchema,
+});
+
+export const AudioTrackSchema = z.object({
+  assetId: z.string().min(1),
+  offsetMs: z.number().int().min(0),
+  volume: z.number().min(0).max(1),
+});
+
+export const ProjectSchema = z.object({
+  id: z.string().min(1),
+  schemaVersion: z.literal(CURRENT_SCHEMA_VERSION),
+  name: z.string().trim().min(1).max(PROJECT_NAME_MAX),
+  format: FormatSchema,
+  style: StyleSchema,
+  scenes: z.array(SceneSchema).max(MAX_SCENES),
+  audio: AudioTrackSchema.optional(),
+  createdAt: z.number().int(),
+  updatedAt: z.number().int(),
+});
+
+export type Format = z.infer<typeof FormatSchema>;
+export type Style = z.infer<typeof StyleSchema>;
+export type Transition = z.infer<typeof TransitionSchema>;
+export type Scene = z.infer<typeof SceneSchema>;
+export type AudioTrack = z.infer<typeof AudioTrackSchema>;
+export type Project = z.infer<typeof ProjectSchema>;
+
+export const FORMAT_PRESETS = {
+  story: { label: 'Story', ratio: '9:16', width: 1080, height: 1920, fps: 30, enabled: true },
+  square: { label: 'Square', ratio: '1:1', width: 1080, height: 1080, fps: 30, enabled: false },
+  landscape: { label: 'Landscape', ratio: '16:9', width: 1920, height: 1080, fps: 30, enabled: false },
+} as const;
+
+export type FormatPresetId = keyof typeof FORMAT_PRESETS;
+
+export const DEFAULT_PROJECT_NAME = 'Untitled recap';
+
+/** Trim, collapse whitespace and cap length; empty names become the default. */
+export function normalizeProjectName(name: string): string {
+  const cleaned = name.trim().replace(/\s+/g, ' ').slice(0, PROJECT_NAME_MAX).trim();
+  return cleaned || DEFAULT_PROJECT_NAME;
+}
+
+export interface NewProjectInput {
+  name: string;
+  formatPresetId?: FormatPresetId;
+  paletteId?: string;
+  fontPairId?: string;
+}
+
+export function createProject(
+  input: NewProjectInput,
+  options: { now?: number; id?: string } = {},
+): Project {
+  const preset = FORMAT_PRESETS[input.formatPresetId ?? 'story'];
+  if (!preset.enabled) {
+    throw new Error(`The ${preset.label} format isn't available yet.`);
+  }
+  const now = options.now ?? Date.now();
+
+  return ProjectSchema.parse({
+    id: options.id ?? newId(),
+    schemaVersion: CURRENT_SCHEMA_VERSION,
+    name: normalizeProjectName(input.name),
+    format: { width: preset.width, height: preset.height, fps: preset.fps },
+    style: {
+      paletteId: input.paletteId ?? DEFAULT_PALETTE_ID,
+      fontPairId: input.fontPairId ?? DEFAULT_FONT_PAIR_ID,
+    },
+    scenes: [],
+    createdAt: now,
+    updatedAt: now,
+  });
+}
+
+/** Total story length in milliseconds (transitions overlap is handled by the renderer later). */
+export function projectDurationMs(project: Pick<Project, 'scenes'>): number {
+  return project.scenes.reduce((sum, scene) => sum + scene.durationMs, 0);
+}
