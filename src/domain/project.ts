@@ -84,10 +84,27 @@ export type Project = z.infer<typeof ProjectSchema>;
 export const FORMAT_PRESETS = {
   story: { label: 'Story', ratio: '9:16', width: 1080, height: 1920, fps: 30, enabled: true },
   square: { label: 'Square', ratio: '1:1', width: 1080, height: 1080, fps: 30, enabled: false },
-  landscape: { label: 'Landscape', ratio: '16:9', width: 1920, height: 1080, fps: 30, enabled: false },
+  landscape: { label: 'Landscape', ratio: '16:9', width: 1920, height: 1080, fps: 30, enabled: true },
 } as const;
 
 export type FormatPresetId = keyof typeof FORMAT_PRESETS;
+
+/** The preset a format matches (same size), if any. */
+export function formatPresetOf(format: Pick<Format, 'width' | 'height'>): FormatPresetId | undefined {
+  return (Object.keys(FORMAT_PRESETS) as FormatPresetId[]).find(
+    (id) => FORMAT_PRESETS[id].width === format.width && FORMAT_PRESETS[id].height === format.height,
+  );
+}
+
+/**
+ * The project in another (enabled) format preset. Scenes, focus points and style are kept;
+ * templates lay themselves out for the new shape. Returns the same project when nothing changes.
+ */
+export function withFormatPreset(project: Project, presetId: FormatPresetId): Project {
+  const preset = FORMAT_PRESETS[presetId];
+  if (!preset.enabled || formatPresetOf(project.format) === presetId) return project;
+  return { ...project, format: { ...project.format, width: preset.width, height: preset.height } };
+}
 
 export const DEFAULT_PROJECT_NAME = 'Untitled recap';
 

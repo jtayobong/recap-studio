@@ -307,6 +307,11 @@ legend {
   background: var(--text-muted);
 }
 
+.format-note {
+  margin: 0.4rem 0 0.8rem;
+  font-size: 0.8rem;
+}
+
 .format-option--disabled {
   cursor: not-allowed;
   opacity: 0.45;
@@ -637,6 +642,8 @@ legend {
 .editor {
   display: grid;
   grid-template-rows: auto 1fr auto;
+  /* One column no wider than the window: a long scene strip scrolls instead of widening the page. */
+  grid-template-columns: minmax(0, 1fr);
   height: 100vh;
 }
 
@@ -681,7 +688,8 @@ legend {
 
 .editor__body {
   display: grid;
-  grid-template-columns: 260px 1fr 320px;
+  /* minmax(0, …): a wide preview canvas must not push the inspector off-screen. */
+  grid-template-columns: 260px minmax(0, 1fr) 320px;
   min-height: 0;
 }
 
@@ -715,6 +723,9 @@ legend {
 .editor__canvas-slot {
   display: grid;
   place-items: center;
+  /* Full stage width, so a wide canvas sizes against it instead of its 1920 px intrinsic width. */
+  width: 100%;
+  min-width: 0;
 }
 
 .editor__strip {
@@ -762,6 +773,13 @@ legend {
   border-radius: var(--radius-lg);
   background: #000;
   box-shadow: 0 24px 60px rgb(0 0 0 / 45%);
+}
+
+/* Wide frames are limited by the stage width as well as the height. */
+.preview-canvas--landscape {
+  width: min(100%, calc((100vh - 300px) * 16 / 9));
+  height: auto;
+  min-height: 0;
 }
 
 .playback {
@@ -913,6 +931,11 @@ legend {
   height: auto;
   border-radius: 6px;
   pointer-events: none;
+}
+
+/* Same strip height as a 9:16 thumbnail would be wide: 16:9 thumbnails are 96 × 54. */
+.scene-thumb--landscape {
+  width: 96px;
 }
 
 .scene-chip__meta {

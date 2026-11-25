@@ -49,6 +49,14 @@ test in both formats); the editor UI (preview, strip, focus picker) handles both
   landscape } }` (still plain data), computed from `REFERENCE_SIZES` in `mediaLayout.ts` (replaces
   `STORY_SIZE`). `slotCropAspect(focus, values, format)` in `render/fields.ts` picks the crop shape
   for the project's format (slot shape, else the whole frame); the inspector uses it.
+- *Step 4 done (editor):* Landscape is enabled (`FORMAT_PRESETS.landscape.enabled`); the New
+  project dialog and a **Format** picker in the project panel share `FormatPicker`; switching is
+  one undo step (`withFormatPreset`, `formatPresetOf` in `domain/project.ts`). The preview canvas
+  in 16:9 is limited by the stage width and height; strip thumbnails are 96 × 54 (canvas 192 px).
+  Found and fixed: the editor's outer grid had an implicit `auto` column, so a long scene strip
+  widened the whole page (pushing the inspector and Export off-screen) instead of scrolling; this
+  also affected long 9:16 stories. `e2e/landscape.spec.ts` covers create → preview → thumbnails →
+  switch → undo → reload.
 
 **Where things stood (checked 2026-11-25):**
 

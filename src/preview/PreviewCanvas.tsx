@@ -60,7 +60,7 @@ export function PreviewCanvas({ format }: { format: Format }) {
   return (
     <canvas
       ref={canvasRef}
-      className="preview-canvas"
+      className={format.width > format.height ? 'preview-canvas preview-canvas--landscape' : 'preview-canvas'}
       width={format.width}
       height={format.height}
       role="img"

@@ -3,13 +3,22 @@ import { Link, useBlocker, useParams } from 'react-router';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { ExportControl } from '../components/ExportControl';
 import { FontPicker } from '../components/FontPicker';
+import { FormatPicker } from '../components/FormatPicker';
 import { MediaLibrary } from '../components/MediaLibrary';
 import { MusicSection } from '../components/MusicSection';
 import { PalettePicker } from '../components/PalettePicker';
 import { SceneInspector } from '../components/SceneInspector';
 import { SceneStrip } from '../components/SceneStrip';
 import { TemplateGallery } from '../components/TemplateGallery';
-import { MAX_SCENES, normalizeProjectName, PROJECT_NAME_MAX, projectDurationMs, type Project } from '../domain/project';
+import {
+  formatPresetOf,
+  MAX_SCENES,
+  normalizeProjectName,
+  PROJECT_NAME_MAX,
+  projectDurationMs,
+  withFormatPreset,
+  type Project,
+} from '../domain/project';
 import { indexOfScene } from '../domain/sceneOps';
 import { useSelectionStore } from '../editor/selectionStore';
 import { useEditorShortcuts } from '../editor/useEditorShortcuts';
@@ -171,12 +180,18 @@ function ProjectPanel({ project, durationMs }: { project: Project; durationMs: n
   return (
     <>
       <h2 className="panel-title">Project</h2>
+      <FormatPicker
+        name="project-format"
+        hideDisabled
+        value={formatPresetOf(project.format)}
+        onChange={(presetId) => update((p) => withFormatPreset(p, presetId))}
+      />
+      <p className="muted format-note">
+        {formatAspectRatio(project.format.width, project.format.height)} · {project.format.width}×{project.format.height} ·{' '}
+        {project.format.fps} fps. Scenes re-arrange themselves for the new shape; check photo focus points after switching.
+      </p>
+
       <dl className="facts">
-        <dt>Format</dt>
-        <dd>
-          {formatAspectRatio(project.format.width, project.format.height)} · {project.format.width}×
-          {project.format.height} · {project.format.fps} fps
-        </dd>
         <dt>Scenes</dt>
         <dd>
           {project.scenes.length} ({(durationMs / 1000).toFixed(1)} s)

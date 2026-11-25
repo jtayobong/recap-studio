@@ -197,7 +197,21 @@ delete single items or all unused media; scenes that used deleted media show an 
 - Faster first load (pages load on demand) and a stricter production security policy (Trusted
   Types, Permissions-Policy). `npm run test:e2e:prod` runs the end-to-end tests against it.
 
+## Landscape (16:9) output
+
+- A project is **Story 9:16** (1080×1920) or **Landscape 16:9** (1920×1080). Choose it in the New
+  project dialog, or switch it any time under **Format** in the project panel (undoable). Square
+  is planned for later.
+- Every template has its own wide layout (e.g. text on one side and the visual on the other,
+  Compare as two bars side by side, photo grids side by side). Switching keeps all content and
+  focus points; check focus points afterwards, since crops change shape.
+- Templates size text from the frame's shorter side (`render/layout.ts`: `isLandscape`, `unitOf`)
+  and pick a portrait or landscape geometry. `render/portraitBaseline.test.ts` guards that 9:16
+  output never changes: run it once with `PORTRAIT_BASELINE=<file>` before a template change to
+  record, and again after to compare.
+
 ## What's next
 
-The original roadmap (M0–M8) is complete. Ideas for what could come next, starting with project
-bundles (backup/move a project with its media), are in `docs/NEXT-M9.md`.
+The original roadmap (M0–M8) is complete. Landscape output is in progress; other ideas for what
+could come next, such as project bundles (backup/move a project with its media), are in
+`docs/NEXT-M9.md`.

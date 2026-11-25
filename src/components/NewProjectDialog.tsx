@@ -2,13 +2,13 @@ import { useState, type FormEvent } from 'react';
 import { projectRepository } from '../db';
 import {
   DEFAULT_PROJECT_NAME,
-  FORMAT_PRESETS,
   PROJECT_NAME_MAX,
   type FormatPresetId,
   type Project,
 } from '../domain/project';
 import { DEFAULT_PALETTE_ID } from '../domain/stylePresets';
 import { describeError } from '../lib/errors';
+import { FormatPicker } from './FormatPicker';
 import { Modal } from './Modal';
 import { PalettePicker } from './PalettePicker';
 
@@ -26,8 +26,6 @@ export function NewProjectDialog({ open, onClose, onCreated }: NewProjectDialogP
     </Modal>
   );
 }
-
-type PresetEntry = [FormatPresetId, (typeof FORMAT_PRESETS)[FormatPresetId]];
 
 function NewProjectForm({ onClose, onCreated }: Omit<NewProjectDialogProps, 'open'>) {
   const [name, setName] = useState('');
@@ -63,33 +61,7 @@ function NewProjectForm({ onClose, onCreated }: Omit<NewProjectDialogProps, 'ope
         />
       </label>
 
-      <fieldset className="format-picker">
-        <legend>Format</legend>
-        <div className="format-picker__options">
-          {(Object.entries(FORMAT_PRESETS) as PresetEntry[]).map(([id, preset]) => (
-            <label key={id} className={`format-option${preset.enabled ? '' : ' format-option--disabled'}`}>
-              <input
-                type="radio"
-                name="format"
-                value={id}
-                checked={formatPresetId === id}
-                disabled={!preset.enabled}
-                onChange={() => setFormatPresetId(id)}
-                className="visually-hidden"
-              />
-              <span
-                className="format-option__shape"
-                style={{ aspectRatio: `${preset.width} / ${preset.height}` }}
-                aria-hidden="true"
-              />
-              <span className="format-option__label">
-                {preset.label} <small>{preset.ratio}</small>
-              </span>
-              {!preset.enabled && <span className="format-option__soon">Later</span>}
-            </label>
-          ))}
-        </div>
-      </fieldset>
+      <FormatPicker value={formatPresetId} onChange={setFormatPresetId} />
 
       <PalettePicker value={paletteId} onChange={setPaletteId} />
 
