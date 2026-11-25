@@ -56,8 +56,9 @@ export function CapabilityGate({ children }: { children: ReactNode }) {
       <main className="fullscreen-message fullscreen-message--wide">
         <h1>This browser can't run Recap Studio</h1>
         <p>
-          Open the app at <code>http://localhost:5173</code> in a recent desktop version of Chrome or Edge. Private
-          or incognito windows may also block local storage.
+          Recap Studio stores your projects and media in the browser, and this browser doesn’t provide what it needs
+          (see below). Open it in a recent desktop version of Chrome or Edge, in a normal window: private or incognito
+          windows may block local storage.
         </p>
         <CapabilityTable results={state.report.results} />
       </main>

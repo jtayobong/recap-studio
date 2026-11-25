@@ -1,4 +1,19 @@
-# Next up: M8, hardening
+# M8, hardening: ✅ done (2026-11-25)
+
+Kept as the record for M8 (decisions D30–D32 and the progress notes below); what could come next
+is in `NEXT-M9.md`.
+
+**Done-when result:**
+- *Happy path* (`e2e/happy-path.spec.ts`, UI only, also on the production build): new project →
+  Music year starter → own number, photo and song → export → download; the MP4 has H.264 and AAC
+  tracks and plays for the story's 33 s.
+- *Failure paths*, each with a clear message: unsupported browser (no local storage: blocked with
+  advice; no encoder: can edit, Export explains and is disabled), storage full on import, cancelled
+  export and leaving mid-export (`e2e/failures.spec.ts`); unsupported and missing files
+  (`media-library.spec.ts`), missing media at export (`export-ui.spec.ts`, `export.spec.ts`),
+  low-storage warning and cleanup (`storage.spec.ts`).
+- `npm run check` (372 unit tests), `npm run test:e2e` (56) and `npm run test:e2e:prod` (39,
+  strict CSP with Trusted Types) pass.
 
 **Goal:** a fresh user can go from start to export with no dead ends: clear errors, safe limits,
 recoverable failures, and the rough edges collected in M4–M7 smoothed out.

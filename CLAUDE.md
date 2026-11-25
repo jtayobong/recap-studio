@@ -5,7 +5,8 @@ Deeper context lives in `docs/`:
 
 - `docs/PLAN.md`: the product plan, architecture and milestone roadmap (with status)
 - `docs/DECISIONS.md`: why things are the way they are; read before changing a core choice
-- `docs/NEXT-M8.md`: handoff and notes for the next milestone (M8, hardening)
+- `docs/NEXT-M9.md`: what could come next (the original roadmap M0–M8 is complete)
+- `docs/NEXT-M8.md`: the M8 (hardening) record, completed
 - `docs/NEXT-M7.md`: the M7 (templates and style) design record, completed
 - `docs/NEXT-M6.md`: the M6 (audio) design record, completed
 - `docs/NEXT-M5.md`: the M5 (export) design record and measurements, completed
@@ -33,7 +34,9 @@ templates or sample content.
 | M5 Export v1 (video): worker + OffscreenCanvas + Mediabunny | ✅ done |
 | M6 Audio track, mixed into export | ✅ done |
 | M7 Template pack + style presets + more transitions | ✅ done |
-| **M8 Hardening** | ⏭ next (see `docs/NEXT-M8.md`) |
+| M8 Hardening | ✅ done |
+
+The original roadmap is complete; candidates for what's next are in `docs/NEXT-M9.md`.
 
 Work one milestone at a time. Each ends with something demonstrably working and with tests.
 

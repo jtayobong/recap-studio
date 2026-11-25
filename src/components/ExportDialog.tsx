@@ -5,6 +5,7 @@ import { projectDurationMs, type Project } from '../domain/project';
 import { mediaAssetIds, scenesWithMissingMedia } from '../export/mediaRefs';
 import { bitrateFor, DEFAULT_PRESET, QUALITY_PRESETS, type QualityPresetId } from '../export/presets';
 import { formatAspectRatio, formatBytes, formatDuration } from '../lib/format';
+import { useCapabilities } from './CapabilityGate';
 import { Modal } from './Modal';
 
 interface ExportDialogProps {
@@ -28,6 +29,7 @@ export function ExportDialog({ open, project, onStart, onClose }: ExportDialogPr
 
 function ExportOptions({ project, onStart, onClose }: Omit<ExportDialogProps, 'open'>) {
   const [preset, setPreset] = useState<QualityPresetId>(DEFAULT_PRESET);
+  const { exportOk } = useCapabilities();
   const groupId = useId();
   const library = useLiveQuery(() => assetRepository.listForProject(project.id), [project.id]);
   const durationMs = projectDurationMs(project);
@@ -85,6 +87,13 @@ function ExportOptions({ project, onStart, onClose }: Omit<ExportDialogProps, 'o
         </p>
       )}
 
+      {!exportOk && (
+        <p className="export-options__warning" role="alert">
+          This browser can’t encode video, so it can’t export. Use a recent desktop version of Chrome or Edge to
+          export; you can keep editing here.
+        </p>
+      )}
+
       <p className="muted export-options__note">
         The video is made on this computer and nothing is uploaded. You can keep editing while it renders; changes made
         after you start won’t be in this export.
@@ -94,7 +103,7 @@ function ExportOptions({ project, onStart, onClose }: Omit<ExportDialogProps, 'o
         <button type="button" className="button button--ghost" onClick={onClose}>
           Cancel
         </button>
-        <button type="submit" className="button button--primary" disabled={project.scenes.length === 0} autoFocus>
+        <button type="submit" className="button button--primary" disabled={project.scenes.length === 0 || !exportOk} autoFocus>
           Start export
         </button>
       </div>

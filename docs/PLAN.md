@@ -67,10 +67,12 @@ reopening restores everything.
 | M5 | Export v1 (video): worker, OffscreenCanvas, Mediabunny MP4, progress, cancel, download | A 30 s 1080×1920 MP4 matches the preview frame for frame | ✅ |
 | M6 | Audio: one music track, offset/volume, synced preview, mixed into export | Exported MP4 has correctly timed audio | ✅ |
 | M7 | Template pack + style: Top 5, Compare, Outro, palettes/font pairs, more transitions, starter stories | The starter story looks great out of the box | ✅ |
-| M8 | Hardening: errors, missing files, quota warnings, input limits, migration tests, project bundle import/export, e2e happy path, CSP review | A fresh user can go from start to export with no dead ends | ⏭ next |
+| M8 | Hardening: errors, missing files, quota warnings, input limits, migration tests, project bundle import/export, e2e happy path, CSP review | A fresh user can go from start to export with no dead ends | ✅ |
 
 M5 is the riskiest milestone. The spike (canvas animation → MP4 in a worker) wasn't done during M4;
 it is the first step of M5 (`docs/NEXT-M5.md`).
+
+All milestones of this plan are done (2026-11-25). What could come next: `docs/NEXT-M9.md`.
 
 ## 7. Security and privacy
 

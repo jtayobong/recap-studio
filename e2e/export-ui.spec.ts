@@ -2,7 +2,6 @@ import { expect, test, type Page } from '@playwright/test';
 import { addBasicStory } from './helpers/story';
 import { readFileSync } from 'node:fs';
 import { makeImage } from './helpers/media';
-import type * as DbExports from '../src/db/index';
 
 test.setTimeout(120_000);
 
@@ -54,27 +53,6 @@ test('export from the editor: choose quality, watch progress, keep editing, down
   await exportStatus(page).getByRole('button', { name: 'Dismiss export' }).click();
   await expect(exportStatus(page)).toBeEmpty();
   await expect(page.getByLabel('Project name')).toHaveValue('Renamed during export');
-});
-
-test('a running export can be cancelled', { tag: '@dev' }, async ({ page }) => {
-  await createProject(page, 'Long story');
-  // Three 60 s scenes: long enough that the export is still running when we click Cancel.
-  await page.evaluate(async () => {
-    const db = (await import('/src/db/index.ts' as string)) as typeof DbExports;
-    const registry = await import('/src/render/templates/registry.ts' as string);
-    const id = location.pathname.split('/').pop()!;
-    const project = (await db.projectRepository.get(id))!;
-    const scenes = ['title', 'big-number', 'title'].map((t) => ({ ...registry.createScene(t), durationMs: 60_000 }));
-    await db.projectRepository.save({ ...project, scenes });
-  });
-  await page.reload();
-
-  await page.getByRole('button', { name: 'Export', exact: true }).click();
-  await page.getByRole('dialog', { name: 'Export video' }).getByRole('button', { name: 'Start export' }).click();
-  await expect(exportStatus(page)).toContainText(/Exporting… \d+%/);
-  await exportStatus(page).getByRole('button', { name: 'Cancel' }).click();
-  await expect(exportStatus(page)).toHaveText('Export cancelled.');
-  await expect(page.getByRole('button', { name: 'Export', exact: true })).toBeEnabled();
 });
 
 test('the export dialog warns about scenes whose media was deleted', async ({ page }) => {
@@ -131,26 +109,3 @@ test('leaving the editor asks first while an export is running or not yet downlo
   await page.getByRole('link', { name: '← Projects' }).click();
   await expect(page.getByRole('heading', { name: 'Your projects' })).toBeVisible();
 });
-
-test('leaving during an export can cancel it', { tag: '@dev' }, async ({ page }) => {
-  await createProject(page, 'Long export');
-  await page.evaluate(async () => {
-    const db = await import('/src/db/index.ts' as string);
-    const registry = await import('/src/render/templates/registry.ts' as string);
-    const id = location.pathname.split('/').pop()!;
-    const project = await db.projectRepository.get(id);
-    const scenes = ['title', 'big-number', 'title'].map((t: string) => ({ ...registry.createScene(t), durationMs: 60_000 }));
-    await db.projectRepository.save({ ...project, scenes });
-  });
-  await page.reload();
-  await page.getByRole('button', { name: 'Export', exact: true }).click();
-  await page.getByRole('dialog', { name: 'Export video' }).getByRole('button', { name: 'Start export' }).click();
-  await expect(exportStatus(page)).toContainText(/Exporting… \d+%/);
-
-  await page.getByRole('link', { name: '← Projects' }).click();
-  const confirm = page.getByRole('dialog', { name: 'Leave the editor?' });
-  await expect(confirm).toContainText('An export is still running');
-  await confirm.getByRole('button', { name: 'Leave and cancel export' }).click();
-  await expect(page.getByRole('heading', { name: 'Your projects' })).toBeVisible();
-});
-

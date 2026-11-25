@@ -187,7 +187,17 @@ storage is almost full (under 1 GB free, or 85 % of what the browser allows). Th
 shows what takes space (per project, and media largest first, marked *Unused* or *In use*) and can
 delete single items or all unused media; scenes that used deleted media show an empty slot.
 
-## Next: M8 (hardening)
+## Hardening (M8)
 
-Clear errors and recoverable failures end to end, plus the rough edges collected so far. See
-`docs/NEXT-M8.md`.
+- **Keep clip sound** on video scenes, with the music ducking under it (see Music).
+- Leaving the editor while an export is running or not yet downloaded asks first.
+- The inspector only shows the photo slots a grid layout or carousel actually uses.
+- If this browser can't export video, the Export dialog says so (you can still edit).
+- Storage warnings and the Storage page (see Storage).
+- Faster first load (pages load on demand) and a stricter production security policy (Trusted
+  Types, Permissions-Policy). `npm run test:e2e:prod` runs the end-to-end tests against it.
+
+## What's next
+
+The original roadmap (M0–M8) is complete. Ideas for what could come next, starting with project
+bundles (backup/move a project with its media), are in `docs/NEXT-M9.md`.
