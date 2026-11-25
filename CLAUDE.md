@@ -176,4 +176,3 @@ React rendering.
   splitting (e.g. lazy `SystemPage`/editor) would fix it; not urgent for a local app.
 - Images up to 2160 px keep their original bytes, including EXIF/GPS; a project-bundle export (M8)
   must strip it.
-- `audit.json` in the repo root is a leftover from a one-off audit and can be deleted.
