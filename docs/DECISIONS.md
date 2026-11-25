@@ -78,3 +78,67 @@ fade-in at 0:00.
 ### D14. Insert position and selection rules
 New scenes go after the selected scene (or at the end). Deleting the selected scene selects its
 neighbour. Duplicates are inserted right after the original and selected.
+
+### D15. Media is owned by one project; duplicating a project copies its files
+Decided at the start of M4. Each asset row has a `projectId`, and duplicating a project copies
+every OPFS file under a new id and rewrites references (`remapAssetIds`). Costs disk space, but
+deleting a project can simply delete its assets, with no reference counts that could drift and
+orphan or over-delete files. Writes go files-first, row-last; deletes go row-first, files-last.
+Anything left behind by a crash is removed by `sweepOrphans` (files only once they are an hour old,
+so a sweep can't race an import running in another tab).
+
+### D16. Import limits: images ≤ 80 MB, video ≤ 2 GB and ≤ 5 minutes
+The user chose the looser option. Images are downscaled to 2160 px on the long edge before storing,
+so the source limit mostly bounds decode memory. Video is streamed to OPFS, never fully read into
+memory, and a full disk surfaces as `StorageFullError` with a clear message.
+
+### D17. Media library changes are not undoable
+Importing or deleting an asset happens immediately, outside project undo history. Deleting an asset
+that a scene uses asks for confirmation. Placing or clearing media in a scene field is a normal,
+undoable `setSceneField`. The crop focus point is set by clicking/dragging on the thumbnail (arrow
+keys nudge it) and stored as `focusX`/`focusY` in 0–1.
+
+### D18. Import processing rules
+- Format is decided by magic bytes only; file name and browser-reported type are ignored. HEIC/AVIF
+  (ISO-BMFF image brands) and generic Matroska are rejected, not guessed at.
+- Images at or under 2160 px on the long edge are stored byte-for-byte (no quality loss, EXIF kept,
+  including GPS: it never reaches canvas output, but a future project-bundle export must strip it).
+  Larger images are re-encoded at 2160 px (JPEG/WebP keep their format, PNG/GIF become PNG), which
+  also drops EXIF. GIFs are treated as stills (first frame): animation can't be rendered
+  deterministically from (project, time).
+- Video metadata comes from a `<video>` element until Mediabunny lands in M5. WebM files without a
+  duration (MediaRecorder output) are handled by seeking past the end.
+- The probe (`media/browserProbe.ts`) is injected into the importer, so the pipeline is unit-tested
+  in Node with fakes and the browser parts are tested in Chromium (`e2e/media-import.spec.ts`).
+
+### D19. Deleting library media always confirms and empties the slots that used it
+Every library delete asks first (not only when the item is in use), because it can't be undone.
+After the files are deleted, `forgetAsset` sets matching scene fields to `''` as a normal undoable
+edit, so the project doesn't keep ids pointing at nothing. Undoing it brings the reference back,
+which then shows as missing media. Tile status (thumbnail URL, missing file) lives in an external
+store read with `useSyncExternalStore`, so no component sets state in an effect and object URLs
+are created and revoked in one place.
+
+### D20. Media reaches templates through a synchronous resolver
+`renderFrame(ctx, project, t, media)` stays synchronous and pure; `media.frame(assetId, clipMs)`
+answers with whatever is decoded now or `undefined`, and templates draw a placeholder then. The
+caller decides how to get pixels ready:
+- **Preview** (`media/mediaCache.ts`): loads on demand and asks for a redraw when something lands.
+  Images are `ImageBitmap`s in a pixel-bounded LRU (closed on eviction), with the stored thumbnail
+  as a stand-in while decoding. Clips use one muted `<video>` per asset (pool of 4): exact seek
+  while paused, play-along while playing (re-seek only past 0.25 s drift), clips not on screen are
+  paused. A clip shorter than its scene holds its last frame. This is approximate by nature
+  (element seeking lands on the nearest decodable frame).
+- **Scene thumbnails** use only the stored WebP thumbnails, so they never seek the preview's
+  video elements, and redraw via their own change channel.
+- **Export (M5)** must resolve every asset of a frame *before* drawing it (and decode video
+  frame-exactly with Mediabunny), so exported frames are complete and deterministic.
+
+### D21. Focus point as two number fields owned by the media slot; one undo step per gesture
+`focusX`/`focusY` stay ordinary `number` fields (0–1) in `scene.fields`, so there's no schema
+change and old scenes resolve to the center. A `media` field names them in `focus: { x, y, fit }`;
+the inspector then hides them from the generic form and shows `FocusPicker` inside the slot. Both
+values are written together with `setSceneFields`. Each gesture (a drag, a run of key presses, a
+re-center) gets its own coalesce key: with a single shared key, the 1 s coalescing window merged
+separate quick gestures into one undo step (found by the e2e test). Ken Burns (`motion`) zooms
+up to 1.12× over the whole scene, centered on the focus point, and only when cropping.

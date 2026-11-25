@@ -1,9 +1,11 @@
+import { AssetIdSchema, type AssetKind } from '../domain/asset';
+
 /**
  * Template field descriptors.
  *
  * Each template declares its editable fields here. The same descriptors are used to:
  *  - resolve stored values safely for rendering (never throws; bad values fall back to defaults)
- *  - generate the inspector form automatically (M3)
+ *  - generate the inspector form automatically (M3); `media` slots get a library picker (M4)
  */
 
 export interface TextField {
@@ -37,7 +39,37 @@ export interface ChoiceField {
   options: readonly { value: string; label: string }[];
 }
 
-export type FieldDef = TextField | NumberField | BooleanField | ChoiceField;
+/**
+ * A slot for an imported asset. The value is the asset id, or '' when empty. Resolving only checks
+ * that the id is well-formed; whether the asset exists (and is of an accepted kind) is decided at
+ * draw time by the media resolver, which falls back to a placeholder.
+ */
+export interface MediaField {
+  kind: 'media';
+  label: string;
+  default: '';
+  accept: readonly AssetKind[];
+  /**
+   * Optional crop focus point: names of two `number` fields (0–1) that the inspector edits with a
+   * focus picker inside this slot instead of as separate inputs. `fit` names a `choice` field
+   * whose value 'cover' means the media is cropped (the picker then shows the visible area).
+   */
+  focus?: { x: string; y: string; fit?: string };
+}
+
+/** Field keys that a media slot edits itself (its focus point), so the form skips them. */
+export function fieldsEditedBySlots(defs: FieldDefs): Set<string> {
+  const keys = new Set<string>();
+  for (const def of Object.values(defs)) {
+    if (def.kind === 'media' && def.focus) {
+      keys.add(def.focus.x);
+      keys.add(def.focus.y);
+    }
+  }
+  return keys;
+}
+
+export type FieldDef = TextField | NumberField | BooleanField | ChoiceField | MediaField;
 export type FieldDefs = Record<string, FieldDef>;
 
 type ValueOf<F extends FieldDef> = F extends NumberField ? number : F extends BooleanField ? boolean : string;
@@ -62,6 +94,8 @@ function resolveOne(def: FieldDef, raw: unknown): string | number | boolean {
       return typeof raw === 'boolean' ? raw : def.default;
     case 'choice':
       return typeof raw === 'string' && def.options.some((o) => o.value === raw) ? raw : def.default;
+    case 'media':
+      return typeof raw === 'string' && AssetIdSchema.safeParse(raw).success ? raw : '';
   }
 }
 

@@ -60,6 +60,15 @@ export function setSceneField(scenes: Scene[], id: string, key: string, value: u
   return patchScene(scenes, id, { fields: { ...scene.fields, [key]: value } });
 }
 
+/** Set several fields at once (one history entry). Same array back if nothing changes. */
+export function setSceneFields(scenes: Scene[], id: string, values: Record<string, unknown>): Scene[] {
+  const scene = scenes[indexOfScene(scenes, id)];
+  if (!scene) return scenes;
+  const changed = Object.entries(values).some(([key, value]) => !Object.is(scene.fields[key], value));
+  if (!changed) return scenes;
+  return patchScene(scenes, id, { fields: { ...scene.fields, ...values } });
+}
+
 /** Whole milliseconds within the allowed scene length. */
 export function clampDuration(ms: number): number {
   if (!Number.isFinite(ms)) return SCENE_MIN_MS;

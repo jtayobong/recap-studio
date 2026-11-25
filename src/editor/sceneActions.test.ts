@@ -7,6 +7,8 @@ import {
   addStarterScenes,
   deleteScene,
   duplicateScene,
+  forgetAsset,
+  setSceneFields,
   moveSceneBy,
   selectScene,
   setSceneDuration,
@@ -99,5 +101,39 @@ describe('scene actions', () => {
     expect(scenes()[0]!.durationMs).toBe(4200);
     setSceneTransition(id, 'slide');
     expect(scenes()[0]!.transitionIn).toBe('slide');
+  });
+});
+
+describe('setSceneFields', () => {
+  it('a drag (many updates in a row) is one undo step', () => {
+    addScene('photo');
+    const id = scenes()[0]!.id;
+    const before = useEditorStore.getState().project;
+    for (const x of [0.1, 0.2, 0.3, 0.4]) setSceneFields(id, { focusX: x, focusY: 1 - x }, 'focus:media');
+    expect(scenes()[0]?.fields).toMatchObject({ focusX: 0.4, focusY: 0.6 });
+    useEditorStore.getState().undo();
+    expect(useEditorStore.getState().project).toEqual(before);
+  });
+});
+
+describe('forgetAsset', () => {
+  it('empties media slots that used the asset, as one undoable step', () => {
+    addScene('title');
+    const id = scenes()[0]!.id;
+    setSceneField(id, 'text', 'asset-1');
+    const before = useEditorStore.getState().project;
+
+    forgetAsset('asset-1');
+    expect(scenes()[0]?.fields.text).toBe('');
+
+    useEditorStore.getState().undo();
+    expect(useEditorStore.getState().project).toEqual(before);
+  });
+
+  it('is a no-op (no history entry) when nothing uses the asset', () => {
+    addScene('title');
+    const project = useEditorStore.getState().project;
+    forgetAsset('nope');
+    expect(useEditorStore.getState().project).toBe(project);
   });
 });

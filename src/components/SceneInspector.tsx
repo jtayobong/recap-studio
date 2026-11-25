@@ -8,9 +8,11 @@ import {
   selectScene,
   setSceneDuration,
   setSceneField,
+  setSceneFields,
   setSceneTransition,
 } from '../editor/sceneActions';
-import { resolveFields } from '../render/fields';
+import { fieldsEditedBySlots, resolveFields, type FieldDef } from '../render/fields';
+import type { FocusBinding } from './FocusPicker';
 import { getTemplate } from '../render/templates/registry';
 import { FieldEditor, NumberInput } from './FieldEditor';
 
@@ -106,7 +108,7 @@ export function SceneInspector({ project, scene, index }: SceneInspectorProps) {
       <section className="inspector__section" aria-label="Content">
         <h3 className="inspector__heading">Content</h3>
         {template ? (
-          <SceneFields scene={scene} />
+          <SceneFields scene={scene} project={project} />
         ) : (
           <p className="muted">
             This scene uses a template (“{scene.templateId}”) that this version of the app doesn't have.
@@ -117,21 +119,38 @@ export function SceneInspector({ project, scene, index }: SceneInspectorProps) {
   );
 }
 
-function SceneFields({ scene }: { scene: Scene }) {
+function SceneFields({ scene, project }: { scene: Scene; project: Project }) {
   const template = getTemplate(scene.templateId);
   if (!template) return null;
   const values = resolveFields(template.fields, scene.fields);
+  const skip = fieldsEditedBySlots(template.fields);
+
+  const focusFor = (def: FieldDef, key: string): FocusBinding | undefined => {
+    if (def.kind !== 'media' || !def.focus) return undefined;
+    const { x, y, fit } = def.focus;
+    const cropped = fit === undefined || values[fit] === 'cover';
+    return {
+      x: Number(values[x]),
+      y: Number(values[y]),
+      cropAspect: cropped ? project.format.width / project.format.height : undefined,
+      onChange: (nx, ny, gesture) => setSceneFields(scene.id, { [x]: nx, [y]: ny }, `focus:${key}:${gesture}`),
+    };
+  };
 
   return (
     <div className="form">
-      {Object.entries(template.fields).map(([key, def]) => (
-        <FieldEditor
-          key={key}
-          def={def}
-          value={values[key] as string | number | boolean}
-          onChange={(value) => setSceneField(scene.id, key, value)}
-        />
-      ))}
+      {Object.entries(template.fields)
+        .filter(([key]) => !skip.has(key))
+        .map(([key, def]) => (
+          <FieldEditor
+            key={key}
+            def={def}
+            value={values[key] as string | number | boolean}
+            onChange={(value) => setSceneField(scene.id, key, value)}
+            projectId={project.id}
+            focus={focusFor(def, key)}
+          />
+        ))}
     </div>
   );
 }

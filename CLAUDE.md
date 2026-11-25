@@ -5,7 +5,8 @@ Deeper context lives in `docs/`:
 
 - `docs/PLAN.md`: the product plan, architecture and milestone roadmap (with status)
 - `docs/DECISIONS.md`: why things are the way they are; read before changing a core choice
-- `docs/NEXT-M4.md`: handoff and design notes for the next milestone
+- `docs/NEXT-M5.md`: handoff and design notes for the next milestone (M5, export)
+- `docs/NEXT-M4.md`: the M4 (media) design record, completed
 
 ## Project
 
@@ -25,8 +26,8 @@ templates or sample content.
 | M1 Data model, IndexedDB persistence, projects page, autosave | ✅ done |
 | M2 Renderer (`renderFrame`), Title + Big Number templates, live preview | ✅ done |
 | M3 Editor: inspector, scene reorder/duplicate/delete, undo/redo | ✅ done |
-| **M4 Media import (OPFS), media library, Photo/Video template** | ⏭ next (see `docs/NEXT-M4.md`) |
-| M5 Export v1 (video): worker + OffscreenCanvas + Mediabunny | planned |
+| M4 Media import (OPFS), media library, Photo/Video template | ✅ done |
+| **M5 Export v1 (video): worker + OffscreenCanvas + Mediabunny** | ⏭ next (see `docs/NEXT-M5.md`) |
 | M6 Audio track, mixed into export | planned |
 | M7 Template pack + style presets + more transitions | planned |
 | M8 Hardening | planned |
@@ -69,26 +70,38 @@ Prefer **no new dependencies**. If one is genuinely needed, say why and ask firs
 ```
 src/
   domain/       Pure model. project.ts (Zod schemas, CURRENT_SCHEMA_VERSION, createProject),
+                asset.ts (AssetSchema, supported MIME types, MEDIA_LIMITS, remapAssetIds),
                 migrations.ts, sceneOps.ts (pure scene-list operations), stylePresets.ts
-  db/           database.ts (Dexie schema), projectRepository.ts (ONLY code that touches Dexie),
-                index.ts (app singletons)
+  db/           database.ts (Dexie schema, v2), projectRepository.ts, assetRepository.ts,
+                opfsStore.ts (streaming OPFS file store), index.ts (app singletons),
+                testing/memoryDirectory.ts (in-memory OPFS fake for unit tests)
+  media/        sniff.ts (magic-byte detection), importAsset.ts (createImporter: limits, probe,
+                quota, persistence), browserProbe.ts (decode/downscale/thumbnails, <video> metadata),
+                assetStatus.ts (thumbnail URL / missing-file store for tiles),
+                dragData.ts (library-tile drag payload), mediaCache.ts (decoded images +
+                <video> pool for the preview, thumbnail resolver for the strip),
+                index.ts (importer, assetStatus, mediaCache singletons)
   store/        createEditorStore.ts: loaded project, debounced serialized autosave, undo/redo
   editor/       sceneActions.ts (editor commands), selectionStore.ts, useEditorShortcuts.ts
   render/       renderFrame.ts, timeline.ts, easing.ts, text.ts, fields.ts, context.ts,
-                templates/ (types, registry, title, bigNumber), testing/mockContext.ts
+                media.ts (MediaResolver, cover/contain geometry, drawMedia),
+                templates/ (types, registry, title, bigNumber, photo), testing/mockContext.ts
   preview/      playbackStore.ts, usePlaybackClock.ts, PreviewCanvas.tsx, PlaybackControls.tsx,
                 usePlaybackShortcuts.ts
   components/   UI pieces (SceneStrip, SceneInspector, FieldEditor, TemplateGallery, SceneThumbnail,
-                Modal, ConfirmDialog, ProjectCard, CapabilityGate, …)
+                MediaLibrary, AssetTile, MediaSlotField, Modal, ConfirmDialog, ProjectCard, …)
   pages/        ProjectsPage, EditorPage, SystemPage, NotFoundPage
   lib/          capabilities, storage, format, debounce, keyboard, ids, errors
-e2e/            Playwright specs: projects, preview, editor
+e2e/            Playwright specs: projects, preview, editor, media-import, media-library, media-slot,
+                media-preview (reads canvas pixels);
+                helpers/media.ts generates test images/video in the page (no binary fixtures)
 ```
 
 Data flow: UI → `editor/sceneActions` → `useEditorStore.update(recipe, { coalesceKey })` →
 immutable new `Project` → autosave → `projectRepository.save` (validates) → IndexedDB.
-Preview: `PreviewCanvas` subscribes to the editor and playback stores and calls
-`renderFrame(ctx, project, timeMs)` at most once per animation frame, outside React rendering.
+Preview: `PreviewCanvas` subscribes to the editor and playback stores (and `mediaCache`) and calls
+`renderFrame(ctx, project, timeMs, mediaCache.preview)` at most once per animation frame, outside
+React rendering.
 
 ## Invariants: do not break these
 
@@ -98,18 +111,22 @@ Preview: `PreviewCanvas` subscribes to the editor and playback stores and calls
 2. **Schema changes need a migration.** Bump `CURRENT_SCHEMA_VERSION`, add a migration keyed by
    the version it migrates *from* in `domain/migrations.ts`, and add a test with a real old fixture.
    Every read goes through `migrateProject`; every write is validated by the repository.
-3. **Only `db/projectRepository.ts` touches Dexie.** (M4 adds an asset repository; same rule.)
+3. **Only the repositories touch storage.** `db/projectRepository.ts` owns the `projects` table;
+   `db/assetRepository.ts` owns the `assets` table and OPFS (via `db/opfsStore.ts`).
 4. **`renderFrame` and templates are pure and deterministic.** Output depends only on
-   (project, time). In templates:
+   (project, time, media). Media comes in through a synchronous `MediaResolver`
+   (`render/media.ts`, `frame.media`); templates draw a placeholder when it answers `undefined`
+   and never load anything themselves. In templates:
    - animate with `progress()` + easing on `frame.localMs`; never `Math.random()` (use
      `seededRandom`), `Date.now()`, or state kept between calls
    - use `withAlpha()` / `isolated()`; never assign `ctx.globalAlpha` directly
    - format numbers with a fixed locale (`en-US`)
    - set `posterMs` (when the scene looks complete); it drives selection and thumbnails
    - `renderFrame` respects the caller's transform (thumbnails draw on a scaled context)
-5. **Template fields are plain descriptors** (`render/fields.ts`: text/number/boolean/choice).
+5. **Template fields are plain descriptors** (`render/fields.ts`: text/number/boolean/choice/media).
    `resolveFields` coerces stored values and never throws; the inspector form is generated from
-   the descriptors. Add new field kinds there (M4 adds `media`).
+   the descriptors. A `media` value is a well-formed asset id or `''`; existence and kind are
+   checked at draw time. Add new field kinds there.
 6. **Scene ops are pure and return the same array for no-ops** (`domain/sceneOps.ts`), so the
    store can skip no-op history entries and untouched scenes keep identity (thumbnails redraw
    only when their own scene changes).
@@ -152,5 +169,11 @@ Preview: `PreviewCanvas` subscribes to the editor and playback stores and calls
 - Fonts are system stacks (`Arial Black` for display). Self-hosted font files and
   `document.fonts.load` before export are still to do.
 - For the first scene, a `slide` transition renders as a fade from the background.
-- Media, export, audio: not started (M4–M6).
+- Preview video is approximate (`<video>` seeking); frame-exact decoding comes with Mediabunny in
+  M5. The exporter must wait for every asset of a frame before drawing it (see `docs/NEXT-M5.md`).
+- Export and audio: not started (M5–M6).
+- The main JS chunk is ~544 kB (508 kB before M4), over Vite's 500 kB warning. Route-level code
+  splitting (e.g. lazy `SystemPage`/editor) would fix it; not urgent for a local app.
+- Images up to 2160 px keep their original bytes, including EXIF/GPS; a project-bundle export (M8)
+  must strip it.
 - `audit.json` in the repo root is a leftover from a one-off audit and can be deleted.

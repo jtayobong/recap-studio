@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
+import { MediaLibrary } from '../components/MediaLibrary';
 import { PalettePicker } from '../components/PalettePicker';
 import { SceneInspector } from '../components/SceneInspector';
 import { SceneStrip } from '../components/SceneStrip';
@@ -9,6 +10,7 @@ import { indexOfScene } from '../domain/sceneOps';
 import { useSelectionStore } from '../editor/selectionStore';
 import { useEditorShortcuts } from '../editor/useEditorShortcuts';
 import { formatAspectRatio } from '../lib/format';
+import { assetStatus, mediaCache } from '../media';
 import { PlaybackControls } from '../preview/PlaybackControls';
 import { PreviewCanvas } from '../preview/PreviewCanvas';
 import { usePlaybackStore } from '../preview/playbackStore';
@@ -36,6 +38,8 @@ export function EditorPage() {
     void load(projectId);
     return () => {
       void close();
+      assetStatus.releaseAll(); // free thumbnail object URLs
+      mediaCache.releaseAll(); // free decoded images and video elements
     };
   }, [projectId, load, close]);
 
@@ -118,8 +122,7 @@ function EditorLayout({ project }: { project: Project }) {
       <div className="editor__body">
         <aside className="editor__panel" aria-label="Templates and media">
           <TemplateGallery disabled={project.scenes.length >= MAX_SCENES} />
-          <h2 className="panel-title panel-title--spaced">Media</h2>
-          <p className="muted">Importing photos, clips and music arrives in milestone 4.</p>
+          <MediaLibrary project={project} />
         </aside>
 
         <section className="editor__stage" aria-label="Preview">

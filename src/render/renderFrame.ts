@@ -2,6 +2,7 @@ import type { Project } from '../domain/project';
 import { getFontPair, getPalette } from '../domain/stylePresets';
 import { isolated, withAlpha, type Ctx2D, type Theme } from './context';
 import { easeInOutCubic } from './easing';
+import { NO_MEDIA, type MediaResolver } from './media';
 import { cssFont, fitText } from './text';
 import { getTemplate } from './templates/registry';
 import { activeTransition, getSceneSpans, locateScene, type SceneSpan } from './timeline';
@@ -16,10 +17,12 @@ export function themeFor(project: RenderableProject): Theme {
  * Draw the frame at `timeMs` in project coordinates (format.width × format.height).
  * The caller's transform is respected, so a scaled context draws a thumbnail.
  *
- * Pure and deterministic: the output depends only on (project, timeMs). The preview calls it
- * on every animation frame; the exporter (M5) will call it once per output frame.
+ * Pure and deterministic: the output depends only on (project, timeMs, media). `media` answers
+ * synchronously with whatever is decoded (see render/media.ts); without it, media slots draw
+ * placeholders. The preview calls this on every animation frame; the exporter (M5) will call it
+ * once per output frame, after making sure that frame's media is ready.
  */
-export function renderFrame(ctx: Ctx2D, project: RenderableProject, timeMs: number): void {
+export function renderFrame(ctx: Ctx2D, project: RenderableProject, timeMs: number, media: MediaResolver = NO_MEDIA): void {
   const { width, height } = project.format;
   const theme = themeFor(project);
 
@@ -44,30 +47,38 @@ export function renderFrame(ctx: Ctx2D, project: RenderableProject, timeMs: numb
   if (transition && previous) {
     const eased = easeInOutCubic(transition.progress);
     if (transition.kind === 'fade') {
-      drawScene(ctx, previous, previous.scene.durationMs, width, height, theme);
-      withAlpha(ctx, eased, () => drawScene(ctx, span, localMs, width, height, theme));
+      drawScene(ctx, previous, previous.scene.durationMs, width, height, theme, media);
+      withAlpha(ctx, eased, () => drawScene(ctx, span, localMs, width, height, theme, media));
     } else {
       // Vertical slide: the next card pushes the previous one up, like a story swipe.
       isolated(ctx, () => {
         ctx.translate(0, -height * eased);
-        drawScene(ctx, previous, previous.scene.durationMs, width, height, theme);
+        drawScene(ctx, previous, previous.scene.durationMs, width, height, theme, media);
       });
       isolated(ctx, () => {
         ctx.translate(0, height * (1 - eased));
-        drawScene(ctx, span, localMs, width, height, theme);
+        drawScene(ctx, span, localMs, width, height, theme, media);
       });
     }
   } else if (transition) {
     // First scene: fade in from the palette background.
-    withAlpha(ctx, easeInOutCubic(transition.progress), () => drawScene(ctx, span, localMs, width, height, theme));
+    withAlpha(ctx, easeInOutCubic(transition.progress), () => drawScene(ctx, span, localMs, width, height, theme, media));
   } else {
-    drawScene(ctx, span, localMs, width, height, theme);
+    drawScene(ctx, span, localMs, width, height, theme, media);
   }
 
   ctx.restore();
 }
 
-function drawScene(ctx: Ctx2D, span: SceneSpan, localMs: number, width: number, height: number, theme: Theme): void {
+function drawScene(
+  ctx: Ctx2D,
+  span: SceneSpan,
+  localMs: number,
+  width: number,
+  height: number,
+  theme: Theme,
+  media: MediaResolver,
+): void {
   const template = getTemplate(span.scene.templateId);
   isolated(ctx, () => {
     // Clip so a template can never paint outside its own card (matters during slides).
@@ -82,7 +93,7 @@ function drawScene(ctx: Ctx2D, span: SceneSpan, localMs: number, width: number, 
     try {
       template.draw(
         ctx,
-        { width, height, localMs, durationMs: span.scene.durationMs },
+        { width, height, localMs, durationMs: span.scene.durationMs, media },
         span.scene.fields,
         theme,
       );

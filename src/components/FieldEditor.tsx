@@ -1,15 +1,21 @@
 import { useId, useState } from 'react';
 import type { FieldDef } from '../render/fields';
+import type { FocusBinding } from './FocusPicker';
+import { MediaSlotField } from './MediaSlotField';
 
 interface FieldEditorProps {
   def: FieldDef;
   /** Already resolved through resolveFields, so it matches the field's type. */
   value: string | number | boolean;
   onChange: (value: string | number | boolean) => void;
+  /** The project being edited (media slots pick from its library). */
+  projectId: string;
+  /** Media slots with a focus point. */
+  focus?: FocusBinding;
 }
 
 /** One inspector control, chosen from the template's field descriptor. */
-export function FieldEditor({ def, value, onChange }: FieldEditorProps) {
+export function FieldEditor({ def, value, onChange, projectId, focus }: FieldEditorProps) {
   const id = useId();
 
   switch (def.kind) {
@@ -79,6 +85,9 @@ export function FieldEditor({ def, value, onChange }: FieldEditorProps) {
           </select>
         </div>
       );
+
+    case 'media':
+      return <MediaSlotField def={def} value={String(value)} projectId={projectId} onChange={onChange} focus={focus} />;
   }
 }
 

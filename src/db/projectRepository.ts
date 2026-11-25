@@ -1,3 +1,4 @@
+import { remapAssetIds } from '../domain/asset';
 import { migrateProject, ProjectDataError } from '../domain/migrations';
 import {
   createProject,
@@ -9,6 +10,7 @@ import {
 } from '../domain/project';
 import { describeError } from '../lib/errors';
 import { newId } from '../lib/ids';
+import type { AssetRepository } from './assetRepository';
 import type { EditorDatabase } from './database';
 
 export interface ProjectSummary {
@@ -66,11 +68,19 @@ export function copyName(name: string): string {
   return `${name.slice(0, PROJECT_NAME_MAX - suffix.length).trimEnd()}${suffix}`;
 }
 
+/** The asset operations project-level actions depend on. */
+export type ProjectAssetStore = Pick<AssetRepository, 'copyProjectAssets' | 'deleteForProject'>;
+
 /**
  * All project persistence goes through here. The rest of the app never touches Dexie
  * directly, which keeps storage swappable and makes validation impossible to skip.
+ * Project media is owned by the asset repository; duplicate and remove delegate to it.
  */
-export function createProjectRepository(database: EditorDatabase, options: { now?: () => number } = {}) {
+export function createProjectRepository(
+  database: EditorDatabase,
+  assets: ProjectAssetStore,
+  options: { now?: () => number } = {},
+) {
   const now = options.now ?? Date.now;
 
   async function list(): Promise<ProjectList> {
@@ -112,30 +122,54 @@ export function createProjectRepository(database: EditorDatabase, options: { now
     });
   }
 
+  /**
+   * Copies the project and its media (each asset file is copied under a new id, see DECISIONS.md D15).
+   * Not a single transaction: OPFS writes can't run inside an IndexedDB transaction. Media is
+   * copied first and the project row added last; on failure the copied media is removed.
+   */
   async function duplicate(id: string): Promise<Project> {
-    return database.transaction('rw', database.projects, async () => {
-      const original = await get(id);
-      if (!original) throw new ProjectNotFoundError(id);
+    const original = await get(id);
+    if (!original) throw new ProjectNotFoundError(id);
+    const copyId = newId();
+    const idMap = await assets.copyProjectAssets(id, copyId);
+    try {
       const timestamp = now();
-      const copy = validate({
-        ...structuredClone(original),
-        id: newId(),
-        name: copyName(original.name),
-        scenes: original.scenes.map((scene) => ({ ...structuredClone(scene), id: newId() })),
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      });
+      const copy = validate(
+        remapAssetIds(
+          {
+            ...structuredClone(original),
+            id: copyId,
+            name: copyName(original.name),
+            scenes: original.scenes.map((scene) => ({ ...structuredClone(scene), id: newId() })),
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          },
+          idMap,
+        ),
+      );
       await database.projects.add(copy);
       return copy;
-    });
+    } catch (error) {
+      await assets.deleteForProject(copyId).catch(() => undefined);
+      throw error;
+    }
   }
 
-  /** Deletes the project document. Media cleanup (OPFS) is added with assets in M4. */
+  /**
+   * Deletes the project document, then its media. If media cleanup fails, the leftovers are
+   * removed by the next `assetRepository.sweepOrphans`.
+   */
   async function remove(id: string): Promise<void> {
     await database.projects.delete(id);
+    await assets.deleteForProject(id);
   }
 
-  return { list, get, save, create, rename, duplicate, remove };
+  /** Ids of all stored projects, including unreadable ones (their media must not be swept). */
+  async function ids(): Promise<Set<string>> {
+    return new Set((await database.projects.toCollection().primaryKeys()) as string[]);
+  }
+
+  return { list, get, save, create, rename, duplicate, remove, ids };
 }
 
 export type ProjectRepository = ReturnType<typeof createProjectRepository>;

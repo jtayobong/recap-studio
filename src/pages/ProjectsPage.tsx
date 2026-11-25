@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { NewProjectDialog } from '../components/NewProjectDialog';
 import { ProjectCard } from '../components/ProjectCard';
-import { projectRepository } from '../db';
+import { projectRepository, sweepOrphanedMediaOnce } from '../db';
 import { describeError } from '../lib/errors';
 
 /** Re-render every minute so "edited 3 minutes ago" stays fresh. */
@@ -27,6 +27,9 @@ export function ProjectsPage() {
   const list = useLiveQuery(() => projectRepository.list(), []);
   const navigate = useNavigate();
   const now = useNow();
+
+  // Housekeeping: remove media left behind by interrupted imports or failed deletes.
+  useEffect(() => sweepOrphanedMediaOnce(), []);
 
   const [creating, setCreating] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);

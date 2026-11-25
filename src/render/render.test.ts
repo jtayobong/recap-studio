@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Scene } from '../domain/project';
 import { clamp01, easeInOutCubic, easeOutBack, easeOutCubic, easeOutExpo, lerp, progress, seededRandom } from './easing';
-import { defaultFields, resolveFields, type FieldDefs } from './fields';
+import { defaultFields, fieldsEditedBySlots, resolveFields, type FieldDefs } from './fields';
+import { NO_MEDIA, type MediaResolver } from './media';
 import { renderFrame, type RenderableProject } from './renderFrame';
+import { kenBurnsZoom, KEN_BURNS_MAX_ZOOM } from './templates/photo';
 import { createScene, createStarterScenes, getTemplate, TEMPLATES } from './templates/registry';
 import { createMockContext } from './testing/mockContext';
 import { fitText, wrapLines } from './text';
@@ -25,6 +27,28 @@ const scene = (id: string, durationMs: number, overrides: Partial<Scene> = {}): 
   transitionIn: 'cut',
   ...overrides,
 });
+
+const MEDIA_ID = '0b8f3c5e-6a43-4c0e-9d0b-2f7f7d1f0a11';
+
+/** Every media field of a template points at MEDIA_ID. */
+function mediaFieldsFor(templateId: string): Record<string, string> {
+  const template = getTemplate(templateId)!;
+  return Object.fromEntries(
+    Object.entries(template.fields)
+      .filter(([, def]) => def.kind === 'media')
+      .map(([key]) => [key, MEDIA_ID]),
+  );
+}
+
+/** Answers with a 4:3 image for MEDIA_ID. */
+const fakeMedia: MediaResolver = {
+  frame: (id) => (id === MEDIA_ID ? { source: {} as CanvasImageSource, width: 4000, height: 3000, kind: 'image' } : undefined),
+};
+
+const testTheme = {
+  palette: { background: '#000', surface: '#111', primary: '#f0f', accent: '#0f0', text: '#fff', id: 'x', name: 'x' },
+  fonts: { id: 'f', name: 'f', display: 'sans-serif', body: 'sans-serif' },
+};
 
 const project = (scenes: Scene[], paletteId = 'neon-pulse'): RenderableProject => ({
   format: { width: 1080, height: 1920, fps: 30 },
@@ -164,6 +188,21 @@ describe('fields', () => {
   it('flattens newlines in single-line text', () => {
     expect(resolveFields(defs, { title: 'a\nb' }).title).toBe('a b');
   });
+
+  it('lists the fields that media slots edit themselves', () => {
+    expect(fieldsEditedBySlots(getTemplate('photo')!.fields)).toEqual(new Set(['focusX', 'focusY']));
+    expect(fieldsEditedBySlots(getTemplate('title')!.fields)).toEqual(new Set());
+  });
+
+  it('keeps media slots as a well-formed asset id or empty', () => {
+    const media = { photo: { kind: 'media', label: 'Photo', default: '', accept: ['image'] } } satisfies FieldDefs;
+    expect(defaultFields(media)).toEqual({ photo: '' });
+    const id = '0b8f3c5e-6a43-4c0e-9d0b-2f7f7d1f0a11';
+    expect(resolveFields(media, { photo: id }).photo).toBe(id);
+    for (const bad of [42, null, '../assets/x', 'a b', 'x'.repeat(65)]) {
+      expect(resolveFields(media, { photo: bad }).photo).toBe('');
+    }
+  });
 });
 
 describe('text layout', () => {
@@ -222,12 +261,66 @@ describe('templates', () => {
     expect(createStarterScenes().map((s) => s.templateId)).toEqual(['title', 'big-number']);
   });
 
+  it('photo draws its media when the resolver has it, a placeholder otherwise', () => {
+    const template = getTemplate('photo')!;
+    const draw = (media: MediaResolver, fields: Record<string, unknown>) => {
+      const mock = createMockContext();
+      template.draw(mock.ctx, { width: 1080, height: 1920, localMs: 2000, durationMs: 4000, media }, fields, testTheme);
+      return { images: mock.calls.filter((c) => c.method === 'drawImage').length, texts: mock.texts() };
+    };
+    expect(draw(fakeMedia, { media: MEDIA_ID, caption: 'Hi' })).toEqual({ images: 1, texts: ['Hi'] });
+    expect(draw(fakeMedia, { media: MEDIA_ID, fit: 'contain', caption: '' }).images).toBe(2);
+    expect(draw(NO_MEDIA, { media: MEDIA_ID, caption: '' }).texts).toEqual(['Add a photo or clip']);
+    expect(draw(fakeMedia, { media: '', caption: '' }).texts).toEqual(['Add a photo or clip']);
+    const audio: MediaResolver = { frame: () => ({ source: {} as CanvasImageSource, width: 1, height: 1, kind: 'audio' }) };
+    expect(draw(audio, { media: MEDIA_ID, caption: '' }).images).toBe(0);
+  });
+
+  it('photo crops around the focus point', () => {
+    const template = getTemplate('photo')!;
+    const sourceX = (focusX: number) => {
+      const mock = createMockContext();
+      template.draw(mock.ctx, { width: 1080, height: 1920, localMs: 0, durationMs: 4000, media: fakeMedia }, { media: MEDIA_ID, focusX, motion: 'none' }, testTheme);
+      return Number(mock.calls.find((c) => c.method === 'drawImage')?.args[1]);
+    };
+    expect(sourceX(0)).toBe(0);
+    expect(sourceX(0.5)).toBeGreaterThan(sourceX(0));
+    expect(sourceX(1)).toBeGreaterThan(sourceX(0.5));
+  });
+
+  it('Ken Burns zooms smoothly over the whole scene, in either direction', () => {
+    expect(kenBurnsZoom('zoom-in', 0, 4000)).toBe(1);
+    expect(kenBurnsZoom('zoom-in', 4000, 4000)).toBeCloseTo(KEN_BURNS_MAX_ZOOM);
+    expect(kenBurnsZoom('zoom-out', 0, 4000)).toBeCloseTo(KEN_BURNS_MAX_ZOOM);
+    expect(kenBurnsZoom('zoom-out', 4000, 4000)).toBe(1);
+    expect(kenBurnsZoom('none', 2000, 4000)).toBe(1);
+    let previous = 0;
+    for (let t = 0; t <= 4000; t += 100) {
+      const zoom = kenBurnsZoom('zoom-in', t, 4000);
+      expect(zoom).toBeGreaterThanOrEqual(previous);
+      previous = zoom;
+    }
+  });
+
+  it('photo asks the resolver for the scene-local time (clip time)', () => {
+    const template = getTemplate('photo')!;
+    const seen: number[] = [];
+    const media: MediaResolver = {
+      frame: (_id, ms) => {
+        seen.push(ms);
+        return undefined;
+      },
+    };
+    template.draw(createMockContext().ctx, { width: 1080, height: 1920, localMs: 1234, durationMs: 4000, media }, { media: MEDIA_ID }, testTheme);
+    expect(seen).toEqual([1234]);
+  });
+
   it('big number counts up from zero to the final value', () => {
     const template = getTemplate('big-number')!;
     const theme = { palette: { background: '#000', surface: '#111', primary: '#f0f', accent: '#0f0', text: '#fff', id: 'x', name: 'x' }, fonts: { id: 'f', name: 'f', display: 'sans-serif', body: 'sans-serif' } };
     const drawAt = (localMs: number) => {
       const { ctx, texts } = createMockContext();
-      template.draw(ctx, { width: 1080, height: 1920, localMs, durationMs: 5000 }, { value: 1234 }, theme);
+      template.draw(ctx, { width: 1080, height: 1920, localMs, durationMs: 5000, media: NO_MEDIA }, { value: 1234 }, theme);
       return texts();
     };
     expect(drawAt(250)).toContain('0');
@@ -257,14 +350,22 @@ describe('renderFrame', () => {
     }
   });
 
-  it('draws every template at many points in time, in every palette, without error cards', () => {
+  it('draws every registered template at many points in time, in every palette, with and without media', () => {
     const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
-    for (const paletteId of ['neon-pulse', 'citrus-pop', 'midnight-wave', 'mint-riot']) {
-      const p = project(createStarterScenes(), paletteId);
-      for (let t = 0; t <= 8500; t += 250) {
-        const { ctx, texts } = createMockContext();
-        renderFrame(ctx, p, t);
-        expect(texts().some((text) => text.includes('failed to draw'))).toBe(false);
+    const scenes = TEMPLATES.map((t) => {
+      const created = createScene(t.id);
+      return { ...created, fields: { ...created.fields, ...mediaFieldsFor(t.id) } };
+    });
+    const total = scenes.reduce((sum, s) => sum + s.durationMs, 0);
+    for (const media of [NO_MEDIA, fakeMedia]) {
+      for (const paletteId of ['neon-pulse', 'citrus-pop', 'midnight-wave', 'mint-riot']) {
+        const p = project(scenes, paletteId);
+        for (let t = 0; t <= total; t += 250) {
+          const { ctx, texts, calls } = createMockContext();
+          renderFrame(ctx, p, t, media);
+          expect(texts().some((text) => text.includes('failed to draw'))).toBe(false);
+          expect(calls.filter((c) => c.method === 'save').length).toBe(calls.filter((c) => c.method === 'restore').length);
+        }
       }
     }
     expect(errors).not.toHaveBeenCalled();

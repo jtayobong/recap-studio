@@ -1,4 +1,7 @@
-# Next up: M4, media
+# M4, media: ✅ done (2026-11-25)
+
+Kept as the design record for M4. What shipped is summarized under **Progress** below and in
+DECISIONS.md D15–D21; the next milestone is in `NEXT-M5.md`.
 
 **Goal:** import photos and video clips into local storage, show them in a media library, and use
 them in a new Photo/Video scene template with fit and crop, visible in the live preview.
@@ -7,8 +10,31 @@ them in a new Photo/Video scene template with fit and crop, visible in the live 
 in the preview and thumbnails, reload and still have them, and delete a project without leaving
 orphaned files. `npm run check` and `npm run test:e2e` pass.
 
-These are design notes from the planning so far, not final decisions. Confirm anything marked
-**open** with the user before building it.
+These are design notes from the planning so far. The **open** items were settled with the user
+on 2026-11-25 (DECISIONS.md D15–D17): duplicate copies files; limits are images ≤ 80 MB, video
+≤ 2 GB / ≤ 5 min; focus point is picked on the thumbnail; asset import/delete is not undoable.
+
+**Progress:** step 1 done (asset model, Dexie v2, OPFS store, asset repository wired into project
+duplicate/delete, `sweepOrphans` implemented but not yet called from the UI). Step 2 done
+(`media/`: sniffing, limits, image downscale + thumbnails, video metadata + poster, quota check,
+persistence request, cancel/progress; `importer.importFiles` is ready for the media panel).
+Step 3 done (`MediaLibrary` + `AssetTile` in the editor's left panel: Import… button and drop zone,
+progress with cancel, per-file errors, missing-file badge, confirmed delete that also empties
+media slots via `forgetAsset`; orphan sweep runs once per page load from the Projects page).
+Step 4 done (`media` field kind; `MediaSlotField` with Choose…/Replace… picker, Clear, drop of a
+library tile or of files from the computer; tiles draggable via `media/dragData.ts`). To make the
+slot usable, the Photo / Video template from step 6 was registered early with its `media`,
+`caption` and `fit` fields and a placeholder render. Step 5 makes it draw media; step 6 adds
+`focusX`/`focusY` + the focus picker and the Ken Burns zoom.
+Step 5 done: `render/media.ts` (`MediaResolver` passed as `renderFrame`'s 4th argument and exposed
+to templates as `frame.media`; `coverRect`/`containRect`/`drawMedia` already take focus + zoom for
+step 6), `media/mediaCache.ts` (preview + thumbnail resolvers), Photo template draws media with
+cover/contain. Checked by pixel-reading e2e (`e2e/media-preview.spec.ts`).
+Step 6 done: `focusX`/`focusY` (edited by `FocusPicker` inside the media slot: click/drag, arrow
+keys, Home/Center, crop outline when Fit is cover; each gesture is one undo step) and a `motion`
+choice (slow zoom in/out/none, `kenBurnsZoom`) centered on the focus point.
+Step 7 done: `e2e/media-project.spec.ts` (import, use, reload, duplicate, delete, storage empty);
+the media specs also pass against `vite preview` with the production CSP.
 
 ## Suggested breakdown
 

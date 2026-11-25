@@ -1,19 +1,26 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProjectDataError } from '../domain/migrations';
 import { DEFAULT_PROJECT_NAME, PROJECT_NAME_MAX, type Project } from '../domain/project';
+import { createAssetRepository, type AssetRepository } from './assetRepository';
 import { EditorDatabase } from './database';
+import { createOpfsStore } from './opfsStore';
 import { copyName, createProjectRepository, ProjectNotFoundError, type ProjectRepository } from './projectRepository';
+import { createMemoryDirectory, type MemoryDirectory } from './testing/memoryDirectory';
 
 // fake-indexeddb is installed globally by the Vitest setup file.
 
 let database: EditorDatabase;
 let repo: ProjectRepository;
+let assets: AssetRepository;
+let files: MemoryDirectory;
 let clock: number;
 
 beforeEach(() => {
   database = new EditorDatabase(`test-${crypto.randomUUID()}`);
   clock = 1_000;
-  repo = createProjectRepository(database, { now: () => clock });
+  files = createMemoryDirectory({ now: () => clock });
+  assets = createAssetRepository(database, createOpfsStore(async () => files.handle), { now: () => clock });
+  repo = createProjectRepository(database, assets, { now: () => clock });
 });
 
 afterEach(async () => {
@@ -108,6 +115,59 @@ describe('projectRepository', () => {
     const project = await repo.create({ name: 'Gone' });
     await repo.remove(project.id);
     expect(await repo.get(project.id)).toBeUndefined();
+  });
+
+  describe('with media', () => {
+    const addImage = (projectId: string) =>
+      assets.add({ projectId, kind: 'image', mime: 'image/png', filename: 'a.png', data: new Blob(['png']) });
+
+    it('duplicate copies media and points the copy at it', async () => {
+      const original = await repo.create({ name: 'Media' });
+      const asset = await addImage(original.id);
+      await repo.save({
+        ...original,
+        scenes: [{ id: 's1', templateId: 'photo', durationMs: 3000, fields: { media: asset.id }, transitionIn: 'fade' }],
+      });
+
+      const copy = await repo.duplicate(original.id);
+      const copied = await assets.listForProject(copy.id);
+      expect(copied).toHaveLength(1);
+      expect(copied[0]?.id).not.toBe(asset.id);
+      expect(copy.scenes[0]?.fields.media).toBe(copied[0]?.id);
+      expect((await repo.get(original.id))?.scenes[0]?.fields.media).toBe(asset.id);
+
+      // Deleting the original leaves the copy's media intact.
+      await repo.remove(original.id);
+      expect(await (await assets.readFile(copied[0]?.id ?? ''))?.text()).toBe('png');
+    });
+
+    it('duplicate removes copied media if saving the copy fails', async () => {
+      const original = await repo.create({ name: 'Media' });
+      await addImage(original.id);
+      // Fail the final step, after the media has been copied.
+      const add = vi.spyOn(database.projects, 'add').mockRejectedValueOnce(new Error('disk said no'));
+      await expect(repo.duplicate(original.id)).rejects.toThrow('disk said no');
+      expect(add).toHaveBeenCalledOnce();
+      expect(files.paths()).toHaveLength(1);
+      expect(await database.assets.count()).toBe(1);
+    });
+
+    it("remove deletes the project's media and nothing else", async () => {
+      const a = await repo.create({ name: 'A' });
+      const b = await repo.create({ name: 'B' });
+      await addImage(a.id);
+      const kept = await addImage(b.id);
+
+      await repo.remove(a.id);
+      expect(await assets.listForProject(a.id)).toEqual([]);
+      expect(files.paths()).toEqual([`assets/${kept.id}`]);
+    });
+
+    it('ids includes unreadable projects', async () => {
+      const a = await repo.create({ name: 'A' });
+      await database.projects.put({ id: 'future', updatedAt: 6, schemaVersion: 42 });
+      expect(await repo.ids()).toEqual(new Set([a.id, 'future']));
+    });
   });
 });
 

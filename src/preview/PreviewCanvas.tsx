@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { Format } from '../domain/project';
+import { mediaCache } from '../media';
 import { renderFrame } from '../render/renderFrame';
 import { useEditorStore } from '../store/editorStore';
 import { usePlaybackStore } from './playbackStore';
@@ -23,7 +24,12 @@ export function PreviewCanvas({ format }: { format: Format }) {
     const draw = () => {
       scheduled = 0;
       const project = useEditorStore.getState().project;
-      if (project) renderFrame(ctx, project, usePlaybackStore.getState().timeMs);
+      if (!project) return;
+      const { timeMs, playing } = usePlaybackStore.getState();
+      mediaCache.setPlaying(playing);
+      mediaCache.beginFrame();
+      renderFrame(ctx, project, timeMs, mediaCache.preview);
+      mediaCache.endFrame(); // pauses clips that are no longer on screen
     };
     const requestDraw = () => {
       if (!scheduled) scheduled = requestAnimationFrame(draw);
@@ -34,14 +40,17 @@ export function PreviewCanvas({ format }: { format: Format }) {
       if (state.project !== previous.project) requestDraw();
     });
     const unsubscribePlayback = usePlaybackStore.subscribe((state, previous) => {
-      if (state.timeMs !== previous.timeMs) requestDraw();
+      if (state.timeMs !== previous.timeMs || state.playing !== previous.playing) requestDraw();
     });
+    // Redraw when media finishes decoding or a paused clip lands on its seek target.
+    const unsubscribeMedia = mediaCache.subscribe(requestDraw);
     // System fonts can finish loading after the first paint; redraw when they do.
     void document.fonts?.ready.then(requestDraw);
 
     return () => {
       unsubscribeProject();
       unsubscribePlayback();
+      unsubscribeMedia();
       if (scheduled) cancelAnimationFrame(scheduled);
     };
   }, [format.width, format.height]);

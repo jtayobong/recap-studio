@@ -9,6 +9,7 @@ import {
   patchScene,
   removeScene,
   setSceneField,
+  setSceneFields,
 } from './sceneOps';
 
 const scene = (id: string, fields: Record<string, unknown> = {}): Scene => ({
@@ -72,6 +73,14 @@ describe('scene operations', () => {
     const next = setSceneField(list, 'a', 'title', 'Hello');
     expect(next[0]?.fields).toEqual({ title: 'Hello', kicker: 'Yo' });
     expect(setSceneField(next, 'a', 'title', 'Hello')).toBe(next);
+  });
+
+  it('sets several fields at once, and is a no-op when nothing changes', () => {
+    const list = [scene('a', { focusX: 0.5, focusY: 0.5, title: 'Hi' })];
+    const next = setSceneFields(list, 'a', { focusX: 0.2, focusY: 0.7 });
+    expect(next[0]?.fields).toEqual({ focusX: 0.2, focusY: 0.7, title: 'Hi' });
+    expect(setSceneFields(next, 'a', { focusX: 0.2, focusY: 0.7 })).toBe(next);
+    expect(setSceneFields(next, 'missing', { focusX: 1 })).toBe(next);
   });
 
   it('clamps durations to whole milliseconds in range', () => {

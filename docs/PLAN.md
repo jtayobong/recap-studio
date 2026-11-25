@@ -63,14 +63,14 @@ reopening restores everything.
 | M1 | Data model + persistence: schemas, migrations, Dexie, projects CRUD, autosave | Projects survive reload | ✅ |
 | M2 | Renderer core, Title + Big Number templates, preview with play/pause/scrub | A starter story plays smoothly | ✅ |
 | M3 | Editor UI: strip reorder/duplicate/delete, inspector from field descriptors, durations, transitions, undo/redo | A story can be built entirely through the UI | ✅ |
-| M4 | Media: import to OPFS, thumbnails, media library, Photo/Video template with fit/crop | Photos and clips appear in scenes and preview | ⏭ next |
-| M5 | Export v1 (video): worker, OffscreenCanvas, Mediabunny MP4, progress, cancel, download | A 30 s 1080×1920 MP4 matches the preview frame for frame | planned |
+| M4 | Media: import to OPFS, thumbnails, media library, Photo/Video template with fit/crop | Photos and clips appear in scenes and preview | ✅ |
+| M5 | Export v1 (video): worker, OffscreenCanvas, Mediabunny MP4, progress, cancel, download | A 30 s 1080×1920 MP4 matches the preview frame for frame | ⏭ next |
 | M6 | Audio: one music track, offset/volume, synced preview, mixed into export | Exported MP4 has correctly timed audio | planned |
 | M7 | Template pack + style: Top 5, Compare, Outro, palettes/font pairs, more transitions, starter stories | The starter story looks great out of the box | planned |
 | M8 | Hardening: errors, missing files, quota warnings, input limits, migration tests, project bundle import/export, e2e happy path, CSP review | A fresh user can go from start to export with no dead ends | planned |
 
-M5 is the riskiest milestone. Consider a quick spike (canvas animation → MP4 in a worker) early in
-M4 or before starting M5.
+M5 is the riskiest milestone. The spike (canvas animation → MP4 in a worker) wasn't done during M4;
+it is the first step of M5 (`docs/NEXT-M5.md`).
 
 ## 7. Security and privacy
 

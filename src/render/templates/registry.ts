@@ -2,11 +2,12 @@ import type { Scene } from '../../domain/project';
 import { newId } from '../../lib/ids';
 import { defaultFields } from '../fields';
 import { bigNumberTemplate } from './bigNumber';
+import { photoTemplate } from './photo';
 import { titleTemplate } from './title';
 import type { SceneTemplate } from './types';
 
 /** All scene templates, in the order the editor offers them. Add new templates here. */
-export const TEMPLATES: readonly SceneTemplate[] = [titleTemplate, bigNumberTemplate];
+export const TEMPLATES: readonly SceneTemplate[] = [titleTemplate, bigNumberTemplate, photoTemplate];
 
 const byId = new Map(TEMPLATES.map((template) => [template.id, template]));
 

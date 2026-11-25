@@ -29,7 +29,9 @@ npm run dev                       # http://localhost:5173
 ```
 src/
   domain/        Pure model: Zod schemas, project factory, style presets, migrations
-  db/            Dexie database + project repository (the only code that touches IndexedDB)
+  db/            Dexie database, project + asset repositories (the only code that touches
+                 IndexedDB and OPFS), streaming OPFS file store
+  media/         Import pipeline: format sniffing, limits, decode/downscale, thumbnails
   store/         Zustand editor store: autosave (debounced, serialized) and undo/redo history
   editor/        Editor commands (add/move/duplicate/delete/edit scenes), selection, shortcuts
   render/        Pure renderer: renderFrame(), timeline, easing, text fitting, scene templates
@@ -99,8 +101,9 @@ e2e/             Playwright specs
 ## Adding a scene template
 
 1. Create `src/render/templates/<name>.ts` with `defineTemplate({ id, name, fields, render, … })`.
-   - `fields` are plain descriptors (`text`, `number`, `boolean`, `choice`). Stored values are
-     validated against them before rendering, and M3 will build the inspector form from them.
+   - `fields` are plain descriptors (`text`, `number`, `boolean`, `choice`, `media`). Stored values
+     are validated against them before rendering, and the inspector form is built from them.
+     A `media` field (`accept: ['image', 'video']`) stores an asset id and gets a library picker.
    - `render` must be pure: animate with `progress()` + easing on `frame.localMs`, never
      `Math.random()` (use `seededRandom`) or `Date.now()`, and use `withAlpha()` rather than
      assigning `ctx.globalAlpha`.
@@ -108,7 +111,29 @@ e2e/             Playwright specs
 2. Register it in `TEMPLATES` in `src/render/templates/registry.ts`.
 3. The test "draws every template at many points in time" covers it automatically.
 
-## Next: M4 (media)
+## Media (M4)
 
-Import photos and clips into local storage (OPFS) with thumbnails, a media library, and a
-Photo/Video template with fit and crop.
+- **Import** photos and clips with the media panel's **Import…** button or by dropping files on it.
+  Accepted: JPEG, PNG, WebP, GIF (first frame), MP4, MOV, WebM. Formats are detected from file
+  contents, not names. Limits: images up to 80 MB, video up to 2 GB and 5 minutes.
+- Images larger than 2160 px on the long edge are downscaled before storing. Videos are streamed to
+  storage, never loaded fully into memory. Each item gets a small WebP thumbnail.
+- Binaries live in the browser's Origin Private File System (`assets/<id>`, `thumbs/<id>.webp`);
+  metadata lives in the `assets` table. Each asset belongs to one project: duplicating a project
+  copies its files, deleting a project deletes them.
+- Deleting from the library asks first and can't be undone; scenes that used the item get an empty
+  media slot. Leftovers from interrupted imports are swept when the Projects page opens.
+- **Using media in a scene:** add a **Photo / Video** scene, then fill its media slot in the inspector
+  with **Choose…** (picker dialog), by dragging a tile from the library, or by dropping a file from
+  your computer (it's imported first). Placing and clearing media can be undone.
+- **In the preview** photos are decoded on demand (the small thumbnail shows first) and clips
+  follow the playhead: exact seeks while paused, normal playback while playing, holding their last
+  frame if the scene is longer. **Fit** chooses *Fill the screen* (crop) or *Show all*
+  (letterbox over a dimmed copy). Scene-strip thumbnails use the stored thumbnails.
+- **Focus point:** when a photo or clip is cropped, click or drag on the picture in the inspector
+  (or use the arrow keys; Shift for big steps, Home to re-center) to choose what stays in frame.
+  The outlined box is what the story shows. **Motion** adds a slow zoom in or out, centered there.
+
+## Next: M5 (export)
+
+Render the story to an MP4 in a worker with WebCodecs and Mediabunny. See `docs/NEXT-M5.md`.

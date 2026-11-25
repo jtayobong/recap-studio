@@ -1,3 +1,4 @@
+import { clearAssetReferences } from '../domain/asset';
 import { MAX_SCENES, type Scene, type Transition } from '../domain/project';
 import * as ops from '../domain/sceneOps';
 import { newId } from '../lib/ids';
@@ -91,6 +92,14 @@ export function setSceneField(id: string, key: string, value: unknown): void {
   updateScenes((current) => ops.setSceneField(current, id, key, value), `field:${id}:${key}`);
 }
 
+/**
+ * Set several fields as one edit, e.g. a focus point's x and y. Pass a `group` name so a drag
+ * (many updates in a row) becomes a single undo step.
+ */
+export function setSceneFields(id: string, values: Record<string, unknown>, group = Object.keys(values).join('+')): void {
+  updateScenes((current) => ops.setSceneFields(current, id, values), `fields:${id}:${group}`);
+}
+
 export function setSceneDuration(id: string, durationMs: number): void {
   updateScenes(
     (current) => ops.patchScene(current, id, { durationMs: ops.clampDuration(durationMs) }),
@@ -100,4 +109,12 @@ export function setSceneDuration(id: string, durationMs: number): void {
 
 export function setSceneTransition(id: string, transitionIn: Transition): void {
   updateScenes((current) => ops.patchScene(current, id, { transitionIn }));
+}
+
+/**
+ * After an asset was deleted from the library: empty every media slot that used it.
+ * Undoable like any edit (undo brings back a reference to a missing asset, shown as missing).
+ */
+export function forgetAsset(assetId: string): void {
+  editor().update((project) => clearAssetReferences(project, assetId));
 }

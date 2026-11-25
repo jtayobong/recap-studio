@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { checkCapabilities, CODECS, type CapabilityEnv } from './capabilities';
 import { debounce } from './debounce';
-import { formatAspectRatio, formatBytes, formatRelativeTime } from './format';
+import { formatAspectRatio, formatBytes, formatDuration, formatRelativeTime } from './format';
 
 describe('debounce', () => {
   afterEach(() => {
@@ -44,6 +44,14 @@ describe('format helpers', () => {
     expect(formatBytes(1536)).toBe('1.5 KB');
     expect(formatBytes(250 * 1024 * 1024)).toBe('250 MB');
     expect(formatBytes(-1)).toBe('—');
+  });
+
+  it('formats durations', () => {
+    expect(formatDuration(0)).toBe('0:00');
+    expect(formatDuration(65_400)).toBe('1:05');
+    expect(formatDuration(5 * 60_000)).toBe('5:00');
+    expect(formatDuration(3_723_000)).toBe('1:02:03');
+    expect(formatDuration(Number.POSITIVE_INFINITY)).toBe('—');
   });
 
   it('formats relative time', () => {

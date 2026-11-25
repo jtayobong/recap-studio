@@ -1,4 +1,5 @@
 import type { FontPair, Palette } from '../domain/stylePresets';
+import type { MediaResolver } from './media';
 
 /** Works with an on-screen canvas (preview) and an OffscreenCanvas in a worker (export, M5). */
 export type Ctx2D = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
@@ -15,6 +16,8 @@ export interface FrameInfo {
   /** Milliseconds since this scene started. */
   localMs: number;
   durationMs: number;
+  /** Decoded media for `media` fields. May answer undefined: draw a placeholder then. */
+  media: MediaResolver;
 }
 
 /**

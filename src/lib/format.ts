@@ -40,3 +40,13 @@ export function formatAspectRatio(width: number, height: number): string {
   const divisor = gcd(width, height) || 1;
   return `${width / divisor}:${height / divisor}`;
 }
+
+/** Clip length as `m:ss` (or `h:mm:ss`), rounded to the nearest second. */
+export function formatDuration(ms: number): string {
+  if (!Number.isFinite(ms) || ms < 0) return '—';
+  const total = Math.round(ms / 1000);
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = String(total % 60).padStart(2, '0');
+  return hours > 0 ? `${hours}:${String(minutes).padStart(2, '0')}:${seconds}` : `${minutes}:${seconds}`;
+}
