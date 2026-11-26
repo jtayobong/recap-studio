@@ -7,6 +7,7 @@ import { compareTemplate } from './compare';
 import { outroTemplate } from './outro';
 import { photoTemplate } from './photo';
 import { photoGridTemplate } from './photoGrid';
+import { textCarouselTemplate } from './textCarousel';
 import { topListTemplate } from './topList';
 import { titleTemplate } from './title';
 import type { SceneTemplate } from './types';
@@ -20,6 +21,7 @@ export const TEMPLATES: readonly SceneTemplate[] = [
   photoTemplate,
   photoGridTemplate,
   carouselTemplate,
+  textCarouselTemplate,
   outroTemplate,
 ];
 

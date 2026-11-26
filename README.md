@@ -189,6 +189,12 @@ One music track per story, in sync in the preview and mixed into the export.
 - **Transitions:** cut, fade, slide up, push left, zoom, wipe and flash; the first scene
   transitions in from the background.
 
+## More scenes and sound control (M10)
+
+- **Text carousel:** up to six cards, each a headline with an optional small line, sliding in
+  sideways or upwards one at a time and pausing so each can be read (the scene's length is shared
+  equally between the cards). The next card's fields appear once the previous card has a headline.
+
 ## Storage (M8)
 
 Everything is stored in this browser. A warning appears on the Projects page and in the editor when

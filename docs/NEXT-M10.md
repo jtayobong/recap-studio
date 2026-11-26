@@ -57,3 +57,8 @@ pass.
 ## Progress
 
 - Design record written (this file).
+- **Text carousel done:** `render/templates/textCarousel.ts` (`textCarouselPosition` for the
+  step-and-pause motion, `textCarouselCards` for the strip), registered after the photo carousel.
+  Upward strips show the page dots in a column at the right edge, since the strip runs past the
+  bottom. Unit tests in `textCarousel.test.ts`; `render.test.ts` covers it in every palette and its
+  landscape check now runs over every registered template. Portrait baseline unchanged.
