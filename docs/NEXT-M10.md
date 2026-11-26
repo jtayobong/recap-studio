@@ -1,4 +1,12 @@
-# M10, text carousel, section divider, ducking controls: in progress (started 2026-11-26)
+# M10, text carousel, section divider, ducking controls: ✅ done (2026-11-26)
+
+**Done-when result:** both templates are in the gallery and were checked in the running editor
+(preview, inspector, scene-strip thumbnails); they export like the preview in 9:16 and 16:9
+(`e2e/m10-templates.spec.ts` compares decoded frames with `renderFrame`). Clip-sound scenes set the
+music level under the clip and the clip volume; the export follows them (measured by tone in
+`e2e/clip-sound.spec.ts`) and so does the preview music. Existing projects are unchanged: the
+portrait baseline is identical and older scenes get the earlier levels. `npm run check` (415 unit
+tests), `npm run test:e2e` (69) and `npm run test:e2e:prod` (45) pass.
 
 **Goal:** three additions the user asked for after M9: a carousel of text cards, a scene that
 introduces a chapter of the story, and control over how much the music drops under a clip's own

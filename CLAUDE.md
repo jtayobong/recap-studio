@@ -39,7 +39,7 @@ templates or sample content.
 | Landscape (16:9) output (first M9 candidate) | ✅ done |
 | Desktop app (Tauri, Windows) | ✅ done |
 | 60 fps export (Export dialog option, D35) | ✅ done |
-| M10 Text carousel, section divider, ducking controls | 🚧 in progress |
+| M10 Text carousel, section divider, ducking controls | ✅ done |
 
 The original roadmap is complete, and so are landscape output, the desktop app and 60 fps export
 (records in `docs/NEXT-M9.md`, which also lists the remaining candidates).
@@ -108,8 +108,8 @@ src/
   render/       renderFrame.ts, timeline.ts, easing.ts, text.ts, fields.ts (+ slotCropAspect), context.ts,
                 layout.ts (isLandscape, unitOf), portraitBaseline.test.ts (9:16 output guard),
                 media.ts (MediaResolver, cover/contain geometry, drawMedia), clipSound.ts (when clips are heard),
-                templates/ (types, registry, title, bigNumber, topList, compare, photo, photoGrid,
-                carousel, outro, mediaLayout, starters), testing/mockContext.ts
+                templates/ (types, registry, title, section, bigNumber, topList, compare, photo, photoGrid,
+                carousel, textCarousel, outro, mediaLayout, soundFields, starters), testing/mockContext.ts
   preview/      playbackStore.ts, usePlaybackClock.ts, PreviewCanvas.tsx, PlaybackControls.tsx,
                 usePlaybackShortcuts.ts, PreviewMusic.tsx + musicSync.ts (music follows the playhead)
   components/   UI pieces (SceneStrip, SceneInspector, FieldEditor, TemplateGallery, SceneThumbnail,
@@ -128,7 +128,7 @@ src/
   lib/          capabilities, storage, format, debounce, keyboard, ids, errors
 e2e/            Playwright specs: projects, preview, editor, media-import, media-library, media-slot,
                 media-preview (reads canvas pixels), media-project, export (decodes the output), export-ui,
-                music, starters, export-60fps; helpers/story.ts adds the basic 8.5 s story for timing tests;
+                music, starters, export-60fps, clip-sound, m10-templates; helpers/story.ts adds the basic 8.5 s story for timing tests;
                 helpers/media.ts generates test images/video in the page (no binary fixtures)
 ```
 

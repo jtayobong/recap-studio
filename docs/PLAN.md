@@ -69,7 +69,7 @@ reopening restores everything.
 | M7 | Template pack + style: Top 5, Compare, Outro, palettes/font pairs, more transitions, starter stories | The starter story looks great out of the box | ✅ |
 | M8 | Hardening: errors, missing files, quota warnings, input limits, migration tests, project bundle import/export, e2e happy path, CSP review | A fresh user can go from start to export with no dead ends | ✅ |
 | M9 cand. 1 | Landscape (16:9) output: shape-aware template layouts, format switch, focus picker, export (`docs/NEXT-M9.md`) | A 16:9 project looks designed for it in preview and a 1920×1080 export | ✅ |
-| M10 | Text carousel, section divider, per-scene ducking controls (`docs/NEXT-M10.md`) | Both templates render and export in both shapes; clip-sound scenes set music level and clip volume | 🚧 |
+| M10 | Text carousel, section divider, per-scene ducking controls (`docs/NEXT-M10.md`) | Both templates render and export in both shapes; clip-sound scenes set music level and clip volume | ✅ |
 
 M5 is the riskiest milestone. The spike (canvas animation → MP4 in a worker) wasn't done during M4;
 it is the first step of M5 (`docs/NEXT-M5.md`).
