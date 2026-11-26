@@ -114,7 +114,7 @@ export function SceneInspector({ project, scene, index }: SceneInspectorProps) {
         <h3 className="inspector__heading">Content</h3>
         {template ? (
           <>
-            <MediaSequenceSection scene={scene} template={template} />
+            <MediaSequenceSection scene={scene} template={template} projectId={project.id} />
             <SceneFields scene={scene} project={project} />
           </>
         ) : (

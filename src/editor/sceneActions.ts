@@ -3,10 +3,11 @@ import { MAX_SCENES, type Scene, type Transition } from '../domain/project';
 import * as ops from '../domain/sceneOps';
 import { newId } from '../lib/ids';
 import { usePlaybackStore } from '../preview/playbackStore';
-import { createScene, createStarterScenes, posterTimeMs } from '../render/templates/registry';
+import { createScene, createStarterScenes, getTemplate, posterTimeMs } from '../render/templates/registry';
 import { getStarterStory } from '../render/templates/starters';
 import { getSceneSpans } from '../render/timeline';
 import { useEditorStore } from '../store/editorStore';
+import { fillEmptySlots } from './mediaSequence';
 import { useSelectionStore } from './selectionStore';
 
 /**
@@ -114,6 +115,19 @@ export function setSceneField(id: string, key: string, value: unknown): void {
  */
 export function setSceneFields(id: string, values: Record<string, unknown>, group = Object.keys(values).join('+')): void {
   updateScenes((current) => ops.setSceneFields(current, id, values), `fields:${id}:${group}`);
+}
+
+/**
+ * Put several library items into the empty slots of a scene's media sequence (the carousel), in
+ * slot order, as one undo step. Returns how many didn't fit.
+ */
+export function addSceneMedia(id: string, assetIds: readonly string[]): number {
+  const scene = scenes().find((s) => s.id === id);
+  const sequence = scene ? getTemplate(scene.templateId)?.mediaSequence : undefined;
+  if (!scene || !sequence) return assetIds.length;
+  const { values, leftOver } = fillEmptySlots(sequence, scene.fields, assetIds);
+  if (Object.keys(values).length > 0) updateScenes((current) => ops.setSceneFields(current, id, values));
+  return leftOver;
 }
 
 export function setSceneDuration(id: string, durationMs: number): void {

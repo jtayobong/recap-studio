@@ -4,6 +4,7 @@ import { usePlaybackStore } from '../preview/playbackStore';
 import { useEditorStore } from '../store/editorStore';
 import {
   addScene,
+  addSceneMedia,
   addStarterScenes,
   addStarterStory,
   deleteScene,
@@ -137,6 +138,30 @@ describe('setSceneFields', () => {
     expect(scenes()[0]?.fields).toMatchObject({ focusX: 0.4, focusY: 0.6 });
     useEditorStore.getState().undo();
     expect(useEditorStore.getState().project).toEqual(before);
+  });
+});
+
+describe('addSceneMedia', () => {
+  const ids = Array.from({ length: 14 }, (_, i) => `${(i + 10).toString(16).padStart(8, '0')}-6a43-4c0e-9d0b-2f7f7d1f0a11`);
+
+  it('fills the carousel empty slots in order, as one undo step, and reports what did not fit', () => {
+    addScene('carousel');
+    const id = scenes()[0]!.id;
+    setSceneField(id, 'media2', ids[0]);
+    const before = useEditorStore.getState().project;
+    expect(addSceneMedia(id, ids.slice(1, 4))).toBe(0);
+    expect(scenes()[0]?.fields).toMatchObject({ media1: ids[1], media2: ids[0], media3: ids[2], media4: ids[3] });
+    useEditorStore.getState().undo();
+    expect(useEditorStore.getState().project).toEqual(before);
+    expect(addSceneMedia(id, ids)).toBe(3); // 11 free slots, 14 picked
+    expect(scenes()[0]?.fields.media12).toBe(ids[10]);
+  });
+
+  it('does nothing for templates without a media sequence', () => {
+    addScene('photo');
+    const before = useEditorStore.getState().project;
+    expect(addSceneMedia(scenes()[0]!.id, ids.slice(0, 2))).toBe(2);
+    expect(useEditorStore.getState().project).toBe(before);
   });
 });
 

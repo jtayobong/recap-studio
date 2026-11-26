@@ -1348,6 +1348,39 @@ legend {
   white-space: nowrap;
 }
 
+.media-picker__order {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.3rem;
+  display: grid;
+  place-items: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--bg);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.media-sequence {
+  display: grid;
+  gap: 0.3rem;
+  margin-bottom: 0.8rem;
+}
+
+.media-sequence__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.media-sequence__summary {
+  margin: 0;
+}
+
 .asset-tile[draggable='true'] {
   cursor: grab;
 }

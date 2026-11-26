@@ -220,6 +220,8 @@ One music track per story, in sync in the preview and mixed into the export.
   *Show whole photo*, which shows every photo uncropped over a dimmed copy of itself.
 - **Up to 12 photos or clips** per carousel (was 6). The inspector shows how long each one is on
   screen, so you can tell when the scene needs to be longer.
+- **Add photos…** (carousel inspector): pick several photos or clips from the library, in the order
+  they should appear, and they fill the next empty slots in one undoable step.
 - **Subtle background motion** also has a few single small dots drifting between the shapes.
 
 ## Storage (M8)
