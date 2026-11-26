@@ -295,3 +295,20 @@ result: a browser that can encode 30 but not 60 still exports, and the dialog sh
 disabled with the reason rather than hiding it. Rejected: a project-level `format.fps` choice
 (undo/migration surface for an output setting) and letting Mediabunny choose the level (a
 non-conforming stream that strict hardware decoders may refuse).
+
+### D36. Export copies each decoded clip frame and flushes the copy before releasing it
+A 30 fps HEVC phone clip (4K, HDR, B-frames) jittered in exports from Edge: every few frames the
+file showed a frame 8–15 frames *ahead*, then went back. Every timestamp was right; the pixels were
+not. Mediabunny's `CanvasSink` draws a decoded frame onto a canvas and closes it at once, but 2D
+canvas drawing is deferred on the GPU, and with the hardware H.264 encoder busy, Edge's hardware
+decoder had reused that frame's memory for a later frame before the draw ran. It was worse at
+30 fps than at 60 (each clip frame is used once instead of twice). Keeping the sample open until
+the output frame was encoded was not enough; forcing the draw to run (a 1-pixel `getImageData`)
+before releasing the sample was. `export/videoReader.ts` now reads `VideoSample`s, draws each into
+its own canvas with `drawWithFit` (rotation as before), flushes, and releases the sample on the
+next frame; the test helpers' decoders (`testing/inspectExport.ts`) do the same, since their own
+reference frames had the same problem. Measured on the clip: 0 wrong frames at 30 and 60 fps (was
+~20 per 6 s at 30 fps), export time unchanged. No automated test reproduces it: it needs Edge, a
+hardware HEVC decoder and a real phone clip, and the project has no binary fixtures. Rejected:
+reading frames back to the CPU (`copyTo`, ~25 MB per 4K 10-bit frame) and software decoding
+(Chromium has no software HEVC decoder).

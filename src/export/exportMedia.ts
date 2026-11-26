@@ -34,7 +34,12 @@ export interface DecodedImage extends DecodedFrame {
 
 /** Yields one frame per planned timestamp, in order. */
 export interface VideoFrameReader {
-  /** The frame for the next planned timestamp (null: none decodable, e.g. past the end). */
+  /**
+   * The frame for the next planned timestamp (null: none decodable, e.g. past the end). A returned
+   * frame may only be valid until the following `next()` or `dispose()` (the reader may reuse its
+   * canvas and release the decoded sample then, D36): the encoder must have taken the output frame
+   * that drew it first. `prepare(frame)` runs after the previous frame was encoded, so it has.
+   */
   next(): Promise<DecodedFrame | null>;
   dispose(): void;
 }

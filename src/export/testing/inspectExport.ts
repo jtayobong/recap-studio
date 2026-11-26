@@ -1,6 +1,7 @@
-import { ALL_FORMATS, AudioSampleSink, BlobSource, CanvasSink, Input } from 'mediabunny';
+import { ALL_FORMATS, AudioSampleSink, BlobSource, Input, VideoSampleSink } from 'mediabunny';
 import type { MediaFrame, MediaResolver } from '../../render/media';
 import { renderFrame, type RenderableProject } from '../../render/renderFrame';
+import { flushCanvas } from '../videoReader';
 
 /**
  * Test helper (browser only): decode an exported file and compare frames with `renderFrame`.
@@ -26,6 +27,18 @@ export interface VideoReport {
   frameDiffs: { timeMs: number; meanAbsDiff: number; badPixelShare: number }[];
 }
 
+/** Draw the frame shown at `timeS` over the whole canvas, flushed before the sample is released (D36). */
+async function drawFrameAt(sink: VideoSampleSink, timeS: number, ctx: OffscreenCanvasRenderingContext2D): Promise<void> {
+  const sample = await sink.getSample(timeS);
+  if (!sample) throw new Error(`No frame at ${Math.round(timeS * 1000)} ms`);
+  try {
+    sample.drawWithFit(ctx, { fit: 'fill' });
+    flushCanvas(ctx);
+  } finally {
+    sample.close();
+  }
+}
+
 /**
  * Decode an exported file and compare frames against `renderFrame` at the same timestamps.
  * Small differences are expected from lossy encoding and YUV conversion.
@@ -42,7 +55,7 @@ export async function inspectExport(
     const track = await input.getPrimaryVideoTrack();
     if (!track) throw new Error('No video track in the export.');
     const stats = await track.computePacketStats();
-    const sink = new CanvasSink(track, { poolSize: 1 });
+    const sink = new VideoSampleSink(track);
     const { width, height, fps } = project.format;
     const reference = new OffscreenCanvas(width, height);
     const refCtx = reference.getContext('2d', { alpha: false, willReadFrequently: true })!;
@@ -52,9 +65,7 @@ export async function inspectExport(
     const frameDiffs: VideoReport['frameDiffs'] = [];
     for (const timeMs of timesMs) {
       // Middle of the frame, so rounding never picks the neighbour.
-      const wrapped = await sink.getCanvas(timeMs / 1000 + 0.5 / fps);
-      if (!wrapped) throw new Error(`No frame at ${timeMs} ms`);
-      decodedCtx.drawImage(wrapped.canvas, 0, 0, width, height);
+      await drawFrameAt(sink, timeMs / 1000 + 0.5 / fps, decodedCtx);
       const resolver = typeof media === 'function' ? await media(project, timeMs) : media;
       renderFrame(refCtx, project, timeMs, resolver);
       const a = decodedCtx.getImageData(0, 0, width, height).data;
@@ -97,15 +108,13 @@ export async function samplePixels(
   try {
     const track = await input.getPrimaryVideoTrack();
     if (!track) throw new Error('No video track in the export.');
-    const sink = new CanvasSink(track);
+    const sink = new VideoSampleSink(track);
+    const { displayWidth: width, displayHeight: height } = track;
+    const copy = new OffscreenCanvas(width, height);
+    const ctx = copy.getContext('2d', { willReadFrequently: true })!;
     const result: [number, number, number][] = [];
     for (const point of points) {
-      const wrapped = await sink.getCanvas(point.timeMs / 1000 + 0.5 / fps);
-      if (!wrapped) throw new Error(`No frame at ${point.timeMs} ms`);
-      const { width, height } = wrapped.canvas;
-      const copy = new OffscreenCanvas(width, height);
-      const ctx = copy.getContext('2d', { willReadFrequently: true })!;
-      ctx.drawImage(wrapped.canvas, 0, 0);
+      await drawFrameAt(sink, point.timeMs / 1000 + 0.5 / fps, ctx);
       const d = ctx.getImageData(Math.floor(width * point.fx), Math.floor(height * point.fy), 1, 1).data;
       result.push([d[0]!, d[1]!, d[2]!]);
     }
@@ -117,13 +126,14 @@ export async function samplePixels(
 
 /**
  * Reference media for comparing exports, decoded independently of the exporter's own path:
- * photos via createImageBitmap, clip frames via random-access `CanvasSink.getCanvas` (the exporter
- * streams with `canvasesAtTimestamps`). Per timestamp it records which media the frame asks for,
- * decodes exactly that, and returns a resolver for the reference draw.
+ * photos via createImageBitmap, clip frames via random-access `VideoSampleSink.getSample` (the
+ * exporter streams with `samplesAtTimestamps`), each copied and flushed before release (D36).
+ * Per timestamp it records which media the frame asks for, decodes exactly that, and returns a
+ * resolver for the reference draw.
  */
 export function referenceMedia(assets: Record<string, { kind: 'image' | 'video' | 'audio'; file: Blob }>) {
   const images = new Map<string, ImageBitmap>();
-  const sinks = new Map<string, Promise<CanvasSink>>();
+  const sinks = new Map<string, Promise<VideoSampleSink>>();
 
   const sinkFor = (id: string, file: Blob) => {
     let sink = sinks.get(id);
@@ -132,7 +142,7 @@ export function referenceMedia(assets: Record<string, { kind: 'image' | 'video' 
         const input = new Input({ source: new BlobSource(file), formats: ALL_FORMATS });
         const track = await input.getPrimaryVideoTrack();
         if (!track) throw new Error('No video track');
-        return new CanvasSink(track, { width: track.displayWidth, height: track.displayHeight, fit: 'fill' });
+        return new VideoSampleSink(track);
       })();
       sinks.set(id, sink);
     }
@@ -156,11 +166,16 @@ export function referenceMedia(assets: Record<string, { kind: 'image' | 'video' 
         }
         ready.set(`${id}@${clipMs}`, { source: bitmap, width: bitmap.width, height: bitmap.height, kind: 'image' });
       } else if (asset.kind === 'video') {
-        const wrapped = await (await sinkFor(id, asset.file)).getCanvas(Math.max(0, clipMs) / 1000);
-        if (!wrapped) continue;
-        // getCanvas reuses nothing without a pool, but copy anyway so the frame is stable.
-        const copy = new OffscreenCanvas(wrapped.canvas.width, wrapped.canvas.height);
-        copy.getContext('2d')!.drawImage(wrapped.canvas, 0, 0);
+        const sample = await (await sinkFor(id, asset.file)).getSample(Math.max(0, clipMs) / 1000);
+        if (!sample) continue;
+        const copy = new OffscreenCanvas(sample.displayWidth, sample.displayHeight);
+        const copyCtx = copy.getContext('2d')!;
+        try {
+          sample.drawWithFit(copyCtx, { fit: 'fill' });
+          flushCanvas(copyCtx);
+        } finally {
+          sample.close();
+        }
         ready.set(`${id}@${clipMs}`, { source: copy, width: copy.width, height: copy.height, kind: 'video' });
       }
     }
