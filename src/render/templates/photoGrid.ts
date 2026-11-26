@@ -5,6 +5,7 @@ import { drawMedia } from '../media';
 import { cssFont, fitText } from '../text';
 import { aspectOf, clipRounded, drawMediaPlaceholder, gridCells, REFERENCE_SIZES, type GridLayout } from './mediaLayout';
 import { isLandscape, unitOf } from '../layout';
+import { clipSoundFields } from './soundFields';
 import { defineTemplate } from './types';
 
 const ACCEPT = ['image', 'video'] as const;
@@ -73,7 +74,7 @@ const fields = {
   ...slotFields(1),
   ...slotFields(2),
   ...slotFields(3),
-  clipSound: { kind: 'boolean', label: 'Keep clip sound', default: false },
+  ...clipSoundFields,
   caption: { kind: 'text', label: 'Caption', default: '', maxLength: 80, multiline: true },
 } satisfies FieldDefs;
 

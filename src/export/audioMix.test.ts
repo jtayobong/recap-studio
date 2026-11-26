@@ -36,7 +36,7 @@ describe('mixAudio', () => {
 
   it('places clips at their story time, reading them from their own start, with edge fades', async () => {
     const clip = constantReader(0.8);
-    const { left } = await collect({ rate: 1000, endMs: 400, clips: [{ reader: clip, startMs: 100, endMs: 300 }] });
+    const { left } = await collect({ rate: 1000, endMs: 400, clips: [{ reader: clip, startMs: 100, endMs: 300, volume: 1 }] });
     expect(left[50]).toBe(0); // before the clip
     expect(left[100]).toBe(0); // the fade starts at 0
     expect(left[110]).toBeCloseTo((0.8 * 10) / CLIP_EDGE_FADE_MS); // 10 ms into the fade
@@ -50,9 +50,14 @@ describe('mixAudio', () => {
       rate: 1000,
       endMs: 200,
       music: { reader: constantReader(0.5), endMs: 200, gain: () => 0.3 },
-      clips: [{ reader: constantReader(0.5), startMs: 0, endMs: 200 }],
+      clips: [{ reader: constantReader(0.5), startMs: 0, endMs: 200, volume: 1 }],
     });
     expect(left[100]).toBeCloseTo(0.15 + 0.5);
+  });
+
+  it('plays each clip at its own volume (M10)', async () => {
+    const { left } = await collect({ rate: 1000, endMs: 200, clips: [{ reader: constantReader(0.8), startMs: 0, endMs: 200, volume: 0.25 }] });
+    expect(left[100]).toBeCloseTo(0.2);
   });
 
   it('clipEdgeGain is 0 outside, 1 inside, ramped at both edges', () => {

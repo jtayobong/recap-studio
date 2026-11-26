@@ -48,7 +48,7 @@ describe('musicGain', () => {
 });
 
 describe('duckGain', () => {
-  const segments = [{ assetId: 'c', startMs: 5000, endMs: 8000 }];
+  const segments = [{ assetId: 'c', startMs: 5000, endMs: 8000, duckLevel: DUCK_LEVEL, volume: 1 }];
 
   it('ducks the music during clip sound, ramping before and after', () => {
     expect(duckGain(1000, segments)).toBe(1);
@@ -59,7 +59,16 @@ describe('duckGain', () => {
     expect(duckGain(6000, [])).toBe(1);
   });
 
+  it("ducks to each segment's own level (M10); the lowest wins where they overlap", () => {
+    const quiet = { assetId: 'q', startMs: 0, endMs: 1000, duckLevel: 0.1, volume: 1 };
+    const none = { assetId: 'n', startMs: 2000, endMs: 3000, duckLevel: 1, volume: 1 };
+    expect(duckGain(500, [quiet])).toBeCloseTo(0.1);
+    expect(duckGain(2500, [none])).toBe(1); // 100 %: the music doesn't drop at all
+    expect(duckGain(1000 + DUCK_RAMP_MS / 2, [quiet])).toBeCloseTo(0.55);
+    expect(duckGain(500, [quiet, { ...none, startMs: 0 }])).toBeCloseTo(0.1);
+  });
+
   it('overlapping segments duck once, not twice', () => {
-    expect(duckGain(6000, [...segments, { assetId: 'b', startMs: 5500, endMs: 7000 }])).toBeCloseTo(DUCK_LEVEL);
+    expect(duckGain(6000, [...segments, { assetId: 'b', startMs: 5500, endMs: 7000, duckLevel: DUCK_LEVEL, volume: 1 }])).toBeCloseTo(DUCK_LEVEL);
   });
 });

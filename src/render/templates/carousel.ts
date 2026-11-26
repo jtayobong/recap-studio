@@ -5,6 +5,7 @@ import { drawMedia, type Rect } from '../media';
 import { cssFont, fitText } from '../text';
 import { aspectOf, carouselCard, clipRounded, drawMediaPlaceholder, REFERENCE_SIZES, type CarouselDirection } from './mediaLayout';
 import { isLandscape, unitOf } from '../layout';
+import { clipSoundFields } from './soundFields';
 import { defineTemplate } from './types';
 
 const ACCEPT = ['image', 'video'] as const;
@@ -47,7 +48,7 @@ const fields = {
     ],
   },
   title: { kind: 'text', label: 'Title', default: 'Moments from the year', maxLength: 50 },
-  clipSound: { kind: 'boolean', label: 'Keep clip sound', default: false },
+  ...clipSoundFields,
   ...Object.assign({}, ...Array.from({ length: CAROUSEL_SLOTS }, (_, i) => slotFields(i))),
 } satisfies FieldDefs;
 

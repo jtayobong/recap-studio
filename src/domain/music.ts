@@ -42,22 +42,32 @@ export interface SoundSegment {
   assetId: string;
   startMs: number;
   endMs: number;
+  /** Music level (0–1) while this clip is heard: the scene's "Music under the clip" (M10). */
+  duckLevel: number;
+  /** The clip's own volume (0–1): the scene's "Clip volume" (M10). */
+  volume: number;
 }
 
-/** How loud the music is while a clip's own sound plays (M8 decision: auto-duck to ~30 %). */
+/**
+ * How loud the music is while a clip's own sound plays, by default (M8: auto-duck to ~30 %). Since
+ * M10 each scene can set its own level (`SoundSegment.duckLevel`); this is that field's default.
+ */
 export const DUCK_LEVEL = 0.3;
 /** The music ramps down before a clip with sound starts, and back up after it ends. */
 export const DUCK_RAMP_MS = 300;
 
-/** Music multiplier (DUCK_LEVEL–1) at story time `t`: ducked during clip sound, ramped at the edges. */
+/**
+ * Music multiplier (0–1) at story time `t`: down to each segment's `duckLevel` while its clip is
+ * heard, ramped at the edges; where segments overlap, the lowest level wins.
+ */
 export function duckGain(t: number, segments: readonly SoundSegment[]): number {
   let gain = 1;
-  for (const { startMs, endMs } of segments) {
+  for (const { startMs, endMs, duckLevel } of segments) {
     let coverage = 0; // 1 = fully ducked
     if (t >= startMs && t < endMs) coverage = 1;
     else if (t >= startMs - DUCK_RAMP_MS && t < startMs) coverage = (t - (startMs - DUCK_RAMP_MS)) / DUCK_RAMP_MS;
     else if (t >= endMs && t < endMs + DUCK_RAMP_MS) coverage = 1 - (t - endMs) / DUCK_RAMP_MS;
-    gain = Math.min(gain, 1 - (1 - DUCK_LEVEL) * coverage);
+    gain = Math.min(gain, 1 - (1 - duckLevel) * coverage);
   }
   return gain;
 }

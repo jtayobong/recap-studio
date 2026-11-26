@@ -4,6 +4,7 @@ import { drawMedia } from '../media';
 import { cssFont, fitText } from '../text';
 import { isLandscape, unitOf } from '../layout';
 import { drawMediaPlaceholder } from './mediaLayout';
+import { clipSoundFields } from './soundFields';
 import { defineTemplate } from './types';
 
 const ACCEPT = ['image', 'video'] as const;
@@ -32,7 +33,7 @@ export const photoTemplate = defineTemplate({
     },
     focusX: { kind: 'number', label: 'Focus across', default: 0.5, min: 0, max: 1, step: 0.01 },
     focusY: { kind: 'number', label: 'Focus down', default: 0.5, min: 0, max: 1, step: 0.01 },
-    clipSound: { kind: 'boolean', label: 'Keep clip sound', default: false },
+    ...clipSoundFields,
     caption: { kind: 'text', label: 'Caption', default: 'The best day of the year', maxLength: 80, multiline: true },
     fit: {
       kind: 'choice',

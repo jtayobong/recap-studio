@@ -64,3 +64,10 @@ pass.
   landscape check now runs over every registered template. Portrait baseline unchanged.
 - **Section done:** `render/templates/section.ts`, registered right after Title. Unit tests in
   `section.test.ts`; e2e for both new templates in `e2e/m10-templates.spec.ts`.
+- **Ducking controls done:** the three sound fields are defined once in
+  `render/templates/soundFields.ts` and spread into Photo / Video, Photo grid and Carousel.
+  `SoundSegment` carries `duckLevel` and `volume`; `duckGain` uses each segment's level, the export
+  mix scales each clip by its volume, and the preview sets the `<video>` volume (`audibleAt` now
+  returns asset id → volume). Unit tests in `music.test.ts`, `clipSound.test.ts`,
+  `audioMix.test.ts`; e2e in `clip-sound.spec.ts` (export levels measured by tone, preview music
+  level, inspector fields shown only with clip sound on and saved).

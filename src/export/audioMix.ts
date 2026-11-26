@@ -18,8 +18,11 @@ export interface MixPlan {
   endMs: number;
   /** Music: heard from story 0 to `endMs`, with a per-time gain (volume × fades × duck). */
   music?: { reader: PcmReader; endMs: number; gain: (storyMs: number) => number };
-  /** Clips with sound: each heard from `startMs` to `endMs` (its reader starts at clip time 0). */
-  clips: { reader: PcmReader; startMs: number; endMs: number }[];
+  /**
+   * Clips with sound: each heard from `startMs` to `endMs` (its reader starts at clip time 0), at
+   * `volume` (0–1, the scene's "Clip volume").
+   */
+  clips: { reader: PcmReader; startMs: number; endMs: number; volume: number }[];
 }
 
 /** Short fade at clip edges so sound starting or stopping mid-wave doesn't click. */
@@ -60,7 +63,7 @@ export async function* mixAudio(plan: MixPlan, blockFrames = MIX_BLOCK_FRAMES): 
       if (from >= to) continue;
       const [left, right] = await clip.reader.read(to - from);
       for (let f = from; f < to; f += 1) {
-        const gain = clipEdgeGain((f * 1000) / rate, clip.startMs, clip.endMs);
+        const gain = clipEdgeGain((f * 1000) / rate, clip.startMs, clip.endMs) * clip.volume;
         out[0][f - start]! += left[f - from]! * gain;
         out[1][f - start]! += right[f - from]! * gain;
       }

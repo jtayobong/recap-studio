@@ -26,11 +26,11 @@ const MUSIC_HZ = 330;
 const CLIP_HZ = 880;
 
 /** Project: title (0–2 s), clip with sound (2–5 s), title (5–8 s); music throughout. */
-async function storyWithClipSound(page: Page, clipSound: boolean): Promise<string> {
+async function storyWithClipSound(page: Page, clipSound: boolean, levels: Record<string, number> = {}): Promise<string> {
   await page.goto('/system');
   const song = makeWav(10_000, MUSIC_HZ, 22_050).toString('base64');
   return page.evaluate(
-    async ({ song, clipSound, clipHz }) => {
+    async ({ song, clipSound, clipHz, levels }) => {
       const load = (path: string) => import(path);
       const m = {
         db: await load('/src/db/index.ts'),
@@ -82,7 +82,7 @@ async function storyWithClipSound(page: Page, clipSound: boolean): Promise<strin
       const music = imported.find((a) => a.kind === 'audio')!;
       const title = (ms: number) => ({ ...m.registry.createScene('title'), durationMs: ms, transitionIn: 'cut' as const });
       const clipScene = { ...m.registry.createScene('photo'), durationMs: 3000, transitionIn: 'cut' as const };
-      clipScene.fields = { ...clipScene.fields, media: clip.id, caption: '', motion: 'none', clipSound };
+      clipScene.fields = { ...clipScene.fields, media: clip.id, caption: '', motion: 'none', clipSound, ...levels };
       await m.db.projectRepository.save({
         ...project,
         scenes: [title(2000), clipScene, title(3000)],
@@ -90,7 +90,7 @@ async function storyWithClipSound(page: Page, clipSound: boolean): Promise<strin
       });
       return project.id;
     },
-    { song, clipSound, clipHz: CLIP_HZ },
+    { song, clipSound, clipHz: CLIP_HZ, levels },
   );
 }
 
@@ -161,4 +161,47 @@ test('preview: the clip plays with sound and the music ducks while that scene pl
   // After the clip scene ends (5 s), the clip is silent and the music is back up.
   await expect.poll(audibleClips, { timeout: 8000 }).toBe(0);
   await expect.poll(musicVolume, { timeout: 8000 }).toBeGreaterThan(0.95);
+});
+
+test('export: the scene sets how low the music goes and how loud the clip is (M10)', { tag: '@dev' }, async ({ page }, testInfo) => {
+  const defaults = (await exportTones(page, await storyWithClipSound(page, true))).tones as number[][];
+  const custom = (await exportTones(page, await storyWithClipSound(page, true, { musicUnderClip: 0, clipVolume: 50 }))).tones as number[][];
+  testInfo.annotations.push({ type: 'tones default / custom', description: JSON.stringify({ defaults, custom }) });
+  const [before, during] = custom as [number[], number[]];
+  // Music silent under the clip at 0 %, back to full afterwards.
+  expect(during[0]! / before[0]!).toBeLessThan(0.05);
+  expect(custom[2]![0]! / before[0]!).toBeGreaterThan(0.9);
+  // The clip at half the level of the default (100 %) export.
+  const clipRatio = during[1]! / defaults[1]![1]!;
+  expect(clipRatio).toBeGreaterThan(0.4);
+  expect(clipRatio).toBeLessThan(0.6);
+});
+
+test("preview: the music drops to the scene's own level under the clip (M10)", { tag: '@dev' }, async ({ page }) => {
+  const projectId = await storyWithClipSound(page, true, { musicUnderClip: 5 });
+  await page.goto(`/project/${projectId}`);
+  const musicVolume = () => page.getByTestId('preview-music').evaluate((el) => (el as HTMLAudioElement).volume);
+  await page.getByLabel('Playhead').fill('2500');
+  await page.getByRole('button', { name: 'Play' }).click();
+  await expect.poll(musicVolume, { timeout: 10_000 }).toBeLessThan(0.08);
+  await page.getByRole('button', { name: 'Pause' }).click();
+});
+
+test('inspector: the music and clip levels show only with "Keep clip sound" on, and are saved', { tag: '@dev' }, async ({ page }) => {
+  const projectId = await storyWithClipSound(page, false);
+  await page.goto(`/project/${projectId}`);
+  const inspector = page.getByRole('complementary', { name: 'Inspector' });
+  await page.getByRole('list', { name: 'Scenes' }).getByRole('button').nth(1).click();
+  await expect(inspector.getByLabel('Music under the clip (%)')).toHaveCount(0);
+  await inspector.getByLabel('Keep clip sound').check();
+  await expect(inspector.getByLabel('Music under the clip (%)')).toHaveValue('30');
+  await expect(inspector.getByLabel('Clip volume (%)')).toHaveValue('100');
+  await inspector.getByLabel('Music under the clip (%)').fill('15');
+  await inspector.getByLabel('Clip volume (%)').fill('80');
+  await inspector.getByLabel('Clip volume (%)').press('Enter');
+  await expect(page.getByRole('status').filter({ hasText: 'All changes saved' })).toBeVisible();
+  await page.reload();
+  await page.getByRole('list', { name: 'Scenes' }).getByRole('button').nth(1).click();
+  await expect(inspector.getByLabel('Music under the clip (%)')).toHaveValue('15');
+  await expect(inspector.getByLabel('Clip volume (%)')).toHaveValue('80');
 });

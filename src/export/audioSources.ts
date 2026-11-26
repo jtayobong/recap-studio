@@ -129,7 +129,7 @@ export async function openAudioMix(input: AudioMixInput): Promise<OpenedMix> {
       opened.push(audio.input);
       const endMs = Math.min(segment.endMs, segment.startMs + audio.durationMs, input.storyMs);
       if (endMs <= segment.startMs) continue;
-      plan.clips.push({ reader: new DecodedReader(audio.sink, 0), startMs: segment.startMs, endMs });
+      plan.clips.push({ reader: new DecodedReader(audio.sink, 0), startMs: segment.startMs, endMs, volume: segment.volume });
       plan.endMs = Math.max(plan.endMs, endMs);
     } catch {
       // An undecodable clip track stays silent; the picture is unaffected.

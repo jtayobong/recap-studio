@@ -173,7 +173,9 @@ One music track per story, in sync in the preview and mixed into the export.
 - **In the preview** the music plays along with the playhead (jumping to the right place when you
   seek), with its volume and fades. **🔊 / M** mutes the preview's sound (music and clips) only.
 - **Keep clip sound** (M8, on Photo / Video, Photo grid and carousel scenes): the clip's own sound
-  plays during that scene and the music dips to ~30 % under it, in the preview and the export.
+  plays during that scene and the music dips under it, in the preview and the export. With it on,
+  the scene also sets **Music under the clip (%)** (default 30; 100 = no dip, 0 = silent) and
+  **Clip volume (%)** (default 100), M10.
 - **In the export** the music is mixed in with the same start point, volume and fades (AAC in MP4,
   Opus in WebM). If the song is missing or can't be decoded, the video still exports, without music,
   and the header says why. The export dialog reminds you to check you have the rights to the music.
@@ -196,6 +198,8 @@ One music track per story, in sync in the preview and mixed into the export.
   equally between the cards). The next card's fields appear once the previous card has a headline.
 - **Section:** a short divider (2.5 s) that opens a new part of the story: a label such as
   *Part 2*, a big title and an optional small line.
+- **Ducking controls:** scenes with *Keep clip sound* set how low the music goes under the clip and
+  how loud the clip is (see Music).
 
 ## Storage (M8)
 

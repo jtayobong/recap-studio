@@ -113,7 +113,8 @@ export function createMediaCache<I extends DecodedImage & CanvasImageSource = Im
   let frameStart = 0;
   let playing = false;
   /** Clips whose own sound is heard right now ("Keep clip sound"), and the preview mute. */
-  let audible: ReadonlySet<string> = new Set();
+  /** Clips heard in this frame: asset id → volume (0–1). */
+  let audible: ReadonlyMap<string, number> = new Map();
   let soundMuted = false;
   let touchedVideos = new Set<string>();
 
@@ -258,6 +259,9 @@ export function createMediaCache<I extends DecodedImage & CanvasImageSource = Im
 
     // Clips are silent unless their scene keeps clip sound and the preview is playing.
     element.muted = !(playing && !atEnd && audible.has(id)) || soundMuted;
+    // The scene's "Clip volume" (M10), the same level the export mixes the clip at.
+    const volume = Math.min(1, Math.max(0, audible.get(id) ?? 1));
+    if (element.volume !== volume) element.volume = volume;
     if (playing && !atEnd) {
       if (element.paused) {
         if (Math.abs(element.currentTime - target) > PAUSED_TOLERANCE_S) element.currentTime = target;
@@ -317,9 +321,9 @@ export function createMediaCache<I extends DecodedImage & CanvasImageSource = Im
       playing = next;
     },
 
-    /** Which clips are heard in this frame (from `soundSegments`), and whether preview sound is muted. */
-    setSound(audibleIds: ReadonlySet<string>, muted: boolean): void {
-      audible = audibleIds;
+    /** Which clips are heard in this frame and how loud (`audibleAt`), and whether preview sound is muted. */
+    setSound(heard: ReadonlyMap<string, number>, muted: boolean): void {
+      audible = heard;
       soundMuted = muted;
     },
 
