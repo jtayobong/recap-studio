@@ -155,6 +155,12 @@ History: v1 (M1); v2 (M6) added `audio.fadeIn` / `audio.fadeOut`; v3 (M7) added 
   header; when it's done, **Download** saves the file.
 - The export draws every frame with the same renderer as the preview. Photos are decoded at full
   size and clips are decoded frame-exactly, so the file matches the preview.
+- **Frame rate:** *30 fps* (default) or *60 fps* for smoother motion (count-ups, carousels,
+  transitions, zooms), chosen per export; the project itself stays at 30 fps and the dialog always
+  starts at 30. At 60 fps every preset's bitrate is ×√2 (Standard ~11.3, High ~17, Smaller ~7
+  Mbps), files are ~40 % larger and exports take about twice as long. Clips shot at 30 fps show
+  each frame twice (correct, not smoother). Where the browser can't encode 60 fps, the option is
+  greyed out with the reason, and the System page lists it under *Optional extras*.
 
 ## Music (M6)
 

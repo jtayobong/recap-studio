@@ -36,9 +36,11 @@ templates or sample content.
 | M7 Template pack + style presets + more transitions | ✅ done |
 | M8 Hardening | ✅ done |
 | Landscape (16:9) output (first M9 candidate) | ✅ done |
+| Desktop app (Tauri, Windows) | ✅ done |
+| 60 fps export (Export dialog option, D35) | ✅ done |
 
-The original roadmap is complete, and so is landscape output (record in `docs/NEXT-M9.md`, which
-also lists the remaining candidates).
+The original roadmap is complete, and so are landscape output, the desktop app and 60 fps export
+(records in `docs/NEXT-M9.md`, which also lists the remaining candidates).
 
 Work one milestone at a time. Each ends with something demonstrably working and with tests.
 
@@ -115,7 +117,8 @@ src/
   export/       exportStory.ts (main-thread API: snapshot, target, assets, worker), export.worker.ts,
                 encodeStory.ts (plan pass + frame loop → Mediabunny, interleaved music),
                 audioSources.ts + audioMix.ts (decode, resample, mix music + clip sound), exportMedia.ts (frame-exact
-                media: record → plan → prepare → free), videoReader.ts, presets.ts, target.ts,
+                media: record → plan → prepare → free), videoReader.ts, presets.ts (quality presets,
+                EXPORT_FPS 30/60), target.ts, codecString.ts (codec level for size + frame rate),
                 testing/inspectExport.ts (decode + compare, e2e only), exportStore.ts (UI-only
                 export state), mediaRefs.ts, index.ts (useExportStore; exporter lazy-loaded)
   storage/      mediaUsage.ts (what media takes space; delete one / all unused, via repositories)
@@ -123,7 +126,7 @@ src/
   lib/          capabilities, storage, format, debounce, keyboard, ids, errors
 e2e/            Playwright specs: projects, preview, editor, media-import, media-library, media-slot,
                 media-preview (reads canvas pixels), media-project, export (decodes the output), export-ui,
-                music, starters; helpers/story.ts adds the basic 8.5 s story for timing tests;
+                music, starters, export-60fps; helpers/story.ts adds the basic 8.5 s story for timing tests;
                 helpers/media.ts generates test images/video in the page (no binary fixtures)
 ```
 

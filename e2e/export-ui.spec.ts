@@ -55,6 +55,56 @@ test('export from the editor: choose quality, watch progress, keep editing, down
   await expect(page.getByLabel('Project name')).toHaveValue('Renamed during export');
 });
 
+test('60 fps: chosen per export, estimate follows, the file has twice the frames, the next export starts at 30 again', async ({ page }) => {
+  await createProject(page, 'Smooth');
+  await addBasicStory(page);
+
+  await page.getByRole('button', { name: 'Export', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Export video' });
+  const fps30 = dialog.getByRole('radio', { name: /^30 fps/ });
+  const fps60 = dialog.getByRole('radio', { name: /^60 fps/ });
+  await expect(fps30).toBeChecked();
+  await expect(fps60).toBeEnabled();
+  const standard = dialog.getByRole('radio', { name: /Standard/ });
+  const estimateAt30 = await standard.locator('xpath=..').innerText();
+
+  await fps60.check();
+  await expect(dialog).toContainText('9:16 · 1080×1920 · 60 fps · 0:09');
+  // √2 × the bitrate: the size estimate grows.
+  await expect(standard.locator('xpath=..')).not.toHaveText(estimateAt30);
+  await dialog.getByRole('button', { name: 'Start export' }).click();
+
+  await expect(exportStatus(page)).toContainText('✓ smooth.mp4', { timeout: 90_000 });
+  // 8.5 s at 60 fps = 510 frames.
+  await expect(exportStatus(page).locator('.export-status__label')).toHaveAttribute('title', /^510 frames at 60 fps/);
+
+  // Not remembered: the next export starts at 30 fps; the project itself is still 30 fps.
+  await page.getByRole('button', { name: 'Export', exact: true }).click();
+  await expect(fps30).toBeChecked();
+  await expect(dialog).toContainText('1080×1920 · 30 fps');
+});
+
+test('where the browser can’t encode 60 fps, the option is shown disabled with the reason', async ({ page }) => {
+  // Pretend the encoder accepts only up to 30 fps.
+  await page.addInitScript(() => {
+    const original = VideoEncoder.isConfigSupported.bind(VideoEncoder);
+    VideoEncoder.isConfigSupported = (config: VideoEncoderConfig) =>
+      (config.framerate ?? 30) > 30 ? Promise.resolve({ supported: false, config }) : original(config);
+  });
+  await createProject(page, 'Only thirty');
+  await addBasicStory(page);
+  await page.getByRole('button', { name: 'Export', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Export video' });
+  await expect(dialog.getByRole('radio', { name: /^30 fps/ })).toBeChecked();
+  await expect(dialog.getByRole('radio', { name: /^60 fps/ })).toBeDisabled();
+  await expect(dialog).toContainText('This browser can’t encode 60 fps video, so it exports at 30 fps.');
+  await expect(dialog.getByRole('button', { name: 'Start export' })).toBeEnabled();
+
+  await page.goto('/system');
+  await expect(page.getByRole('listitem').filter({ hasText: 'Encoder at 60 fps' })).toContainText('Not available');
+  await expect(page.getByText(/at 30 fps \(60 fps isn’t available in this browser\)/)).toBeVisible();
+});
+
 test('the export dialog warns about scenes whose media was deleted', async ({ page }) => {
   await createProject(page, 'Missing media');
   await page.getByLabel('Import media files').setInputFiles([

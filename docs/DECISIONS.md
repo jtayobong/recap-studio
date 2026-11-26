@@ -277,3 +277,21 @@ from one module (`src/security/policy.ts`) with a test against `tauri.conf.json`
 is tested by attaching Playwright to WebView2 over CDP with a throwaway user-data folder
 (`npm run test:desktop`). macOS/Linux builds are out: their system WebViews (WebKit) don't
 reliably encode H.264 with WebCodecs. Not done: code signing and auto-update.
+
+### D35. 60 fps is an export option, with codec levels chosen for the frame rate
+The user chose 60 fps as a per-export choice in the Export dialog, not a project setting: the
+project stays at `format.fps` 30, so there is nothing to migrate, save or undo, and the preview
+(already `requestAnimationFrame`-smooth) is untouched. The exporter overrides `fps` in its snapshot
+of the format; the renderer is time-based and clip decoding asks for each output frame's time, so
+nothing else changes (a 30 fps clip shows each frame twice). All three presets are offered at
+60 fps with bitrates ×√2 (`bitrateFor` already scaled with √(fps/30)); 30 fps stays the default and
+the dialog never remembers 60 (UI-only export state). Mediabunny picks the H.264/VP9 level from
+size and bitrate only, so 1080p60 would claim level 4.0, which allows ~30 fps; `export/codecString.ts`
+picks the level from the frame rate too (H.264 4.2 `avc1.64002a`, VP9 4.1 at 1080p60) and the
+exporter passes it as `fullCodecString`, both when probing (`pickTarget`) and encoding. At 30 fps it
+gives exactly Mediabunny's strings, so 30 fps output is unchanged (an e2e test checks level 4.0).
+The capability check probes 60 fps separately (both shapes, High's bitrate) as an *optional*
+result: a browser that can encode 30 but not 60 still exports, and the dialog shows 60 fps
+disabled with the reason rather than hiding it. Rejected: a project-level `format.fps` choice
+(undo/migration surface for an output setting) and letting Mediabunny choose the level (a
+non-conforming stream that strict hardware decoders may refuse).

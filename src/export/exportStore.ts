@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { Project } from '../domain/project';
 import { describeError } from '../lib/errors';
 import type { exportStory, ExportAssetSource, ExportedFile } from './exportStory';
-import type { QualityPresetId } from './presets';
+import { DEFAULT_EXPORT_FPS, type ExportFps, type QualityPresetId } from './presets';
 
 /**
  * Export UI state. UI-only (like playback): never saved, never in undo history.
@@ -12,11 +12,12 @@ export type ExportState =
   | { status: 'idle'; notice?: string }
   | { status: 'exporting'; projectId: string; fraction: number; startedAt: number }
   | { status: 'done'; projectId: string; file: ExportedFile; url: string; downloaded: boolean }
-  | { status: 'error'; projectId: string; message: string; preset: QualityPresetId };
+  | { status: 'error'; projectId: string; message: string; preset: QualityPresetId; fps: ExportFps };
 
 interface ExportStore {
   state: ExportState;
-  start(project: Project, preset: QualityPresetId): Promise<void>;
+  /** The frame rate is per export (D35): never stored, every dialog starts at 30 fps. */
+  start(project: Project, preset: QualityPresetId, fps?: ExportFps): Promise<void>;
   cancel(): void;
   /** Back to idle; frees the finished file. */
   dismiss(): void;
@@ -49,7 +50,7 @@ export function createExportStore(
     return {
       state: { status: 'idle' },
 
-      async start(project, preset) {
+      async start(project, preset, fps = DEFAULT_EXPORT_FPS) {
         if (get().state.status === 'exporting') return;
         release();
         const current = new AbortController();
@@ -59,6 +60,7 @@ export function createExportStore(
         try {
           const file = await run(project, source, {
             preset,
+            fps,
             signal: current.signal,
             onProgress: (fraction) => {
               const percent = Math.floor(fraction * 100);
@@ -76,7 +78,7 @@ export function createExportStore(
           set({
             state: cancelled
               ? { status: 'idle', notice: 'Export cancelled.' }
-              : { status: 'error', projectId: project.id, message: describeError(error), preset },
+              : { status: 'error', projectId: project.id, message: describeError(error), preset, fps },
           });
         } finally {
           if (controller === current) controller = null;

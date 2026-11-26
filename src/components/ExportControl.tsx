@@ -46,7 +46,7 @@ export function ExportControl({ project }: { project: Project }) {
       <>
         <span
           className="export-status__label"
-          title={[`${file.totalFrames} frames, made in ${formatDuration(file.elapsedMs)}`, file.music.note].filter(Boolean).join('\n')}
+          title={[`${file.totalFrames} frames at ${file.fps} fps, made in ${formatDuration(file.elapsedMs)}`, file.music.note].filter(Boolean).join('\n')}
         >
           ✓ {file.filename} ({formatBytes(file.blob.size)})
           {failures > 0 && <span className="export-status__warning"> · {failures} missing media shown as placeholders</span>}
@@ -66,7 +66,7 @@ export function ExportControl({ project }: { project: Project }) {
         <span className="export-status__label export-status__label--error" title={state.message}>
           Export failed: {state.message}
         </span>
-        <button type="button" className="button button--small" onClick={() => void start(project, state.preset)}>
+        <button type="button" className="button button--small" onClick={() => void start(project, state.preset, state.fps)}>
           Try again
         </button>
         <button type="button" className="button button--ghost button--small" onClick={dismiss} aria-label="Dismiss export">
@@ -88,9 +88,9 @@ export function ExportControl({ project }: { project: Project }) {
         open={choosing}
         project={project}
         onClose={() => setChoosing(false)}
-        onStart={(preset) => {
+        onStart={(preset, fps) => {
           setChoosing(false);
-          void start(project, preset);
+          void start(project, preset, fps);
         }}
       />
     </div>

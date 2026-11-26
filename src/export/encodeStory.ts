@@ -29,6 +29,8 @@ export interface EncodeOptions {
   project: RenderableProject;
   container: ExportContainer;
   codec: VideoCodec;
+  /** Codec string with a level that fits the frame rate (`fullCodecStringFor`); default: Mediabunny's. */
+  fullCodecString?: string;
   /** Target bitrate in bits per second. */
   bitrate: number;
   /** Render only up to this time (default: the whole story). */
@@ -95,6 +97,8 @@ export async function encodeStory(options: EncodeOptions): Promise<EncodeResult>
     // A bare number would be a 0–1 quality *level*; an explicit bitrate needs the object form.
     quality: new Quality({ bitrate: options.bitrate }),
     keyFrameInterval: KEY_FRAME_INTERVAL_S,
+    // Mediabunny's own string ignores the frame rate (1080p60 would claim a 30 fps level).
+    ...(options.fullCodecString ? { fullCodecString: options.fullCodecString } : {}),
   });
   output.addVideoTrack(source, { frameRate: fps });
 

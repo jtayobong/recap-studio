@@ -10,10 +10,14 @@ import { renderFrame, type RenderableProject } from '../../render/renderFrame';
 export interface VideoReport {
   container: string;
   codec: string | null;
+  /** Full codec string from the file, e.g. avc1.64002a (High, level 4.2). */
+  codecString: string | null;
   width: number;
   height: number;
   durationS: number;
   packetCount: number;
+  /** Average packets per second (≈ the frame rate). */
+  averagePacketRate: number;
   /**
    * Per compared frame: mean absolute difference per channel (0–255) between the decoded frame and
    * renderFrame, and the share of pixels whose largest channel difference exceeds 48 (catches
@@ -70,10 +74,12 @@ export async function inspectExport(
     return {
       container: (await input.getFormat()).name,
       codec: track.codec,
+      codecString: await track.getCodecParameterString(),
       width: track.displayWidth,
       height: track.displayHeight,
       durationS: await input.computeDuration(),
       packetCount: stats.packetCount,
+      averagePacketRate: stats.averagePacketRate,
       frameDiffs,
     };
   } finally {

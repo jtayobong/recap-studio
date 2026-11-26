@@ -136,6 +136,39 @@ describe('checkCapabilities', () => {
     expect((await checkCapabilities(fullEnv({ VideoEncoder: portraitOnly }))).exportOk).toBe(false);
   });
 
+  it('probes 60 fps separately, with a level that allows it, without blocking export', async () => {
+    const at60 = ['avc1.64002a', 'vp09.00.41.08'];
+    const probed: string[] = [];
+    const VideoEncoder = {
+      isConfigSupported: async (config: { codec: string; width: number; height: number; framerate?: number; bitrate?: number }) => {
+        probed.push(`${config.codec}@${config.width}x${config.height}/${config.framerate}/${config.bitrate}`);
+        return { supported: [CODECS.h264, CODECS.vp9, ...at60].includes(config.codec) };
+      },
+    };
+    const report = await checkCapabilities(fullEnv({ VideoEncoder }));
+    expect(report.export60fps).toBe(true);
+    // Both shapes, at the High preset's 60 fps bitrate (the largest any export uses).
+    expect(probed).toEqual(expect.arrayContaining(['avc1.64002a@1080x1920/60/16971000', 'avc1.64002a@1920x1080/60/16971000']));
+    expect(report.results.find((r) => r.id === 'export60fps')).toMatchObject({ ok: true, group: 'optional' });
+
+    // A browser that encodes 30 but not 60 fps can still export (at 30).
+    const only30 = await checkCapabilities(fullEnv());
+    expect(only30.exportOk).toBe(true);
+    expect(only30.export60fps).toBe(false);
+    expect(only30.results.find((r) => r.id === 'export60fps')?.ok).toBe(false);
+
+    // WebM fallback probes VP9 at 60.
+    const webm = await checkCapabilities(
+      fullEnv({ VideoEncoder: { isConfigSupported: async (c: { codec: string }) => ({ supported: [CODECS.vp9, 'vp09.00.41.08'].includes(c.codec) }) } }),
+    );
+    expect(webm.exportTarget?.container).toBe('webm');
+    expect(webm.export60fps).toBe(true);
+
+    // No export at all: no 60 fps either.
+    const none = await checkCapabilities(fullEnv({ VideoEncoder: undefined }));
+    expect(none.export60fps).toBe(false);
+  });
+
   it('treats a throwing encoder probe as unsupported', async () => {
     const throwing = {
       isConfigSupported: async () => {

@@ -6,7 +6,11 @@
  * the user can still edit, but sees a warning that export won't work in this browser.
  */
 
-export type CapabilityGroup = 'core' | 'export';
+import { videoCodecString } from '../export/codecString';
+import { bitrateFor } from '../export/presets';
+
+/** "optional" results never block anything; they only turn extras on or off (e.g. 60 fps export). */
+export type CapabilityGroup = 'core' | 'export' | 'optional';
 
 export interface CapabilityResult {
   id: string;
@@ -30,6 +34,8 @@ export interface CapabilityReport {
   exportOk: boolean;
   /** Best export container/codec combination this browser can encode, if any. */
   exportTarget: ExportTarget | null;
+  /** Whether `exportTarget`'s video codec also encodes at 60 fps (both shapes, every preset). */
+  export60fps: boolean;
   checkedAt: number;
 }
 
@@ -66,12 +72,26 @@ export const CODECS = {
   opus: 'opus',
 } as const;
 
+/**
+ * 60 fps (D35): probed with the High preset's bitrate (the largest) and a codec string whose level
+ * allows 60 fps (H.264 4.2, VP9 4.1), as the export will use. A browser may encode 30 but not 60.
+ */
+const PROBE_FPS_60 = 60;
+const probe60 = (codec: 'avc' | 'vp9', size: { width: number; height: number }) => {
+  const bitrate = bitrateFor('high', { ...size, fps: PROBE_FPS_60 });
+  return { codec: videoCodecString(codec, size.width, size.height, PROBE_FPS_60, bitrate), ...size, bitrate, framerate: PROBE_FPS_60 };
+};
+
 /** True when the encoder accepts `codec` at every probe size (a story can be either shape). */
-async function canEncodeVideo(env: CapabilityEnv, codec: string): Promise<boolean> {
+async function canEncodeVideo(
+  env: CapabilityEnv,
+  codec: string,
+  configFor: (size: { width: number; height: number }) => VideoEncoderConfig = (size) => ({ codec, ...size, ...PROBE_VIDEO }),
+): Promise<boolean> {
   const encoder = env.VideoEncoder;
   if (!encoder) return false;
   try {
-    const results = await Promise.all(PROBE_SIZES.map((size) => encoder.isConfigSupported({ codec, ...size, ...PROBE_VIDEO })));
+    const results = await Promise.all(PROBE_SIZES.map((size) => encoder.isConfigSupported(configFor(size))));
     return results.every((result) => result.supported === true);
   } catch {
     return false;
@@ -119,6 +139,8 @@ export async function checkCapabilities(
   } else if (vp9 && opus) {
     exportTarget = { container: 'webm', videoCodec: CODECS.vp9, audioCodec: CODECS.opus, label: 'WebM (VP9 + Opus)' };
   }
+  const codec60 = exportTarget?.container === 'mp4' ? 'avc' : 'vp9';
+  const export60fps = exportTarget !== null && (await canEncodeVideo(env, codec60, (size) => probe60(codec60, size)));
 
   const results: CapabilityResult[] = [
     {
@@ -177,6 +199,13 @@ export async function checkCapabilities(
       ok: exportTarget !== null,
       neededFor: 'Encoding a 1080×1920 video with audio.',
     },
+    {
+      id: 'export60fps',
+      label: 'Encoder at 60 fps',
+      group: 'optional',
+      ok: export60fps,
+      neededFor: 'Exporting smoother 60 fps video. Without it, videos export at 30 fps.',
+    },
   ];
 
   const okFor = (group: CapabilityGroup) => results.filter((r) => r.group === group).every((r) => r.ok);
@@ -186,6 +215,7 @@ export async function checkCapabilities(
     coreOk: okFor('core'),
     exportOk: okFor('export'),
     exportTarget,
+    export60fps,
     checkedAt: now(),
   };
 }

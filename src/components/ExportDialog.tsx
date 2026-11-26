@@ -3,7 +3,15 @@ import { useId, useState } from 'react';
 import { assetRepository } from '../db';
 import { projectDurationMs, type Project } from '../domain/project';
 import { mediaAssetIds, scenesWithMissingMedia } from '../export/mediaRefs';
-import { bitrateFor, DEFAULT_PRESET, QUALITY_PRESETS, type QualityPresetId } from '../export/presets';
+import {
+  bitrateFor,
+  DEFAULT_EXPORT_FPS,
+  DEFAULT_PRESET,
+  EXPORT_FPS,
+  QUALITY_PRESETS,
+  type ExportFps,
+  type QualityPresetId,
+} from '../export/presets';
 import { formatAspectRatio, formatBytes, formatDuration } from '../lib/format';
 import { useCapabilities } from './CapabilityGate';
 import { Modal } from './Modal';
@@ -11,17 +19,22 @@ import { Modal } from './Modal';
 interface ExportDialogProps {
   open: boolean;
   project: Project;
-  onStart: (preset: QualityPresetId) => void;
+  onStart: (preset: QualityPresetId, fps: ExportFps) => void;
   onClose: () => void;
 }
 
 const PRESET_ORDER: QualityPresetId[] = ['standard', 'high', 'small'];
 
-/** Export options: quality preset, size estimate, and a warning about missing media. */
+const FPS_DESCRIPTIONS: Record<ExportFps, string> = {
+  30: 'Default',
+  60: 'Smoother motion',
+};
+
+/** Export options: frame rate, quality preset, size estimate, and a warning about missing media. */
 export function ExportDialog({ open, project, onStart, onClose }: ExportDialogProps) {
   return (
     <Modal open={open} title="Export video" onClose={onClose}>
-      {/* Remount per opening so the choice starts from the default each time. */}
+      {/* Remount per opening so the choices start from the defaults each time (D35: not remembered). */}
       {open && <ExportOptions project={project} onStart={onStart} onClose={onClose} />}
     </Modal>
   );
@@ -29,11 +42,13 @@ export function ExportDialog({ open, project, onStart, onClose }: ExportDialogPr
 
 function ExportOptions({ project, onStart, onClose }: Omit<ExportDialogProps, 'open'>) {
   const [preset, setPreset] = useState<QualityPresetId>(DEFAULT_PRESET);
-  const { exportOk } = useCapabilities();
+  const [fps, setFps] = useState<ExportFps>(DEFAULT_EXPORT_FPS);
+  const { exportOk, export60fps } = useCapabilities();
   const groupId = useId();
   const library = useLiveQuery(() => assetRepository.listForProject(project.id), [project.id]);
   const durationMs = projectDurationMs(project);
-  const { width, height, fps } = project.format;
+  const { width, height } = project.format;
+  const exportFormat = { width, height, fps };
 
   const libraryIds = new Set((library ?? []).map((asset) => asset.id));
   const missing = new Set([...mediaAssetIds(project)].filter((id) => !libraryIds.has(id)));
@@ -44,18 +59,47 @@ function ExportOptions({ project, onStart, onClose }: Omit<ExportDialogProps, 'o
       className="export-options"
       onSubmit={(event) => {
         event.preventDefault();
-        onStart(preset);
+        onStart(preset, fps);
       }}
     >
       <p className="export-options__summary">
         {formatAspectRatio(width, height)} · {width}×{height} · {fps} fps · {formatDuration(durationMs)}
       </p>
 
+      <fieldset className="export-options__presets export-options__fps">
+        <legend>Frame rate</legend>
+        {EXPORT_FPS.map((rate) => {
+          const unavailable = rate === 60 && !export60fps;
+          return (
+            <label key={rate} className="export-preset">
+              <input
+                type="radio"
+                name={`${groupId}-fps`}
+                value={rate}
+                checked={fps === rate}
+                disabled={unavailable}
+                aria-describedby={unavailable ? `${groupId}-fps-hint` : undefined}
+                onChange={() => setFps(rate)}
+              />
+              <span className="export-preset__text">
+                <span className="export-preset__name">{rate} fps</span>
+                <span className="export-preset__desc">{FPS_DESCRIPTIONS[rate]}</span>
+              </span>
+            </label>
+          );
+        })}
+        {exportOk && !export60fps && (
+          <p id={`${groupId}-fps-hint`} className="field__hint">
+            This browser can’t encode 60 fps video, so it exports at 30 fps.
+          </p>
+        )}
+      </fieldset>
+
       <fieldset className="export-options__presets" aria-describedby={`${groupId}-hint`}>
         <legend>Quality</legend>
         {PRESET_ORDER.map((id) => {
           const option = QUALITY_PRESETS[id];
-          const estimate = (bitrateFor(id, project.format) * durationMs) / 1000 / 8;
+          const estimate = (bitrateFor(id, exportFormat) * durationMs) / 1000 / 8;
           return (
             <label key={id} className="export-preset">
               <input type="radio" name={`${groupId}-preset`} value={id} checked={preset === id} onChange={() => setPreset(id)} />

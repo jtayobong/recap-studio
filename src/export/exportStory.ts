@@ -4,8 +4,8 @@ import type { EncodeResult } from './encodeStory';
 import type { ExportAsset } from './exportMedia';
 import type { ExportRequest, ExportResponse, WorkerEncodeOptions } from './export.worker';
 import { mediaAssetIds } from './mediaRefs';
-import { bitrateFor, DEFAULT_PRESET, exportFilename, type QualityPresetId } from './presets';
-import { pickTarget, type ExportTarget } from './target';
+import { bitrateFor, DEFAULT_PRESET, exportFilename, type ExportFps, type QualityPresetId } from './presets';
+import { fullCodecStringFor, pickTarget, type ExportTarget } from './target';
 import { exportWorkerScriptUrl } from './workerUrl';
 
 export { mediaAssetIds } from './mediaRefs';
@@ -22,6 +22,8 @@ export interface ExportAssetSource {
 
 export interface ExportStoryOptions {
   preset?: QualityPresetId;
+  /** Output frame rate (D35); default: the project's `format.fps`. The project itself is not changed. */
+  fps?: ExportFps;
   /** Force a format (tests); by default the best encodable one is chosen. */
   target?: ExportTarget;
   /** Export only up to this time (tests and previews). */
@@ -35,6 +37,7 @@ export interface ExportedFile {
   filename: string;
   target: ExportTarget;
   bitrate: number;
+  fps: number;
   totalFrames: number;
   elapsedMs: number;
   /** Where the export's time went (ms), for diagnostics. */
@@ -98,17 +101,20 @@ export function runExportWorker(
 
 export async function exportStory(project: Project, source: ExportAssetSource, options: ExportStoryOptions = {}): Promise<ExportedFile> {
   const snapshot = structuredClone(project);
-  const { width, height, fps } = snapshot.format;
-  const bitrate = bitrateFor(options.preset ?? DEFAULT_PRESET, snapshot.format);
+  // The renderer is time-based, so a different output frame rate is just a different format.
+  const format = { ...snapshot.format, fps: options.fps ?? snapshot.format.fps };
+  const { width, height, fps } = format;
+  const bitrate = bitrateFor(options.preset ?? DEFAULT_PRESET, format);
   const target = options.target ?? (await pickTarget(width, height, bitrate, fps));
   if (!target) throw new ExportUnsupportedError();
 
   const assets = await gatherExportAssets(snapshot, source);
   const result = await runExportWorker(
     {
-      project: { format: snapshot.format, style: snapshot.style, scenes: snapshot.scenes },
+      project: { format, style: snapshot.style, scenes: snapshot.scenes },
       container: target.container,
       codec: target.codec,
+      fullCodecString: fullCodecStringFor(target.codec, width, height, fps, bitrate),
       bitrate,
       endMs: options.endMs,
       music: snapshot.audio,
@@ -130,6 +136,7 @@ export async function exportStory(project: Project, source: ExportAssetSource, o
     filename: exportFilename(snapshot.name, target.extension),
     target,
     bitrate,
+    fps,
     totalFrames: result.totalFrames,
     elapsedMs: result.totalMs,
     timings: { draw: result.drawMs, prepare: result.prepareMs, encode: result.encodeMs, audio: result.audioMs },

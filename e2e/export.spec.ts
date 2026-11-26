@@ -93,6 +93,8 @@ test('the starter story exports in the worker: right format, size, length, frame
   expect(result.lastFraction).toBe(1);
   expect(result.report).toMatchObject({ width: 1080, height: 1920, packetCount: 255 });
   expect(result.report.durationS).toBeCloseTo(8.5, 1);
+  // 30 fps keeps H.264 level 4.0, as before 60 fps existed (D35).
+  if (result.container === 'mp4') expect(result.report.codecString?.toLowerCase()).toMatch(/^avc1\.64[0-9a-f]{2}28$/);
   for (const diff of result.report.frameDiffs) {
     expect(diff.meanAbsDiff, `frame at ${diff.timeMs} ms`).toBeLessThan(4);
     expect(diff.badPixelShare, `frame at ${diff.timeMs} ms`).toBeLessThan(0.005);

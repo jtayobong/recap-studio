@@ -39,7 +39,7 @@ export function SystemPage() {
         <h2>Export</h2>
         <p>
           {report.exportTarget
-            ? `Videos will be exported as ${report.exportTarget.label}.`
+            ? `Videos will be exported as ${report.exportTarget.label}, at 30 fps${report.export60fps ? ' or 60 fps' : ' (60 fps isn’t available in this browser)'}.`
             : 'No supported video encoder was found, so export will not be available in this browser.'}
         </p>
       </section>

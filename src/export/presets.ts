@@ -10,6 +10,14 @@ export const QUALITY_PRESETS = {
 export type QualityPresetId = keyof typeof QUALITY_PRESETS;
 export const DEFAULT_PRESET: QualityPresetId = 'standard';
 
+/**
+ * Frame rates the Export dialog offers (D35). Chosen per export; the project stays at its
+ * `format.fps` (30), so nothing is saved or undoable.
+ */
+export const EXPORT_FPS = [30, 60] as const;
+export type ExportFps = (typeof EXPORT_FPS)[number];
+export const DEFAULT_EXPORT_FPS: ExportFps = 30;
+
 const REFERENCE_PIXELS = 1080 * 1920;
 const REFERENCE_FPS = 30;
 

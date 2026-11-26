@@ -2,8 +2,9 @@
 
 The plan in `PLAN.md` is complete: a fresh user can go from a starter story, through their own
 numbers, photos, clips and music, to a downloaded MP4, with tested failure paths along the way.
-This note collects candidates for what comes next. Landscape output (candidate 1) is **done**
-(2026-11-25) and kept here as its record; the other candidates are still undecided.
+This note collects candidates for what comes next. Landscape output (candidate 1, 2026-11-25),
+the desktop app (1b) and 60 fps export (1c, 2026-11-26) are **done** and kept here as their
+records; the other candidates are still undecided.
 
 ## Candidates
 
@@ -154,7 +155,33 @@ MSVC; Visual Studio Build Tools and WebView2 were already present).
   16:9 starter exported and downloaded, project still there after restarting the app).
   Decision record: D34.
 
-### 1c. 60 fps export (added 2026-11-25; chosen as next, not started)
+### 1c. 60 fps export: ✅ done (2026-11-26)
+
+**Done-when result:** the Export dialog offers 30 / 60 fps (30 checked every time). An 8.5 s story
+with four transitions and music exports at 60 fps as 510 frames / 510 packets (60.00 packets/s,
+8.51 s, H.264 `avc1.640c2a` = High, level 4.2, 11.3 Mbps). Frames match the renderer at odd 60 fps
+frame times, between two 30 fps frames, including mid-transition (mean |Δ| < 4). The music sits at the
+same times as at 30 fps (half volume 0.177, the gap at 2–3 s silent). A 30 fps clip in a 60 fps
+export is frame-exact on consecutive frames and when held past its end. 16:9 at 60 fps and the
+WebM/VP9 fallback at 60 fps also match. 30 fps keeps level 4.0 (checked in `export.spec.ts`). Where
+the encoder refuses 60 fps, the option is disabled with the reason and the System page shows
+"Encoder at 60 fps: Not available" under *Optional extras*. `npm run check` (395 unit tests),
+`npm run test:e2e` (63) and `npm run test:e2e:prod` (43) pass. Measured in Playwright's software
+encoder: 510 frames at 1080×1920 in 2.8 s. Decision record: D35.
+
+**What changed:** `export/codecString.ts` (pure level tables, `videoCodecString`); `target.ts`
+passes it as `fullCodecString` to the probe; `exportStory(…, { fps })` overrides the snapshot's
+`format.fps` and passes the codec string to the worker/`encodeStory`. `ExportedFile.fps`. The
+export store and Try again carry `fps`. The capability report has `export60fps` and an `optional`
+group. The Export dialog has a Frame rate choice, and its summary line and size estimates follow
+it. `inspectExport` reports `codecString` and `averagePacketRate`. Tests:
+`codecString.test.ts`, `frameCount` at 60, store, capabilities, `e2e/export-60fps.spec.ts` (@dev)
+and two UI tests in `export-ui.spec.ts`. Not run: `npm run test:desktop` (needs
+`desktop:build`; WebView2 is Edge's engine, so 60 fps depends on the machine's encoder there too).
+
+**Found:** Mediabunny's WebM reader reports a VP9 level guessed from the picture size alone (VP9
+frames carry no level), so the e2e test can't read back the 4.1 that the encoder was configured with.
+The H.264 level is in the SPS and reads back correctly.
 
 **Goal:** the Export dialog offers 60 fps as well as 30 fps, for smoother motion (count-ups,
 carousels, transitions, Ken Burns zooms), in both 9:16 and 16:9.
@@ -197,6 +224,14 @@ dialog only offer 60 fps where the browser can encode it. `npm run check`, `npm 
 - **All three presets** at 60 fps, bitrates scaled by √2 (Standard ~11.3, High ~17, Smaller ~7
   Mbps for 1080×1920 / 1920×1080).
 - **30 fps stays the default.**
+- *Not supported:* where the browser encodes 30 but not 60 fps, the 60 fps option is shown
+  disabled with a short reason (and the System page lists it), not hidden. (2026-11-26)
+- *Not remembered:* every export starts at 30 fps; the choice is UI-only export state, nothing
+  stored. (2026-11-26)
+- *Cost shown through the estimate only:* the size estimate and the "… · 60 fps · …" line follow
+  the choice; no extra warning about export time. (2026-11-26)
+- Work continues from the uncommitted level-aware codec strings in `export/target.ts`
+  (`videoCodecString`: H.264 level 4.2 / VP9 level 4.1 at 1080p60). (2026-11-26)
 
 ### 2. Project bundles (deferred from M8 by the user)
 
@@ -225,6 +260,6 @@ exact); audio tiles have no waveform.
 
 ## Decisions on what's next (user, 2026-11-25)
 
-- **Next: 60 fps export** (1c).
+- **Next: 60 fps export** (1c). Done 2026-11-26; the next candidate is still to be chosen.
 - **Project bundles**, when built, are for **backup and moving** your own projects (between the
   browser, the desktop app and computers), not for sharing; imports are still fully validated.

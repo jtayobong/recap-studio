@@ -11,6 +11,7 @@ const file = (): ExportedFile => ({
   filename: 'store.mp4',
   target: { container: 'mp4', codec: 'avc', mimeType: 'video/mp4', extension: 'mp4' },
   bitrate: 8_000_000,
+  fps: 30,
   totalFrames: 30,
   elapsedMs: 100,
   timings: { draw: 0, prepare: 0, encode: 0, audio: 0 },
@@ -53,6 +54,7 @@ describe('export store', () => {
     const running = store.getState().start(project, 'high');
     expect(state()).toMatchObject({ status: 'exporting', projectId: project.id, fraction: 0 });
     expect(fake.options().preset).toBe('high');
+    expect(fake.options().fps).toBe(30); // the default frame rate
 
     fake.progress(0.255);
     fake.progress(0.259); // same whole percent: no extra update
@@ -80,12 +82,18 @@ describe('export store', () => {
     expect(state()).toEqual({ status: 'idle', notice: 'Export cancelled.' }); // the late rejection changes nothing
   });
 
-  it('errors keep the preset for "Try again"', async () => {
+  it('passes the chosen frame rate to the exporter', async () => {
+    const { store, fake } = setup();
+    void store.getState().start(project, 'standard', 60);
+    expect(fake.options()).toMatchObject({ preset: 'standard', fps: 60 });
+  });
+
+  it('errors keep the preset and frame rate for "Try again"', async () => {
     const { store, fake, state } = setup();
-    const running = store.getState().start(project, 'small');
+    const running = store.getState().start(project, 'small', 60);
     fake.fail(new Error('Encoder exploded'));
     await running;
-    expect(state()).toEqual({ status: 'error', projectId: project.id, message: 'Encoder exploded', preset: 'small' });
+    expect(state()).toEqual({ status: 'error', projectId: project.id, message: 'Encoder exploded', preset: 'small', fps: 60 });
   });
 
   it('dismiss and a new export free the previous file', async () => {

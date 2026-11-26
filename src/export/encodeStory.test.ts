@@ -9,4 +9,10 @@ describe('frameCount', () => {
     expect(frameCount(1000 / 3, 30)).toBe(10); // float noise doesn't add a frame
     expect(frameCount(0, 30)).toBe(0);
   });
+
+  it('doubles at 60 fps', () => {
+    expect(frameCount(8500, 60)).toBe(510);
+    expect(frameCount(1000 / 3, 60)).toBe(20);
+    expect(frameCount(1010, 60)).toBe(61);
+  });
 });

@@ -513,6 +513,11 @@ legend {
   color: var(--danger);
 }
 
+/* An optional extra this browser lacks: nothing is blocked, so no alarm colour. */
+.capability--unavailable .capability__status {
+  color: var(--text-muted);
+}
+
 .capability__label {
   font-weight: 600;
 }
@@ -1475,6 +1480,20 @@ a.button {
 
 .export-preset:has(input:checked) {
   border-color: var(--primary);
+}
+
+.export-preset:has(input:disabled) {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.export-options__fps {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.export-options__fps legend,
+.export-options__fps .field__hint {
+  grid-column: 1 / -1;
 }
 
 .export-preset input {
