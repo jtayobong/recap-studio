@@ -223,6 +223,8 @@ One music track per story, in sync in the preview and mixed into the export.
 - **Add photos…** (carousel inspector): pick several photos or clips from the library, in the order
   they should appear, and they fill the next empty slots in one undoable step.
 - **Subtle background motion** also has a few single small dots drifting between the shapes.
+- **Photo grid: Slow zoom** (M12.1) can be turned off, so the photos hold still (on by default, as
+  before).
 
 ## Storage (M8)
 

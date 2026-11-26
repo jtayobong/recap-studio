@@ -71,6 +71,7 @@ const fields = {
       { value: 'four', label: '4 photos (2 × 2)' },
     ],
   },
+  slowZoom: { kind: 'boolean', label: 'Slow zoom', default: true },
   ...slotFields(0),
   ...slotFields(1),
   ...slotFields(2),
@@ -79,7 +80,7 @@ const fields = {
   caption: { kind: 'text', label: 'Caption', default: '', maxLength: 80, multiline: true },
 } satisfies FieldDefs;
 
-/** 2–4 photos or clips in a collage; cells pop in one after another and drift slowly. */
+/** 2–4 photos or clips in a collage; cells pop in one after another and (optionally) zoom in slowly. */
 export const photoGridTemplate = defineTemplate({
   id: 'photo-grid',
   name: 'Photo grid',
@@ -122,8 +123,8 @@ export const photoGridTemplate = defineTemplate({
               fit: v[`fit${n}`] === 'contain' ? 'contain' : 'cover',
               focusX: Number(v[`focus${n}X`]),
               focusY: Number(v[`focus${n}Y`]),
-              // Each cell drifts in slowly over the whole scene.
-              zoom: lerp(1, 1.08, progress(t, 0, durationMs)),
+              // Each cell drifts in slowly over the whole scene (unless turned off).
+              zoom: values.slowZoom ? lerp(1, 1.08, progress(t, 0, durationMs)) : 1,
               backdropTint: palette.background,
               backdropTintAlpha: 0.7,
             });

@@ -60,6 +60,12 @@ unchanged. `npm run check`, `npm run test:e2e` and `npm run test:e2e:prod` pass.
   order, in pick order, as one undo step. When more are picked than slots are free, the dialog says
   only the first N will be added, and the inspector says how many didn't fit.
 
+## M12.1: photo grid Slow zoom switch
+
+- The user's first reading of item 2 (the photo grid's slow 1 → 1.08 zoom) became its own small
+  change: a `slowZoom` boolean field on the Photo grid, on by default, so existing grids render
+  exactly as before (portrait baseline unchanged). Off draws every cell at zoom 1.
+
 ## Progress
 
 - Design record written (this file).

@@ -90,6 +90,15 @@ describe('Photo grid', () => {
     expect(withMedia({ layout: 'four', media1: ID }).texts()).toEqual(['Photo 2', 'Photo 3', 'Photo 4']);
   });
 
+  it('zooms in slowly by default, and holds still with Slow zoom off', () => {
+    const crop = (fields: Record<string, unknown>, t: number) =>
+      withMedia({ layout: 'two', media1: ID, ...fields }, t).calls.find((c) => c.method === 'drawImage')!.args.slice(1, 5);
+    expect(crop({}, 1000)).not.toEqual(crop({}, 4000));
+    expect(crop({ slowZoom: false }, 1000)).toEqual(crop({ slowZoom: false }, 4000));
+    // Without the zoom more of the photo stays visible (a wider source crop).
+    expect(crop({ slowZoom: false }, 4000)[2] as number).toBeGreaterThan(crop({}, 4000)[2] as number);
+  });
+
   it('gives each slot the crop shape of its cell, per layout and frame shape, for the focus picker', async () => {
     const { gridCells } = await import('./mediaLayout');
     const { slotCropAspect } = await import('../fields');

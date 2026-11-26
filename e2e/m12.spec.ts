@@ -57,6 +57,18 @@ test('the carousel takes 12 photos, then Add photos… is disabled', async ({ pa
   await expect(inspector(page).getByRole('button', { name: 'Add photos…' })).toBeDisabled();
 });
 
+test('photo grid Slow zoom can be turned off (M12.1)', async ({ page }) => {
+  await carouselWithPhotos(page, 1);
+  await page.getByRole('button', { name: /Photo grid/ }).click();
+  await expect(inspector(page).getByRole('heading', { name: /Photo grid/ })).toBeVisible();
+  const zoom = inspector(page).getByLabel('Slow zoom');
+  await expect(zoom).toBeChecked();
+  await zoom.uncheck();
+  await expect(zoom).not.toBeChecked();
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(zoom).toBeChecked();
+});
+
 test('carousel Movement and Photo fit options are in the inspector', async ({ page }) => {
   await carouselWithPhotos(page, 1);
   await expect(inspector(page).getByLabel('Movement')).toHaveValue('glide');
