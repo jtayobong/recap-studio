@@ -7,6 +7,7 @@ import { compareTemplate } from './compare';
 import { outroTemplate } from './outro';
 import { photoTemplate } from './photo';
 import { photoGridTemplate } from './photoGrid';
+import { sectionTemplate } from './section';
 import { textCarouselTemplate } from './textCarousel';
 import { topListTemplate } from './topList';
 import { titleTemplate } from './title';
@@ -15,6 +16,7 @@ import type { SceneTemplate } from './types';
 /** All scene templates, in the order the editor offers them. Add new templates here. */
 export const TEMPLATES: readonly SceneTemplate[] = [
   titleTemplate,
+  sectionTemplate,
   bigNumberTemplate,
   topListTemplate,
   compareTemplate,

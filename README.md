@@ -194,6 +194,8 @@ One music track per story, in sync in the preview and mixed into the export.
 - **Text carousel:** up to six cards, each a headline with an optional small line, sliding in
   sideways or upwards one at a time and pausing so each can be read (the scene's length is shared
   equally between the cards). The next card's fields appear once the previous card has a headline.
+- **Section:** a short divider (2.5 s) that opens a new part of the story: a label such as
+  *Part 2*, a big title and an optional small line.
 
 ## Storage (M8)
 

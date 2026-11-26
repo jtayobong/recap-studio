@@ -62,3 +62,5 @@ pass.
   Upward strips show the page dots in a column at the right edge, since the strip runs past the
   bottom. Unit tests in `textCarousel.test.ts`; `render.test.ts` covers it in every palette and its
   landscape check now runs over every registered template. Portrait baseline unchanged.
+- **Section done:** `render/templates/section.ts`, registered right after Title. Unit tests in
+  `section.test.ts`; e2e for both new templates in `e2e/m10-templates.spec.ts`.
