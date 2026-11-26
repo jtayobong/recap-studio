@@ -185,7 +185,7 @@ One music track per story, in sync in the preview and mixed into the export.
 - **Starter stories:** a new project offers *Music year*, *Travel year* and *Fitness year*,
   seven scenes each with placeholder text and empty photo slots, ready to make your own.
 - **Templates:** Title, Big Number, Top 5, Compare, Photo / Video, Photo grid (2–4 photos),
-  Photo carousel (up to 6, scrolling sideways or upwards) and Outro.
+  Photo carousel (up to 12 since M12, scrolling sideways or upwards) and Outro.
 - **Style:** 10 palettes and 3 font pairs (Heavy Grotesk, Editorial Serif, Typewriter Mono; fonts
   already on your computer) in the project panel.
 - **Transitions:** cut, fade, slide up, push left, zoom, wipe and flash; the first scene
@@ -218,6 +218,8 @@ One music track per story, in sync in the preview and mixed into the export.
   or clip, like the text carousel (the scene's length is shared equally between them).
 - **Photo fit:** *Fill the card (crop)* (as before; the focus point picks what stays visible) or
   *Show whole photo*, which shows every photo uncropped over a dimmed copy of itself.
+- **Up to 12 photos or clips** per carousel (was 6). The inspector shows how long each one is on
+  screen, so you can tell when the scene needs to be longer.
 - **Subtle background motion** also has a few single small dots drifting between the shapes.
 
 ## Storage (M8)

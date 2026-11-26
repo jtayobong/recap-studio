@@ -15,6 +15,7 @@ import { fieldsEditedBySlots, isFieldVisible, resolveFields, slotCropAspect, typ
 import type { FocusBinding } from './FocusPicker';
 import { getTemplate } from '../render/templates/registry';
 import { FieldEditor, NumberInput } from './FieldEditor';
+import { MediaSequenceSection } from './MediaSequenceSection';
 
 const TRANSITIONS: { value: Transition; label: string }[] = [
   { value: 'cut', label: 'Cut' },
@@ -112,7 +113,10 @@ export function SceneInspector({ project, scene, index }: SceneInspectorProps) {
       <section className="inspector__section" aria-label="Content">
         <h3 className="inspector__heading">Content</h3>
         {template ? (
-          <SceneFields scene={scene} project={project} />
+          <>
+            <MediaSequenceSection scene={scene} template={template} />
+            <SceneFields scene={scene} project={project} />
+          </>
         ) : (
           <p className="muted">
             This scene uses a template (“{scene.templateId}”) that this version of the app doesn't have.

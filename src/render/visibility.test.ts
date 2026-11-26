@@ -29,7 +29,7 @@ function visibleLabels(templateId: string, fields: Record<string, unknown>): str
 
 describe('media slot visibility', () => {
   it('Photo grid shows only the slots its layout uses (and filled ones)', () => {
-    const slots = (fields: Record<string, unknown>) => visibleLabels('photo-grid', fields).filter((l) => /^Photo \d$/.test(l));
+    const slots = (fields: Record<string, unknown>) => visibleLabels('photo-grid', fields).filter((l) => /^Photo \d+$/.test(l));
     expect(slots({ layout: 'two' })).toEqual(['Photo 1', 'Photo 2']);
     expect(slots({ layout: 'three' })).toEqual(['Photo 1', 'Photo 2', 'Photo 3']);
     expect(slots({ layout: 'four' })).toEqual(['Photo 1', 'Photo 2', 'Photo 3', 'Photo 4']);
@@ -40,10 +40,13 @@ describe('media slot visibility', () => {
 
   it('carousel reveals the next slot as the previous one is filled', () => {
     const id = '0b8f3c5e-6a43-4c0e-9d0b-2f7f7d1f0a11';
-    const slots = (fields: Record<string, unknown>) => visibleLabels('carousel', fields).filter((l) => /^Photo \d$/.test(l));
+    const slots = (fields: Record<string, unknown>) => visibleLabels('carousel', fields).filter((l) => /^Photo \d+$/.test(l));
     expect(slots({})).toEqual(['Photo 1']);
     expect(slots({ media1: id })).toEqual(['Photo 1', 'Photo 2']);
     expect(slots({ media1: id, media2: id, media3: id })).toEqual(['Photo 1', 'Photo 2', 'Photo 3', 'Photo 4']);
     expect(slots({ media5: id })).toEqual(['Photo 1', 'Photo 5', 'Photo 6']); // filled slots stay
+    const eleven = Object.fromEntries(Array.from({ length: 11 }, (_, i) => [`media${i + 1}`, id]));
+    expect(slots(eleven).at(-1)).toBe('Photo 12'); // up to 12 (M12)
+    expect(slots({ ...eleven, media12: id })).toHaveLength(12);
   });
 });

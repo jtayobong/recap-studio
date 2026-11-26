@@ -13,6 +13,11 @@ export interface TemplateDefinition<D extends FieldDefs> {
   /** Scene-local time at which the scene looks complete (used for thumbnails and selection). */
   posterMs: number;
   /**
+   * Media slots shown one after another, in order (the carousel's photos). The inspector shows how
+   * long each one is on screen and can fill several of them at once.
+   */
+  mediaSequence?: readonly string[];
+  /**
    * Draw the whole frame (including background) for scene-local time `frame.localMs`.
    * Must be pure: no Math.random, Date.now, or state kept between calls.
    * Use withAlpha() instead of assigning ctx.globalAlpha.
@@ -29,6 +34,7 @@ export interface SceneTemplate {
   defaultDurationMs: number;
   defaultTransition: Transition;
   posterMs: number;
+  mediaSequence?: readonly string[];
   draw(ctx: Ctx2D, frame: FrameInfo, rawFields: Record<string, unknown>, theme: Theme): void;
 }
 

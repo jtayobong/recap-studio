@@ -10,7 +10,7 @@ import { fillBackground } from '../backdrop';
 import { defineTemplate } from './types';
 
 const ACCEPT = ['image', 'video'] as const;
-export const CAROUSEL_SLOTS = 6;
+export const CAROUSEL_SLOTS = 12;
 
 const cardAspects = (shape: keyof typeof REFERENCE_SIZES) => {
   const { width, height } = REFERENCE_SIZES[shape];
@@ -110,15 +110,16 @@ export function carouselCards(direction: CarouselDirection, count: number, p: nu
   });
 }
 
-/** Up to 6 photos or clips on a strip that glides across the screen during the scene. */
+/** Up to 12 photos or clips on a strip that glides across the screen during the scene. */
 export const carouselTemplate = defineTemplate({
   id: 'carousel',
   name: 'Photo carousel',
-  description: 'Up to six photos or clips gliding past (or stopping at each), sideways or upwards.',
+  description: 'Up to twelve photos or clips gliding past (or stopping at each), sideways or upwards.',
   defaultDurationMs: 6000,
   defaultTransition: 'fade',
   posterMs: 1200,
   fields,
+  mediaSequence: Array.from({ length: CAROUSEL_SLOTS }, (_, i) => `media${i + 1}`),
 
   render(ctx, frame, values, theme) {
     const { palette, fonts } = theme;
