@@ -28,7 +28,7 @@ function slotFields(index: number): FieldDefs {
     label: `Photo ${n}`,
     default: '',
     accept: ACCEPT,
-    focus: { x: `focus${n}X`, y: `focus${n}Y`, aspect: { field: 'direction', byShape: cardAspectsByShape } },
+    focus: { x: `focus${n}X`, y: `focus${n}Y`, fit: 'fit', aspect: { field: 'direction', byShape: cardAspectsByShape } },
     visibleWhen,
   };
   return {
@@ -55,6 +55,15 @@ const fields = {
     options: [
       { value: 'glide', label: 'Smooth glide' },
       { value: 'step', label: 'Stop at each photo' },
+    ],
+  },
+  fit: {
+    kind: 'choice',
+    label: 'Photo fit',
+    default: 'cover',
+    options: [
+      { value: 'cover', label: 'Fill the card (crop)' },
+      { value: 'contain', label: 'Show whole photo' },
     ],
   },
   title: { kind: 'text', label: 'Title', default: 'Moments from the year', maxLength: 50 },
@@ -137,7 +146,13 @@ export const carouselTemplate = defineTemplate({
       isolated(ctx, () => {
         clipRounded(ctx, card, u * 0.035);
         if (media && (ACCEPT as readonly string[]).includes(media.kind)) {
-          drawMedia(ctx, media, card, { fit: 'cover', focusX: Number(v[`focus${n}X`]), focusY: Number(v[`focus${n}Y`]) });
+          drawMedia(ctx, media, card, {
+            fit: v.fit === 'contain' ? 'contain' : 'cover',
+            focusX: Number(v[`focus${n}X`]),
+            focusY: Number(v[`focus${n}Y`]),
+            backdropTint: palette.background,
+            backdropTintAlpha: 0.7,
+          });
         } else {
           drawMediaPlaceholder(ctx, card, theme, `Photo ${n}`);
         }

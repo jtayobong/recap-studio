@@ -202,6 +202,20 @@ describe('Photo carousel', () => {
     expect(carouselStripPosition('glide', 3000, 6000, 4)).toBeCloseTo(0.5);
   });
 
+  it('"Show whole photo" draws the full photo inside the card instead of cropping it', () => {
+    const ID = '0b8f3c5e-6a43-4c0e-9d0b-2f7f7d1f0a11';
+    const media = { frame: () => ({ source: {} as CanvasImageSource, width: 800, height: 600, kind: 'image' as const }) };
+    const images = (fit: string) => {
+      const mock = createMockContext();
+      getTemplate('carousel')!.draw(mock.ctx, { width: 1080, height: 1920, localMs: 0, durationMs: 6000, media }, { media1: ID, fit, title: '' }, theme);
+      return mock.calls.filter((c) => c.method === 'drawImage').map((c) => c.args);
+    };
+    expect(images('cover')).toHaveLength(1);
+    const contain = images('contain');
+    expect(contain).toHaveLength(2); // dimmed cropped backdrop + the whole photo
+    expect(contain[1]!.slice(1, 5)).toEqual([0, 0, 800, 600]); // whole source
+  });
+
   it('uses filled slots in order and shows three placeholders when empty', () => {
     const empty = draw('carousel', { title: '' }, 0, 6000).texts();
     expect(empty).toContain('Photo 1');

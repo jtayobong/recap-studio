@@ -216,6 +216,8 @@ One music track per story, in sync in the preview and mixed into the export.
 
 - **Movement:** *Smooth glide* (as before) or *Stop at each photo*: the strip pauses on each photo
   or clip, like the text carousel (the scene's length is shared equally between them).
+- **Photo fit:** *Fill the card (crop)* (as before; the focus point picks what stays visible) or
+  *Show whole photo*, which shows every photo uncropped over a dimmed copy of itself.
 
 ## Storage (M8)
 
