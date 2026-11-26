@@ -51,3 +51,10 @@ name).
 ## Progress
 
 - Design record written (this file).
+- **Move fix done:** `moveSceneTo` selects the moved scene (which moves the playhead to it) when
+  the order changed; unit tests in `sceneActions.test.ts`.
+- **Uniform cards done:** `.scene-chip__meta` reserves a two-line name row and clamps the name;
+  checked in the editor (every chip 112 px in 9:16, 86 px in 16:9).
+- **Text scene done:** `render/templates/text.ts`, registered after Section; unit tests in
+  `text.test.ts` (bullet reveal order and timing, paragraph wrap, empty body, long text in both
+  shapes); checked in the editor in both shapes.

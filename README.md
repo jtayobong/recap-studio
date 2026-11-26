@@ -201,6 +201,13 @@ One music track per story, in sync in the preview and mixed into the export.
 - **Ducking controls:** scenes with *Keep clip sound* set how low the music goes under the clip and
   how loud the clip is (see Music).
 
+## Livelier stories and editor fixes (M11)
+
+- **Text:** a slide-style scene with a title and a body, shown as bullets (one per line, at most
+  eight, appearing one after another) or as a paragraph.
+- Moving a scene (Move earlier / later, drag, Alt+←/→) keeps it selected and in the preview.
+- Scene cards in the strip all have the same height; long names are cut to two lines.
+
 ## Storage (M8)
 
 Everything is stored in this browser. A warning appears on the Projects page and in the editor when
