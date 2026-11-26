@@ -5,6 +5,7 @@ Deeper context lives in `docs/`:
 
 - `docs/PLAN.md`: the product plan, architecture and milestone roadmap (with status)
 - `docs/DECISIONS.md`: why things are the way they are; read before changing a core choice
+- `docs/NEXT-M10.md`: the M10 design record (text carousel, section divider, ducking controls)
 - `docs/NEXT-M9.md`: what could come next (M0–M8 complete), with the landscape (16:9) record
 - `docs/NEXT-M8.md`: the M8 (hardening) record, completed
 - `docs/NEXT-M7.md`: the M7 (templates and style) design record, completed
@@ -38,6 +39,7 @@ templates or sample content.
 | Landscape (16:9) output (first M9 candidate) | ✅ done |
 | Desktop app (Tauri, Windows) | ✅ done |
 | 60 fps export (Export dialog option, D35) | ✅ done |
+| M10 Text carousel, section divider, ducking controls | 🚧 in progress |
 
 The original roadmap is complete, and so are landscape output, the desktop app and 60 fps export
 (records in `docs/NEXT-M9.md`, which also lists the remaining candidates).
