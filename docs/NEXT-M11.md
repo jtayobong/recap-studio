@@ -1,4 +1,13 @@
-# M11, background motion, text scene, strip fixes: in progress
+# M11, background motion, text scene, strip fixes: ✅ done (2026-11-26)
+
+**Done-when result:** *Background motion* (Off / Subtle / Lively) is in the project panel; with
+Lively, a story of Text, Text (paragraph) and Big Number scenes exports like the preview in 9:16
+and 16:9 (`e2e/m11.spec.ts` compares decoded frames with `renderFrame`). Projects from before M11
+migrate to Off (v3 fixture test) and the portrait baseline is identical; new projects start on
+Subtle. The Text scene renders bullets and paragraphs in both shapes and every palette. Move
+earlier / later keeps the moved scene selected and playing in the preview (unit + e2e), and every
+strip card has the same height (checked in the editor). `npm run check` (433 unit tests),
+`npm run test:e2e` (73) and `npm run test:e2e:prod` (48) pass.
 
 **Goal:** four additions the user asked for after M10: livelier backgrounds, a text-only scene
 (like a "Title and Content" slide), and two editor fixes: the move buttons lose the moved scene
@@ -58,3 +67,8 @@ name).
 - **Text scene done:** `render/templates/text.ts`, registered after Section; unit tests in
   `text.test.ts` (bullet reveal order and timing, paragraph wrap, empty body, long text in both
   shapes); checked in the editor in both shapes.
+- **Background motion done:** `render/backdrop.ts` (`fillBackground`, `backdropShapes`,
+  `motionAmount`), schema v4 with migration, `MotionPicker` in the project panel; every template
+  fills its background through it, and Title, Section, Text, Big Number and Outro scale their own
+  shapes' movement by `motionAmount`. Decision record D37. Unit tests in `backdrop.test.ts`,
+  `migrations.test.ts`, `render.test.ts` (every template with motion on); e2e in `m11.spec.ts`.

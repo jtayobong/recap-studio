@@ -5,6 +5,7 @@ Deeper context lives in `docs/`:
 
 - `docs/PLAN.md`: the product plan, architecture and milestone roadmap (with status)
 - `docs/DECISIONS.md`: why things are the way they are; read before changing a core choice
+- `docs/NEXT-M11.md`: the M11 design record (background motion, text scene, strip fixes)
 - `docs/NEXT-M10.md`: the M10 design record (text carousel, section divider, ducking controls)
 - `docs/NEXT-M9.md`: what could come next (M0–M8 complete), with the landscape (16:9) record
 - `docs/NEXT-M8.md`: the M8 (hardening) record, completed
@@ -40,6 +41,7 @@ templates or sample content.
 | Desktop app (Tauri, Windows) | ✅ done |
 | 60 fps export (Export dialog option, D35) | ✅ done |
 | M10 Text carousel, section divider, ducking controls | ✅ done |
+| M11 Background motion, Text scene, strip fixes | ✅ done |
 
 The original roadmap is complete, and so are landscape output, the desktop app and 60 fps export
 (records in `docs/NEXT-M9.md`, which also lists the remaining candidates).
@@ -129,7 +131,7 @@ src/
   lib/          capabilities, storage, format, debounce, keyboard, ids, errors
 e2e/            Playwright specs: projects, preview, editor, media-import, media-library, media-slot,
                 media-preview (reads canvas pixels), media-project, export (decodes the output), export-ui,
-                music, starters, export-60fps, clip-sound, m10-templates; helpers/story.ts adds the basic 8.5 s story for timing tests;
+                music, starters, export-60fps, clip-sound, m10-templates, m11; helpers/story.ts adds the basic 8.5 s story for timing tests;
                 helpers/media.ts generates test images/video in the page (no binary fixtures)
 ```
 
