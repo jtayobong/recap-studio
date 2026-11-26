@@ -5,6 +5,7 @@ import { cssFont, fitText } from '../text';
 import { isLandscape, unitOf } from '../layout';
 import { drawMediaPlaceholder } from './mediaLayout';
 import { clipSoundFields } from './soundFields';
+import { fillBackground } from '../backdrop';
 import { defineTemplate } from './types';
 
 const ACCEPT = ['image', 'video'] as const;
@@ -56,7 +57,8 @@ export const photoTemplate = defineTemplate({
     },
   },
 
-  render(ctx, frame, values, { palette, fonts }) {
+  render(ctx, frame, values, theme) {
+    const { palette, fonts } = theme;
     const { width: W, height: H, localMs: t } = frame;
     const u = unitOf(frame);
     // The media is full-bleed in both shapes; landscape gets a lower-third caption that keeps to
@@ -65,8 +67,7 @@ export const photoTemplate = defineTemplate({
       ? { placeholder: { x: W * 0.06, y: H * 0.08, width: W * 0.88, height: H * 0.6 }, captionX: W * 0.06, captionMaxWidth: W * 0.62, captionMaxHeight: H * 0.18, captionLines: 2 }
       : { placeholder: { x: W * 0.08, y: H * 0.1, width: W * 0.84, height: H * 0.62 }, captionX: W * 0.08, captionMaxWidth: W * 0.84, captionMaxHeight: H * 0.16, captionLines: 3 };
 
-    ctx.fillStyle = palette.background;
-    ctx.fillRect(0, 0, W, H);
+    fillBackground(ctx, frame, theme);
 
     const media = values.media ? frame.media.frame(values.media, t) : undefined;
     if (media && (ACCEPT as readonly string[]).includes(media.kind)) {

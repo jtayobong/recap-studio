@@ -2,6 +2,7 @@ import type { Project } from '../domain/project';
 import { getFontPair, getPalette } from '../domain/stylePresets';
 import { isolated, withAlpha, type Ctx2D, type Theme } from './context';
 import { easeInCubic, easeInOutCubic, easeOutCubic, lerp } from './easing';
+import { fillBackground } from './backdrop';
 import { NO_MEDIA, type MediaResolver } from './media';
 import { cssFont, fitText } from './text';
 import { getTemplate } from './templates/registry';
@@ -10,7 +11,11 @@ import { activeTransition, getSceneSpans, locateScene, type ActiveTransition, ty
 export type RenderableProject = Pick<Project, 'format' | 'style' | 'scenes'>;
 
 export function themeFor(project: RenderableProject): Theme {
-  return { palette: getPalette(project.style.paletteId), fonts: getFontPair(project.style.fontPairId) };
+  return {
+    palette: getPalette(project.style.paletteId),
+    fonts: getFontPair(project.style.fontPairId),
+    motion: project.style.backgroundMotion,
+  };
 }
 
 /**
@@ -53,7 +58,7 @@ export function renderFrame(ctx: Ctx2D, project: RenderableProject, timeMs: numb
   const drawPrevious = () =>
     previous
       ? drawScene(ctx, previous, previous.scene.durationMs, width, height, theme, media)
-      : drawBackground(ctx, width, height, theme);
+      : fillBackground(ctx, { width, height, localMs: 0, storyMs: 0 }, theme);
 
   if (transition) drawTransition(ctx, transition, width, height, theme, drawPrevious, drawCurrent);
   else drawCurrent();
@@ -84,7 +89,7 @@ function drawScene(
     try {
       template.draw(
         ctx,
-        { width, height, localMs, durationMs: span.scene.durationMs, media },
+        { width, height, localMs, durationMs: span.scene.durationMs, storyMs: span.startMs + localMs, media },
         span.scene.fields,
         theme,
       );
@@ -199,10 +204,6 @@ export function drawTransition(
 function fillFrame(ctx: Ctx2D, width: number, height: number, color: string): void {
   ctx.fillStyle = color;
   ctx.fillRect(0, 0, width, height);
-}
-
-function drawBackground(ctx: Ctx2D, width: number, height: number, theme: Theme): void {
-  fillFrame(ctx, width, height, theme.palette.background);
 }
 
 function drawEmptyStory(ctx: Ctx2D, width: number, height: number, theme: Theme): void {

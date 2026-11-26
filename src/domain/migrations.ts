@@ -28,6 +28,12 @@ export const MIGRATIONS: Readonly<Record<number, Migration>> = {
    * makes an older app report "saved by a newer version" instead of "invalid data".
    */
   2: (raw) => ({ ...raw, schemaVersion: 3 }),
+  /** v3 → v4 (M11): background motion. Existing projects keep their plain backgrounds. */
+  3: (raw) => {
+    const next: RawProject = { ...raw, schemaVersion: 4 };
+    if (isPlainObject(raw.style)) next.style = { ...raw.style, backgroundMotion: 'off' };
+    return next;
+  },
 };
 
 export class ProjectDataError extends Error {

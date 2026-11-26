@@ -108,7 +108,8 @@ src/
   render/       renderFrame.ts, timeline.ts, easing.ts, text.ts, fields.ts (+ slotCropAspect), context.ts,
                 layout.ts (isLandscape, unitOf), portraitBaseline.test.ts (9:16 output guard),
                 media.ts (MediaResolver, cover/contain geometry, drawMedia), clipSound.ts (when clips are heard),
-                templates/ (types, registry, title, section, bigNumber, topList, compare, photo, photoGrid,
+                backdrop.ts (background motion layer, fillBackground, motionAmount),
+                templates/ (types, registry, title, section, text, bigNumber, topList, compare, photo, photoGrid,
                 carousel, textCarousel, outro, mediaLayout, soundFields, starters), testing/mockContext.ts
   preview/      playbackStore.ts, usePlaybackClock.ts, PreviewCanvas.tsx, PlaybackControls.tsx,
                 usePlaybackShortcuts.ts, PreviewMusic.tsx + musicSync.ts (music follows the playhead)
@@ -155,6 +156,9 @@ React rendering.
    - animate with `progress()` + easing on `frame.localMs`; never `Math.random()` (use
      `seededRandom`), `Date.now()`, or state kept between calls
    - use `withAlpha()` / `isolated()`; never assign `ctx.globalAlpha` directly
+   - start with `fillBackground(ctx, frame, theme)` (`render/backdrop.ts`), not a plain fill: it
+     draws the story's background motion; scale your own decorative motion by
+     `motionAmount(theme)` (0 when motion is off, so old projects stay identical)
    - format numbers with a fixed locale (`en-US`)
    - set `posterMs` (when the scene looks complete); it drives selection and thumbnails
    - `renderFrame` respects the caller's transform (thumbnails draw on a scaled context)

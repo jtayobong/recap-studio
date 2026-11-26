@@ -312,3 +312,17 @@ reference frames had the same problem. Measured on the clip: 0 wrong frames at 3
 hardware HEVC decoder and a real phone clip, and the project has no binary fixtures. Rejected:
 reading frames back to the CPU (`copyTo`, ~25 MB per 4K 10-bit frame) and software decoding
 (Chromium has no software HEVC decoder).
+
+### D37. Background motion is a story setting drawn by one shared layer, on story time
+The user asked for livelier backgrounds (M11). It is one setting for the whole story
+(`style.backgroundMotion`: off / subtle / lively), not per scene, so a story looks consistent and
+there is one control. Schema v4: existing projects migrate to `off` and render exactly as before
+(the portrait baseline guards it); new projects start on `subtle`. The shapes come from one module
+(`render/backdrop.ts`): templates call `fillBackground(ctx, frame, theme)` instead of filling the
+background themselves, so each template gets the layer behind its own shapes and text without
+template-specific code. The layer follows *story* time (`frame.storyMs`), not scene time, so shapes
+keep drifting through scene changes instead of jumping back at every cut; in a fade both scenes draw
+the same shapes in the same place. Templates with big decorative shapes (Title, Section, Text, Big
+Number, Outro) also let those breathe or drift a little, scaled by `motionAmount(theme)`, which is 0
+with motion off. Rejected: drawing the layer in `renderFrame` under the template (every template
+paints an opaque background first) and always-on motion (would change every existing export).

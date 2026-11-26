@@ -6,6 +6,7 @@ import { cssFont, fitText } from '../text';
 import { aspectOf, clipRounded, drawMediaPlaceholder, gridCells, REFERENCE_SIZES, type GridLayout } from './mediaLayout';
 import { isLandscape, unitOf } from '../layout';
 import { clipSoundFields } from './soundFields';
+import { fillBackground } from '../backdrop';
 import { defineTemplate } from './types';
 
 const ACCEPT = ['image', 'video'] as const;
@@ -96,8 +97,7 @@ export const photoGridTemplate = defineTemplate({
     const v = values as Record<string, string | number | boolean>;
     const u = unitOf(frame);
 
-    ctx.fillStyle = palette.background;
-    ctx.fillRect(0, 0, W, H);
+    fillBackground(ctx, frame, theme);
 
     for (let i = 0; i < Math.min(SLOT_COUNT[layout], SLOTS); i += 1) {
       const cell = cells[i];

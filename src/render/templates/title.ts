@@ -2,6 +2,7 @@ import { isolated, withAlpha } from '../context';
 import { easeOutBack, easeOutCubic, lerp, progress } from '../easing';
 import { cssFont, fitSingleLine, fitText } from '../text';
 import { isLandscape, unitOf } from '../layout';
+import { fillBackground, motionAmount } from '../backdrop';
 import { defineTemplate } from './types';
 
 /** Opening card: a big headline with a "sun" and a sweeping accent band. */
@@ -24,11 +25,13 @@ export const titleTemplate = defineTemplate({
     },
   },
 
-  render(ctx, frame, values, { palette, fonts }) {
+  render(ctx, frame, values, theme) {
+    const { palette, fonts } = theme;
     const { width: W, height: H, localMs: t } = frame;
     const display = { family: fonts.display, weight: 900 };
     const body = { family: fonts.body, weight: 600 };
     const u = unitOf(frame);
+    const m = motionAmount(theme);
     // Portrait: sun top-right, band across the middle, text in the lower half.
     // Landscape: text column on the left, sun on the right, band across the top.
     const g = isLandscape(frame)
@@ -54,12 +57,11 @@ export const titleTemplate = defineTemplate({
         };
     const { left, maxWidth } = g;
 
-    ctx.fillStyle = palette.background;
-    ctx.fillRect(0, 0, W, H);
+    fillBackground(ctx, frame, theme);
 
     // Sun: pops in, then breathes gently.
     const grow = easeOutBack(progress(t, 0, 800));
-    const breathe = 1 + 0.02 * Math.sin(t / 700);
+    const breathe = 1 + (0.02 + 0.015 * m) * Math.sin(t / 700);
     ctx.fillStyle = palette.primary;
     ctx.beginPath();
     ctx.arc(g.sun.x, g.sun.y, Math.max(0, g.sun.r * grow * breathe), 0, Math.PI * 2);
@@ -68,7 +70,8 @@ export const titleTemplate = defineTemplate({
     // Accent band sweeping in from the left.
     isolated(ctx, () => {
       const sweep = easeOutCubic(progress(t, 150, 700));
-      ctx.translate(lerp(-W * 1.3, 0, sweep), g.band.y);
+      // With background motion the band floats gently up and down.
+      ctx.translate(lerp(-W * 1.3, 0, sweep), g.band.y + m * u * 0.008 * Math.sin(t / 900));
       ctx.rotate(g.band.rotate);
       ctx.fillStyle = palette.accent;
       ctx.fillRect(g.band.x, -g.band.h / 2, g.band.w, g.band.h);

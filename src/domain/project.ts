@@ -9,7 +9,7 @@ import { DEFAULT_FONT_PAIR_ID, DEFAULT_PALETTE_ID } from './stylePresets';
  * Bump CURRENT_SCHEMA_VERSION and add a migration in ./migrations.ts whenever the
  * stored shape changes.
  */
-export const CURRENT_SCHEMA_VERSION = 3;
+export const CURRENT_SCHEMA_VERSION = 4;
 
 export const PROJECT_NAME_MAX = 100;
 export const MAX_SCENES = 200;
@@ -22,9 +22,14 @@ export const FormatSchema = z.object({
   fps: z.union([z.literal(24), z.literal(25), z.literal(30), z.literal(60)]),
 });
 
+/** Moving shapes behind every scene (M11, schema v4). Older projects migrate to `off`. */
+export const BackgroundMotionSchema = z.enum(['off', 'subtle', 'lively']);
+export const DEFAULT_BACKGROUND_MOTION: BackgroundMotion = 'subtle';
+
 export const StyleSchema = z.object({
   paletteId: z.string().min(1),
   fontPairId: z.string().min(1),
+  backgroundMotion: BackgroundMotionSchema,
 });
 
 /** Scene entrance transitions. v3 (M7) added zoom, wipe, push (left) and flash. */
@@ -71,6 +76,7 @@ export const ProjectSchema = z.object({
 
 export type Format = z.infer<typeof FormatSchema>;
 export type Style = z.infer<typeof StyleSchema>;
+export type BackgroundMotion = z.infer<typeof BackgroundMotionSchema>;
 export type Transition = z.infer<typeof TransitionSchema>;
 export type Scene = z.infer<typeof SceneSchema>;
 export type AudioTrack = z.infer<typeof AudioTrackSchema>;
@@ -119,6 +125,7 @@ export interface NewProjectInput {
   formatPresetId?: FormatPresetId;
   paletteId?: string;
   fontPairId?: string;
+  backgroundMotion?: BackgroundMotion;
 }
 
 export function createProject(
@@ -139,6 +146,7 @@ export function createProject(
     style: {
       paletteId: input.paletteId ?? DEFAULT_PALETTE_ID,
       fontPairId: input.fontPairId ?? DEFAULT_FONT_PAIR_ID,
+      backgroundMotion: input.backgroundMotion ?? DEFAULT_BACKGROUND_MOTION,
     },
     scenes: [],
     createdAt: now,

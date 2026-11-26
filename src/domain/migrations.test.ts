@@ -68,6 +68,7 @@ describe('real migrations', () => {
       const copy = { ...p };
       delete copy.schemaVersion;
       delete copy.audio;
+      delete copy.style; // v4 adds background motion (checked below)
       return copy;
     };
     expect(without(migrated)).toEqual(without(v1));
@@ -92,9 +93,27 @@ describe('real migrations', () => {
 
   it('v2 → v3: only the version changes (new transition kinds need no data changes)', async () => {
     const v2 = (await import('./fixtures/project-v2.json')).default as Record<string, unknown>;
-    const migrated = migrateProject(structuredClone(v2));
+    const migrated = MIGRATIONS[2]!(structuredClone(v2));
     expect(migrated.schemaVersion).toBe(3);
     expect({ ...migrated, schemaVersion: 2 }).toEqual(v2);
+  });
+
+  it('v3 → v4: existing projects get background motion off; nothing else changes', async () => {
+    const v3 = (await import('./fixtures/project-v3.json')).default as Record<string, unknown>;
+    const migrated = migrateProject(structuredClone(v3));
+    expect(migrated.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+    expect(migrated.style).toEqual({ paletteId: 'citrus-pop', fontPairId: 'heavy-grotesk', backgroundMotion: 'off' });
+    expect({ ...migrated, schemaVersion: 3, style: v3.style }).toEqual(v3);
+  });
+
+  it('v1 → current also ends with background motion off', async () => {
+    const v1 = (await import('./fixtures/project-v1.json')).default as Record<string, unknown>;
+    expect(migrateProject(structuredClone(v1)).style.backgroundMotion).toBe('off');
+  });
+
+  it('new projects start with subtle background motion', () => {
+    expect(createProject({ name: 'New' }).style.backgroundMotion).toBe('subtle');
+    expect(createProject({ name: 'New', backgroundMotion: 'lively' }).style.backgroundMotion).toBe('lively');
   });
 
   it('v3 accepts the new transition kinds', () => {

@@ -2,6 +2,7 @@ import { isolated, withAlpha } from '../context';
 import { easeOutBack, easeOutCubic, easeOutExpo, lerp, progress } from '../easing';
 import { cssFont, fitSingleLine, fitText } from '../text';
 import { isLandscape, unitOf } from '../layout';
+import { fillBackground } from '../backdrop';
 import { defineTemplate } from './types';
 
 // Fixed locale so a project renders identically on every machine.
@@ -32,7 +33,8 @@ export const compareTemplate = defineTemplate({
     showChange: { kind: 'boolean', label: 'Show % change', default: true },
   },
 
-  render(ctx, frame, values, { palette, fonts }) {
+  render(ctx, frame, values, theme) {
+    const { palette, fonts } = theme;
     const { width: W, height: H, localMs: t } = frame;
     const display = { family: fonts.display, weight: 900 };
     const body = { family: fonts.body, weight: 700 };
@@ -43,8 +45,7 @@ export const compareTemplate = defineTemplate({
     // Landscape: two upright bars side by side on a shared baseline, the change badge on the right.
     const columns = { width: W * 0.26, bar: W * 0.15, centers: [W * 0.22, W * 0.53], baseline: H * 0.8, maxBar: H * 0.36 };
 
-    ctx.fillStyle = palette.background;
-    ctx.fillRect(0, 0, W, H);
+    fillBackground(ctx, frame, theme);
 
     const title = fitText(ctx, values.title, {
       font: display,

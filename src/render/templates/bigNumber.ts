@@ -2,6 +2,7 @@ import { isolated, withAlpha } from '../context';
 import { easeOutBack, easeOutCubic, easeOutExpo, lerp, progress } from '../easing';
 import { cssFont, fitSingleLine, fitText } from '../text';
 import { isLandscape, unitOf } from '../layout';
+import { fillBackground, motionAmount } from '../backdrop';
 import { defineTemplate } from './types';
 
 // Fixed locale so a project renders identically on every machine.
@@ -29,24 +30,25 @@ export const bigNumberTemplate = defineTemplate({
     countUp: { kind: 'boolean', label: 'Count up', default: true },
   },
 
-  render(ctx, frame, values, { palette, fonts }) {
+  render(ctx, frame, values, theme) {
+    const { palette, fonts } = theme;
     const { width: W, height: H, localMs: t, durationMs } = frame;
     const display = { family: fonts.display, weight: 900 };
     const body = { family: fonts.body, weight: 700 };
     const centerX = W / 2;
     const u = unitOf(frame);
+    const m = motionAmount(theme);
     // Portrait: a tall centred stack. Landscape: the same stack, spread for the shorter frame.
     const g = isLandscape(frame)
       ? { circle: { x: W * 0.05, y: H * 0.95, r: u * 0.3 }, numberMaxWidth: W * 0.7, labelMaxY: H * 0.2, baseline: H * 0.54, captionTop: H * 0.79, captionMaxWidth: W * 0.6, captionMaxHeight: H * 0.14, captionLines: 2 }
       : { circle: { x: W * 0.08, y: H * 0.93, r: W * 0.32 }, numberMaxWidth: W * 0.86, labelMaxY: H * 0.34, baseline: H * 0.5, captionTop: H * 0.68, captionMaxWidth: W * 0.8, captionMaxHeight: H * 0.12, captionLines: 3 };
 
-    ctx.fillStyle = palette.background;
-    ctx.fillRect(0, 0, W, H);
+    fillBackground(ctx, frame, theme);
 
     // Slowly drifting diagonal stripes.
     isolated(ctx, () => {
       const stripe = u * 0.12;
-      const drift = (t * 0.04) % (stripe * 2);
+      const drift = (t * 0.04 * (1 + 0.5 * m)) % (stripe * 2);
       ctx.translate(centerX, H / 2);
       ctx.rotate(-0.35);
       ctx.fillStyle = palette.surface;
@@ -59,7 +61,7 @@ export const bigNumberTemplate = defineTemplate({
     const circle = easeOutBack(progress(t, 500, 700));
     ctx.fillStyle = palette.accent;
     ctx.beginPath();
-    ctx.arc(g.circle.x, g.circle.y, Math.max(0, g.circle.r * circle), 0, Math.PI * 2);
+    ctx.arc(g.circle.x, g.circle.y, Math.max(0, g.circle.r * circle * (1 + 0.03 * m * Math.sin(t / 600))), 0, Math.PI * 2);
     ctx.fill();
 
     ctx.textAlign = 'center';

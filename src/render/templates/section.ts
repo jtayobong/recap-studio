@@ -2,6 +2,7 @@ import { withAlpha } from '../context';
 import { easeOutBack, easeOutCubic, progress } from '../easing';
 import { cssFont, fitSingleLine, fitText } from '../text';
 import { isLandscape, unitOf } from '../layout';
+import { fillBackground, motionAmount } from '../backdrop';
 import { defineTemplate } from './types';
 
 /** Chapter divider: a label ("Part 2"), a big title and a small line, between parts of the story. */
@@ -18,9 +19,11 @@ export const sectionTemplate = defineTemplate({
     subtitle: { kind: 'text', label: 'Small line', default: 'June to August', maxLength: 80, multiline: true },
   },
 
-  render(ctx, frame, values, { palette, fonts }) {
+  render(ctx, frame, values, theme) {
+    const { palette, fonts } = theme;
     const { width: W, height: H, localMs: t } = frame;
     const u = unitOf(frame);
+    const m = motionAmount(theme);
     const display = { family: fonts.display, weight: 900 };
     const body = { family: fonts.body, weight: 600 };
     // Portrait: text in a column across the middle, a disc rising in the bottom-right corner.
@@ -29,14 +32,13 @@ export const sectionTemplate = defineTemplate({
       ? { left: W * 0.06, maxWidth: W * 0.55, labelY: H * 0.3, titleTop: H * 0.35, titleMaxHeight: H * 0.36, disc: { x: W * 0.88, y: H * 0.86, r: H * 0.46 } }
       : { left: W * 0.08, maxWidth: W * 0.84, labelY: H * 0.38, titleTop: H * 0.425, titleMaxHeight: H * 0.24, disc: { x: W * 0.96, y: H * 0.97, r: W * 0.42 } };
 
-    ctx.fillStyle = palette.background;
-    ctx.fillRect(0, 0, W, H);
+    fillBackground(ctx, frame, theme);
 
     // Disc: pops up from its corner.
     const grow = easeOutBack(progress(t, 0, 900));
     ctx.fillStyle = palette.primary;
     ctx.beginPath();
-    ctx.arc(g.disc.x, g.disc.y, Math.max(0, g.disc.r * grow), 0, Math.PI * 2);
+    ctx.arc(g.disc.x, g.disc.y, Math.max(0, g.disc.r * grow * (1 + 0.025 * m * Math.sin(t / 650))), 0, Math.PI * 2);
     ctx.fill();
 
     ctx.textAlign = 'left';

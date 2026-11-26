@@ -203,6 +203,10 @@ One music track per story, in sync in the preview and mixed into the export.
 
 ## Livelier stories and editor fixes (M11)
 
+- **Background motion** (project panel): *Off*, *Subtle* or *Lively* drifting shapes behind every
+  scene, in the palette's colours; big decorative shapes also breathe a little. It runs through
+  the whole story, across scene changes, and the export matches the preview. New projects start on
+  *Subtle*; projects made before M11 open with *Off* and look exactly as before.
 - **Text:** a slide-style scene with a title and a body, shown as bullets (one per line, at most
   eight, appearing one after another) or as a paragraph.
 - Moving a scene (Move earlier / later, drag, Alt+←/→) keeps it selected and in the preview.

@@ -1,3 +1,4 @@
+import type { BackgroundMotion } from '../domain/project';
 import type { FontPair, Palette } from '../domain/stylePresets';
 import type { MediaResolver } from './media';
 
@@ -7,6 +8,8 @@ export type Ctx2D = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
 export interface Theme {
   palette: Palette;
   fonts: FontPair;
+  /** Background motion level (M11); missing means off. */
+  motion?: BackgroundMotion;
 }
 
 /** Everything a template needs to know about the frame being drawn. */
@@ -16,6 +19,11 @@ export interface FrameInfo {
   /** Milliseconds since this scene started. */
   localMs: number;
   durationMs: number;
+  /**
+   * Milliseconds since the story started (for motion that runs across scenes, like the background
+   * shapes). Missing means `localMs`.
+   */
+  storyMs?: number;
   /** Decoded media for `media` fields. May answer undefined: draw a placeholder then. */
   media: MediaResolver;
 }

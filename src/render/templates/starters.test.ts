@@ -56,7 +56,7 @@ describe('starter stories', () => {
         const scenes = starter.scenes();
         const total = totalDurationMs(getSceneSpans(scenes));
         for (const palette of PALETTES) {
-          const project = { format, style: { paletteId: palette.id, fontPairId: 'heavy-grotesk' }, scenes };
+          const project = { format, style: { paletteId: palette.id, fontPairId: 'heavy-grotesk', backgroundMotion: 'off' as const }, scenes };
           for (let t = 0; t <= total; t += 500) {
             const { ctx, texts } = createMockContext();
             renderFrame(ctx, project, t);
@@ -75,7 +75,7 @@ describe('starter stories', () => {
       for (const scene of starter.scenes()) {
         const { ctx, calls } = createMockContext();
         const single = { ...scene, transitionIn: 'cut' as const };
-        renderFrame(ctx, { format, style: { paletteId: 'neon-pulse', fontPairId: 'heavy-grotesk' }, scenes: [single] }, posterTimeMs(single));
+        renderFrame(ctx, { format, style: { paletteId: 'neon-pulse', fontPairId: 'heavy-grotesk', backgroundMotion: 'off' as const }, scenes: [single] }, posterTimeMs(single));
         for (const call of calls.filter((c) => c.method === 'fillText')) {
           const y = Number(call.args[2]);
           // Text drawn at the origin of a translated context (Compare's numbers) reports y = 0.

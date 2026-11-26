@@ -20,7 +20,7 @@ describe('createProject', () => {
       schemaVersion: CURRENT_SCHEMA_VERSION,
       name: 'My 2026 Recap',
       format: { width: 1080, height: 1920, fps: 30 },
-      style: { paletteId: 'neon-pulse', fontPairId: 'heavy-grotesk' },
+      style: { paletteId: 'neon-pulse', fontPairId: 'heavy-grotesk', backgroundMotion: 'subtle' },
       scenes: [],
       createdAt: 1000,
       updatedAt: 1000,

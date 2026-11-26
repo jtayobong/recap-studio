@@ -6,6 +6,7 @@ import { cssFont, fitText } from '../text';
 import { aspectOf, carouselCard, clipRounded, drawMediaPlaceholder, REFERENCE_SIZES, type CarouselDirection } from './mediaLayout';
 import { isLandscape, unitOf } from '../layout';
 import { clipSoundFields } from './soundFields';
+import { fillBackground } from '../backdrop';
 import { defineTemplate } from './types';
 
 const ACCEPT = ['image', 'video'] as const;
@@ -102,8 +103,7 @@ export const carouselTemplate = defineTemplate({
     const titleX = wide ? W * 0.06 : W * 0.08;
     const titleTop = wide ? H * 0.07 : H * 0.06;
 
-    ctx.fillStyle = palette.background;
-    ctx.fillRect(0, 0, W, H);
+    fillBackground(ctx, frame, theme);
 
     // Filled slots in order; with none filled, three placeholders show what the scene does.
     const filled = Array.from({ length: CAROUSEL_SLOTS }, (_, i) => i + 1).filter((n) => String(v[`media${n}`] ?? '') !== '');
@@ -141,8 +141,8 @@ export const carouselTemplate = defineTemplate({
       const enter = easeOutCubic(progress(t, 0, 500));
       // Vertical strips run under the title, so give it a solid band.
       if (direction === 'up') {
-        ctx.fillStyle = palette.background;
-        ctx.fillRect(0, 0, W, titleTop + fitted.lines.length * fitted.lineHeightPx + (wide ? H * 0.04 : H * 0.03));
+        const bandHeight = titleTop + fitted.lines.length * fitted.lineHeightPx + (wide ? H * 0.04 : H * 0.03);
+        fillBackground(ctx, frame, theme, { x: 0, y: 0, width: W, height: bandHeight });
       }
       withAlpha(ctx, enter, () => {
         ctx.font = cssFont(font, fitted.sizePx);

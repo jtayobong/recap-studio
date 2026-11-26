@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'rea
 import { Link, useBlocker, useParams } from 'react-router';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { ExportControl } from '../components/ExportControl';
+import { MotionPicker } from '../components/MotionPicker';
 import { FontPicker } from '../components/FontPicker';
 import { FormatPicker } from '../components/FormatPicker';
 import { MediaLibrary } from '../components/MediaLibrary';
@@ -210,6 +211,13 @@ function ProjectPanel({ project, durationMs }: { project: Project; durationMs: n
         value={project.style.fontPairId}
         onChange={(fontPairId) =>
           update((p) => (p.style.fontPairId === fontPairId ? p : { ...p, style: { ...p.style, fontPairId } }))
+        }
+      />
+
+      <MotionPicker
+        value={project.style.backgroundMotion}
+        onChange={(backgroundMotion) =>
+          update((p) => (p.style.backgroundMotion === backgroundMotion ? p : { ...p, style: { ...p.style, backgroundMotion } }))
         }
       />
 

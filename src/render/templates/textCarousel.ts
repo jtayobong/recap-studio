@@ -6,6 +6,7 @@ import type { Rect } from '../media';
 import { cssFont, fitText } from '../text';
 import { isLandscape, unitOf } from '../layout';
 import { carouselCard, clipRounded, type CarouselDirection } from './mediaLayout';
+import { fillBackground } from '../backdrop';
 import { defineTemplate } from './types';
 
 export const TEXT_CAROUSEL_CARDS = 6;
@@ -105,7 +106,8 @@ export const textCarouselTemplate = defineTemplate({
   posterMs: 900,
   fields,
 
-  render(ctx, frame, values, { palette, fonts }) {
+  render(ctx, frame, values, theme) {
+    const { palette, fonts } = theme;
     const { width: W, height: H, localMs: t, durationMs } = frame;
     const v = values as Record<string, string>;
     const direction: CarouselDirection = v.direction === 'up' ? 'up' : 'left';
@@ -114,8 +116,7 @@ export const textCarouselTemplate = defineTemplate({
     const titleX = wide ? W * 0.06 : W * 0.08;
     const titleTop = wide ? H * 0.07 : H * 0.06;
 
-    ctx.fillStyle = palette.background;
-    ctx.fillRect(0, 0, W, H);
+    fillBackground(ctx, frame, theme);
 
     // With no cards filled, three sample cards show what the scene does.
     const filled = filledCards(v);
@@ -171,8 +172,8 @@ export const textCarouselTemplate = defineTemplate({
       const enter = easeOutCubic(progress(t, 0, 500));
       // Vertical strips run under the title, so give it a solid band.
       if (direction === 'up') {
-        ctx.fillStyle = palette.background;
-        ctx.fillRect(0, 0, W, titleTop + fitted.lines.length * fitted.lineHeightPx + (wide ? H * 0.04 : H * 0.03));
+        const bandHeight = titleTop + fitted.lines.length * fitted.lineHeightPx + (wide ? H * 0.04 : H * 0.03);
+        fillBackground(ctx, frame, theme, { x: 0, y: 0, width: W, height: bandHeight });
       }
       withAlpha(ctx, enter, () => {
         ctx.font = cssFont(font, fitted.sizePx);

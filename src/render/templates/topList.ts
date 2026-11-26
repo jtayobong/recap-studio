@@ -2,6 +2,7 @@ import { isolated, withAlpha } from '../context';
 import { easeOutBack, easeOutCubic, progress } from '../easing';
 import { cssFont, fitSingleLine, fitText } from '../text';
 import { isLandscape, unitOf } from '../layout';
+import { fillBackground } from '../backdrop';
 import { defineTemplate } from './types';
 
 /** Gap between items entering. */
@@ -25,7 +26,8 @@ export const topListTemplate = defineTemplate({
     item5: { kind: 'text', label: '#5', default: 'Paper Satellites', maxLength: 40 },
   },
 
-  render(ctx, frame, values, { palette, fonts }) {
+  render(ctx, frame, values, theme) {
+    const { palette, fonts } = theme;
     const { width: W, height: H, localMs: t } = frame;
     const display = { family: fonts.display, weight: 900 };
     const body = { family: fonts.body, weight: 800 };
@@ -41,8 +43,7 @@ export const topListTemplate = defineTemplate({
           list: { left: W * 0.08, top: H * 0.34, rowHeight: H * 0.11, width: W * 0.88, textMaxWidth: W * 0.68, textOffset: W * 0.14 },
         };
 
-    ctx.fillStyle = palette.background;
-    ctx.fillRect(0, 0, W, H);
+    fillBackground(ctx, frame, theme);
 
     // A tall accent bar on the left grows in.
     const bar = easeOutCubic(progress(t, 0, 600));

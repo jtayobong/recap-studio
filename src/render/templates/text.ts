@@ -2,6 +2,7 @@ import { withAlpha, type Ctx2D } from '../context';
 import { easeOutBack, easeOutCubic, progress } from '../easing';
 import { cssFont, fitText, wrapLines, type FontSpec } from '../text';
 import { isLandscape, unitOf } from '../layout';
+import { fillBackground, motionAmount } from '../backdrop';
 import { defineTemplate } from './types';
 
 /** At most this many bullets are drawn (one per non-empty line of the body). */
@@ -81,23 +82,24 @@ export const textTemplate = defineTemplate({
     },
   },
 
-  render(ctx, frame, values, { palette, fonts }) {
+  render(ctx, frame, values, theme) {
+    const { palette, fonts } = theme;
     const { width: W, height: H, localMs: t } = frame;
     const u = unitOf(frame);
+    const m = motionAmount(theme);
     const display = { family: fonts.display, weight: 900 };
     const body = { family: fonts.body, weight: 600 };
     const g = isLandscape(frame)
       ? { left: W * 0.07, maxWidth: W * 0.8, titleTop: H * 0.12, titleMaxHeight: H * 0.24, bodyBottom: H * 0.88, disc: { x: W, y: H, r: H * 0.42 } }
       : { left: W * 0.08, maxWidth: W * 0.84, titleTop: H * 0.13, titleMaxHeight: H * 0.2, bodyBottom: H * 0.86, disc: { x: W, y: H, r: W * 0.36 } };
 
-    ctx.fillStyle = palette.background;
-    ctx.fillRect(0, 0, W, H);
+    fillBackground(ctx, frame, theme);
 
     // A soft disc in the corner (surface colour, so text over it stays readable).
     const grow = easeOutBack(progress(t, 0, 900));
     ctx.fillStyle = palette.surface;
     ctx.beginPath();
-    ctx.arc(g.disc.x, g.disc.y, Math.max(0, g.disc.r * grow), 0, Math.PI * 2);
+    ctx.arc(g.disc.x, g.disc.y, Math.max(0, g.disc.r * grow * (1 + 0.025 * m * Math.sin(t / 650))), 0, Math.PI * 2);
     ctx.fill();
 
     ctx.textAlign = 'left';

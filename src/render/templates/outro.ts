@@ -2,6 +2,7 @@ import { isolated, withAlpha } from '../context';
 import { easeInCubic, easeOutCubic, lerp, progress } from '../easing';
 import { cssFont, fitText } from '../text';
 import { isLandscape, unitOf } from '../layout';
+import { fillBackground, motionAmount } from '../backdrop';
 import { defineTemplate } from './types';
 
 /** How long the closing animation (gentle zoom-out and fade) lasts at the end of the scene. */
@@ -21,11 +22,13 @@ export const outroTemplate = defineTemplate({
     fadeToBlack: { kind: 'boolean', label: 'Fade out at the end', default: true },
   },
 
-  render(ctx, frame, values, { palette, fonts }) {
+  render(ctx, frame, values, theme) {
+    const { palette, fonts } = theme;
     const { width: W, height: H, localMs: t, durationMs } = frame;
     const display = { family: fonts.display, weight: 900 };
     const body = { family: fonts.body, weight: 600 };
     const u = unitOf(frame);
+    const m = motionAmount(theme);
     const wide = isLandscape(frame);
     // Portrait: rings and title centred, message below. Landscape: rings and title on the left,
     // the message in a column on the right, clear of the rings.
@@ -35,8 +38,7 @@ export const outroTemplate = defineTemplate({
     // 0 → 1 over the last OUTRO_END_MS of the scene.
     const ending = values.fadeToBlack ? easeInCubic(progress(t, durationMs - OUTRO_END_MS, OUTRO_END_MS)) : 0;
 
-    ctx.fillStyle = palette.background;
-    ctx.fillRect(0, 0, W, H);
+    fillBackground(ctx, frame, theme);
 
     isolated(ctx, () => {
       // The whole card settles back slightly as it ends.
@@ -52,7 +54,7 @@ export const outroTemplate = defineTemplate({
         ctx.lineWidth = u * 0.016;
         withAlpha(ctx, 0.85 - i * 0.25, () => {
           ctx.beginPath();
-          ctx.arc(cx, cy, Math.max(0, u * (ring.base + i * ring.step) * grow), 0, Math.PI * 2);
+          ctx.arc(cx, cy, Math.max(0, u * (ring.base + i * ring.step) * grow * (1 + 0.02 * m * Math.sin(t / 700 + i))), 0, Math.PI * 2);
           ctx.stroke();
         });
       }
@@ -103,9 +105,6 @@ export const outroTemplate = defineTemplate({
     });
 
     // Fade to the background colour at the very end.
-    withAlpha(ctx, ending, () => {
-      ctx.fillStyle = palette.background;
-      ctx.fillRect(0, 0, W, H);
-    });
+    withAlpha(ctx, ending, () => fillBackground(ctx, frame, theme));
   },
 });

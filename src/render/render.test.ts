@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { Scene } from '../domain/project';
+import type { BackgroundMotion, Scene } from '../domain/project';
 import { clamp01, easeInOutCubic, easeOutBack, easeOutCubic, easeOutExpo, lerp, progress, seededRandom } from './easing';
 import { defaultFields, fieldsEditedBySlots, resolveFields, type FieldDefs } from './fields';
 import { getPalette, PALETTES } from '../domain/stylePresets';
@@ -55,9 +55,9 @@ const testTheme = {
 const PORTRAIT: RenderableProject['format'] = { width: 1080, height: 1920, fps: 30 };
 const LANDSCAPE: RenderableProject['format'] = { width: 1920, height: 1080, fps: 30 };
 
-const project = (scenes: Scene[], paletteId = 'neon-pulse', format = PORTRAIT): RenderableProject => ({
+const project = (scenes: Scene[], paletteId = 'neon-pulse', format = PORTRAIT, backgroundMotion: BackgroundMotion = 'off'): RenderableProject => ({
   format,
-  style: { paletteId, fontPairId: 'heavy-grotesk' },
+  style: { paletteId, fontPairId: 'heavy-grotesk', backgroundMotion },
   scenes,
 });
 
@@ -372,6 +372,28 @@ describe('renderFrame', () => {
             expect(texts().some((text) => text.includes('failed to draw'))).toBe(false);
             expect(calls.filter((c) => c.method === 'save').length).toBe(calls.filter((c) => c.method === 'restore').length);
           }
+        }
+      }
+    }
+    expect(errors).not.toHaveBeenCalled();
+    errors.mockRestore();
+  });
+
+  it('draws every template with background motion on, in both shapes', () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const scenes = TEMPLATES.map((t) => {
+      const created = createScene(t.id);
+      return { ...created, fields: { ...created.fields, ...mediaFieldsFor(t.id) } };
+    });
+    const total = scenes.reduce((sum, s) => sum + s.durationMs, 0);
+    for (const motion of ['subtle', 'lively'] as const) {
+      for (const format of [PORTRAIT, LANDSCAPE]) {
+        const p = project(scenes, 'mint-riot', format, motion);
+        for (let t = 0; t <= total; t += 250) {
+          const { ctx, texts, calls } = createMockContext();
+          renderFrame(ctx, p, t, fakeMedia);
+          expect(texts().some((text) => text.includes('failed to draw'))).toBe(false);
+          expect(calls.filter((c) => c.method === 'save').length).toBe(calls.filter((c) => c.method === 'restore').length);
         }
       }
     }
