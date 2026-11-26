@@ -91,9 +91,12 @@ export function duplicateScene(id: string): void {
   if (ops.indexOfScene(scenes(), copyId) !== -1) selectScene(copyId);
 }
 
+/** Move a scene, then select it and show it at its new place (the preview follows the scene). */
 export function moveSceneTo(id: string, toIndex: number): void {
-  const from = ops.indexOfScene(scenes(), id);
+  const before = scenes();
+  const from = ops.indexOfScene(before, id);
   updateScenes((current) => ops.moveScene(current, from, toIndex));
+  if (scenes() !== before) selectScene(id);
 }
 
 export function moveSceneBy(id: string, delta: number): void {

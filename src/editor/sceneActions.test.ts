@@ -18,6 +18,7 @@ import {
 } from './sceneActions';
 import { posterTimeMs } from '../render/templates/registry';
 import { useSelectionStore } from './selectionStore';
+import { getSceneSpans } from '../render/timeline';
 
 // These drive the real stores. Autosave is debounced, so nothing is written during a test.
 
@@ -83,6 +84,27 @@ describe('scene actions', () => {
     expect(templates()).toEqual(['big-number', 'title']);
     moveSceneBy(title, 1);
     expect(templates()).toEqual(['big-number', 'title']);
+  });
+
+  it('a moved scene stays in the preview: selected, playhead at its new place', () => {
+    addStarterScenes();
+    const title = scenes()[0]!;
+    selectScene(title.id);
+    moveSceneBy(title.id, 1);
+    expect(selected()).toBe(title.id);
+    const span = getSceneSpans(scenes()).find((s) => s.scene.id === title.id)!;
+    expect(span.startMs).toBeGreaterThan(0);
+    expect(usePlaybackStore.getState().timeMs).toBe(span.startMs + posterTimeMs(title));
+  });
+
+  it('a move that changes nothing leaves selection and playhead alone', () => {
+    addStarterScenes();
+    const big = scenes()[1]!;
+    selectScene(scenes()[0]!.id);
+    const time = usePlaybackStore.getState().timeMs;
+    moveSceneBy(big.id, 1);
+    expect(selected()).toBe(scenes()[0]!.id);
+    expect(usePlaybackStore.getState().timeMs).toBe(time);
   });
 
   it('typing into a field is a single undo step', () => {
