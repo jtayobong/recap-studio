@@ -128,7 +128,9 @@ export function SceneStrip({ project }: { project: Project }) {
                 <SceneThumbnail scene={scene} format={project.format} style={project.style} />
                 <span className="scene-chip__meta">
                   <span className="scene-chip__index">{index + 1}</span>
-                  <span className="scene-chip__name">{template?.name ?? 'Unknown'}</span>
+                  <span className="scene-chip__name" title={template?.name ?? 'Unknown'}>
+                    {template?.name ?? 'Unknown'}
+                  </span>
                   <span className="scene-chip__duration">{(scene.durationMs / 1000).toFixed(1)}s</span>
                 </span>
               </button>

@@ -945,8 +945,13 @@ legend {
 
 .scene-chip__meta {
   display: grid;
+  /* The name row always has room for two lines, so every chip has the same height whether its
+     template name fits on one line or wraps ("Photo carousel" in a 16:9 strip). */
+  grid-template-rows: auto calc(2 * 1.2 * 0.9rem) auto;
+  align-content: center;
   gap: 0.1rem;
   min-width: 84px;
+  max-width: 120px;
 }
 
 .scene-chip__index {
@@ -956,8 +961,14 @@ legend {
 }
 
 .scene-chip__name {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   font-weight: 700;
   font-size: 0.9rem;
+  line-height: 1.2;
 }
 
 .scene-chip__duration {
