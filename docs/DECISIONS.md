@@ -326,3 +326,16 @@ the same shapes in the same place. Templates with big decorative shapes (Title, 
 Number, Outro) also let those breathe or drift a little, scaled by `motionAmount(theme)`, which is 0
 with motion off. Rejected: drawing the layer in `renderFrame` under the template (every template
 paints an opaque background first) and always-on motion (would change every existing export).
+
+### D38. The photo carousel stops at 12 slots, filled several at a time
+The user asked for more than six photos in a carousel (M12). The limit went to 12, not "unlimited":
+at a normal scene length, more than about 12 items gets each one under half a second, too short
+to see (in *Stop at each photo* even less, as part of each beat is the move); template fields are a
+fixed list of plain descriptors (invariant 5), so an open-ended list would need a new list field
+kind, inspector UI and a schema migration; and every clip in a scene costs a decoder in export.
+Old scenes only gain empty fields, so there is no migration. Because filling 12 slots one at a time
+is tedious, a template can declare its ordered slots (`mediaSequence`) and the inspector offers
+*Add photos…* (a multi-select picker, in pick order, one undo step) plus "about X s each", so it's
+visible when the scene needs to be longer. Rejected: growing the scene length automatically (the
+model doesn't know whether the user set the length themselves) and multi-dragging library tiles
+(no keyboard path; the picker has one).

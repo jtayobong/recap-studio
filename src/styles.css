@@ -1381,6 +1381,11 @@ legend {
   margin: 0;
 }
 
+.media-sequence__row .button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 .asset-tile[draggable='true'] {
   cursor: grab;
 }

@@ -5,6 +5,7 @@ Deeper context lives in `docs/`:
 
 - `docs/PLAN.md`: the product plan, architecture and milestone roadmap (with status)
 - `docs/DECISIONS.md`: why things are the way they are; read before changing a core choice
+- `docs/NEXT-M12.md`: the M12 design record (photo carousel upgrades, background dots)
 - `docs/NEXT-M11.md`: the M11 design record (background motion, text scene, strip fixes)
 - `docs/NEXT-M10.md`: the M10 design record (text carousel, section divider, ducking controls)
 - `docs/NEXT-M9.md`: what could come next (M0–M8 complete), with the landscape (16:9) record
@@ -42,6 +43,7 @@ templates or sample content.
 | 60 fps export (Export dialog option, D35) | ✅ done |
 | M10 Text carousel, section divider, ducking controls | ✅ done |
 | M11 Background motion, Text scene, strip fixes | ✅ done |
+| M12 Photo carousel upgrades, background dots | ✅ done |
 
 The original roadmap is complete, and so are landscape output, the desktop app and 60 fps export
 (records in `docs/NEXT-M9.md`, which also lists the remaining candidates).
@@ -106,6 +108,7 @@ src/
                 index.ts (importer, assetStatus, mediaCache singletons)
   store/        createEditorStore.ts: loaded project, debounced serialized autosave, undo/redo
   editor/       sceneActions.ts (editor commands), musicActions.ts (music track), selectionStore.ts,
+                mediaSequence.ts (carousel slots: fill several, time per item),
                 useEditorShortcuts.ts
   render/       renderFrame.ts, timeline.ts, easing.ts, text.ts, fields.ts (+ slotCropAspect), context.ts,
                 layout.ts (isLandscape, unitOf), portraitBaseline.test.ts (9:16 output guard),
@@ -117,7 +120,7 @@ src/
                 usePlaybackShortcuts.ts, PreviewMusic.tsx + musicSync.ts (music follows the playhead)
   components/   UI pieces (SceneStrip, SceneInspector, FieldEditor, TemplateGallery, SceneThumbnail,
                 MediaLibrary, AssetTile, MediaSlotField, FocusPicker, ExportControl, ExportDialog,
-                MusicSection, FormatPicker,
+                MusicSection, FormatPicker, MediaSequenceSection,
                 Modal, ConfirmDialog, ProjectCard, …)
   export/       exportStory.ts (main-thread API: snapshot, target, assets, worker), export.worker.ts,
                 encodeStory.ts (plan pass + frame loop → Mediabunny, interleaved music),
@@ -131,7 +134,7 @@ src/
   lib/          capabilities, storage, format, debounce, keyboard, ids, errors
 e2e/            Playwright specs: projects, preview, editor, media-import, media-library, media-slot,
                 media-preview (reads canvas pixels), media-project, export (decodes the output), export-ui,
-                music, starters, export-60fps, clip-sound, m10-templates, m11; helpers/story.ts adds the basic 8.5 s story for timing tests;
+                music, starters, export-60fps, clip-sound, m10-templates, m11, m12; helpers/story.ts adds the basic 8.5 s story for timing tests;
                 helpers/media.ts generates test images/video in the page (no binary fixtures)
 ```
 

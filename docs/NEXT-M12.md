@@ -1,4 +1,4 @@
-# M12, photo carousel upgrades and background dots: 🚧 in progress
+# M12, photo carousel upgrades and background dots: ✅ done (2026-11-27)
 
 **Goal:** five changes the user asked for after M11, four of them to the Photo carousel:
 a step-and-pause movement like the text carousel's, a way to stop cropping photos, more slots,
@@ -50,15 +50,28 @@ unchanged. `npm run check`, `npm run test:e2e` and `npm run test:e2e:prod` pass.
   migration. Slots still appear one at a time.
 - The inspector shows "N photos · about X s each" for the carousel (the scene length ÷ N), so it's
   visible when the scene needs to be longer. Not done: growing the scene length automatically in
-  step mode (needs to know whether the user set the length, i.e. a schema change).
+  step mode (needs to know whether the user set the length, i.e. a schema change). Decision D38.
 
 ## 5. Add several at once
 
 - A template can name its ordered media slots (`mediaSequence` on the template); the carousel does.
-- The inspector shows **Add photos…** for such templates: a library picker with a checkbox per
-  photo or clip, in library order; "Add N" fills the next empty slots in slot order as one undo
-  step. When fewer slots are free than picked, the button says how many fit.
+- The inspector shows **Add photos…** for such templates: a library picker with a toggle per
+  photo or clip, numbered in the order they were picked; "Add N" fills the next empty slots in slot
+  order, in pick order, as one undo step. When more are picked than slots are free, the dialog says
+  only the first N will be added, and the inspector says how many didn't fit.
 
 ## Progress
 
 - Design record written (this file).
+- **Stop at each photo done:** `movement` field, `carouselStripPosition`; the step timing moved to
+  `mediaLayout.stepPosition` (text carousel unchanged). Unit test in `templates.test.ts`.
+- **Photo fit done:** `fit` field shared by every slot's focus binding. Unit test (contain draws the
+  whole source over a dimmed backdrop).
+- **Single dots done:** `LEVELS.subtle.singles = 6`, seeded apart from the other shapes so those
+  stay where they were. Unit test in `backdrop.test.ts`.
+- **12 slots done:** `CAROUSEL_SLOTS = 12`, "about X s each" in the inspector (`editor/mediaSequence.ts`).
+  The portrait baseline changed only for the carousel *with every slot filled* (the baseline fills
+  all `media*` fields, so 12 cards instead of 6); everything else, and carousels with ≤ 6 photos,
+  are identical.
+- **Add photos… done:** `MediaSequenceSection`, `addSceneMedia` (unit tests), `e2e/m12.spec.ts`
+  (pick order, undo, the 12 cap, the new options in the inspector).
