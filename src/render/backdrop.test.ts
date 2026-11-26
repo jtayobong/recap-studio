@@ -24,10 +24,18 @@ describe('background motion', () => {
   it('lively has more shapes than subtle, and both move over time', () => {
     const subtle = backdropShapes(1080, 1920, 0, theme('subtle'));
     const lively = backdropShapes(1080, 1920, 0, theme('lively'));
-    expect(lively.length).toBeGreaterThan(subtle.length);
+    const bigger = (shapes: typeof subtle) => shapes.filter((s) => s.kind !== 'dot').length;
+    expect(bigger(lively)).toBeGreaterThan(bigger(subtle));
     expect(motionAmount(theme('lively'))).toBeGreaterThan(motionAmount(theme('subtle')));
     const later = backdropShapes(1080, 1920, 2000, theme('subtle'));
     later.forEach((shape, i) => expect(Math.hypot(shape.x - subtle[i]!.x, shape.y - subtle[i]!.y)).toBeGreaterThan(1));
+  });
+
+  it('subtle also has a few single small dots; lively has none', () => {
+    const dots = (level: 'subtle' | 'lively') => backdropShapes(1080, 1920, 3000, theme(level)).filter((s) => s.kind === 'dot');
+    expect(dots('subtle')).toHaveLength(6);
+    for (const dot of dots('subtle')) expect(dot.size).toBeLessThan(1080 * 0.012);
+    expect(dots('lively')).toHaveLength(0);
   });
 
   it('is deterministic and moves smoothly (small steps between frames)', () => {
