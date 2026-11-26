@@ -188,6 +188,20 @@ describe('Photo carousel', () => {
     expect(carouselProgress(6000, 6000)).toBe(1);
   });
 
+  it('with "Stop at each photo", holds each card centred for most of its beat', async () => {
+    const { carouselStripPosition } = await import('./carousel');
+    const at = (t: number) => carouselStripPosition('step', t, 6000, 4);
+    expect(at(0)).toBe(0);
+    expect(at(900)).toBe(0); // first beat (0–1.5 s) holds until its last 525 ms
+    expect(at(1600)).toBeCloseTo(1 / 3); // second card centred
+    expect(at(1200)).toBeGreaterThan(0); // moving at the end of the first beat
+    expect(at(1200)).toBeLessThan(1 / 3);
+    expect(at(5000)).toBe(1); // last card holds to the end
+    expect(at(6000)).toBe(1);
+    expect(carouselStripPosition('step', 2000, 6000, 1)).toBe(0);
+    expect(carouselStripPosition('glide', 3000, 6000, 4)).toBeCloseTo(0.5);
+  });
+
   it('uses filled slots in order and shows three placeholders when empty', () => {
     const empty = draw('carousel', { title: '' }, 0, 6000).texts();
     expect(empty).toContain('Photo 1');

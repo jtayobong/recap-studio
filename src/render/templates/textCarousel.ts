@@ -1,11 +1,11 @@
 import type { FontPair, Palette } from '../../domain/stylePresets';
 import { isolated, withAlpha, type Ctx2D } from '../context';
-import { easeInOutCubic, easeOutCubic, lerp, progress } from '../easing';
+import { easeOutCubic, lerp, progress } from '../easing';
 import type { FieldDefs, TextField } from '../fields';
 import type { Rect } from '../media';
 import { cssFont, fitText } from '../text';
 import { isLandscape, unitOf } from '../layout';
-import { carouselCard, clipRounded, type CarouselDirection } from './mediaLayout';
+import { carouselCard, clipRounded, stepPosition, type CarouselDirection } from './mediaLayout';
 import { fillBackground } from '../backdrop';
 import { defineTemplate } from './types';
 
@@ -13,10 +13,6 @@ export const TEXT_CAROUSEL_CARDS = 6;
 
 /** The strip slides in to the first card over this long at the start of the scene. */
 export const TEXT_CAROUSEL_ENTER_MS = 500;
-/** Longest move from one card to the next; shorter when beats are short. */
-const MOVE_MAX_MS = 650;
-/** Share of a beat spent moving at most (the rest the card holds still, to be read). */
-const MOVE_SHARE = 0.35;
 
 const DEFAULT_CARDS: readonly [string, string][] = [
   ['Lisbon', '12 days in May'],
@@ -57,12 +53,7 @@ const fields = {
  */
 export function textCarouselPosition(t: number, durationMs: number, count: number): number {
   const entering = lerp(-0.5, 0, easeOutCubic(progress(t, 0, TEXT_CAROUSEL_ENTER_MS)));
-  if (count <= 1 || durationMs <= 0) return entering;
-  const beat = durationMs / count;
-  const moveMs = Math.min(MOVE_MAX_MS, beat * MOVE_SHARE);
-  const index = Math.min(count - 1, Math.max(0, Math.floor(t / beat)));
-  const moving = index < count - 1 ? easeInOutCubic(progress(t - index * beat, beat - moveMs, moveMs)) : 0;
-  return entering + index + moving;
+  return entering + stepPosition(t, durationMs, count);
 }
 
 /** Where the centred card's middle sits, as a share of the frame height. */

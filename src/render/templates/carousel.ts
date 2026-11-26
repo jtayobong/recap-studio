@@ -3,7 +3,7 @@ import { easeInOutCubic, easeOutCubic, lerp, progress } from '../easing';
 import type { FieldDefs, MediaField } from '../fields';
 import { drawMedia, type Rect } from '../media';
 import { cssFont, fitText } from '../text';
-import { aspectOf, carouselCard, clipRounded, drawMediaPlaceholder, REFERENCE_SIZES, type CarouselDirection } from './mediaLayout';
+import { aspectOf, carouselCard, clipRounded, drawMediaPlaceholder, REFERENCE_SIZES, stepPosition, type CarouselDirection } from './mediaLayout';
 import { isLandscape, unitOf } from '../layout';
 import { clipSoundFields } from './soundFields';
 import { fillBackground } from '../backdrop';
@@ -48,6 +48,15 @@ const fields = {
       { value: 'up', label: 'Vertical (scrolls up)' },
     ],
   },
+  movement: {
+    kind: 'choice',
+    label: 'Movement',
+    default: 'glide',
+    options: [
+      { value: 'glide', label: 'Smooth glide' },
+      { value: 'step', label: 'Stop at each photo' },
+    ],
+  },
   title: { kind: 'text', label: 'Title', default: 'Moments from the year', maxLength: 50 },
   ...clipSoundFields,
   ...Object.assign({}, ...Array.from({ length: CAROUSEL_SLOTS }, (_, i) => slotFields(i))),
@@ -60,6 +69,15 @@ const fields = {
 export function carouselProgress(t: number, durationMs: number): number {
   const p = progress(t, 0, durationMs);
   return lerp(p, easeInOutCubic(p), 0.25);
+}
+
+/**
+ * Strip position (0–1) for a movement: a continuous glide, or a stop at each of `count` cards
+ * (the text carousel's step-and-pause timing).
+ */
+export function carouselStripPosition(movement: string, t: number, durationMs: number, count: number): number {
+  if (movement !== 'step') return carouselProgress(t, durationMs);
+  return count <= 1 ? 0 : stepPosition(t, durationMs, count) / (count - 1);
 }
 
 /**
@@ -87,7 +105,7 @@ export function carouselCards(direction: CarouselDirection, count: number, p: nu
 export const carouselTemplate = defineTemplate({
   id: 'carousel',
   name: 'Photo carousel',
-  description: 'Up to six photos or clips gliding past, sideways or upwards.',
+  description: 'Up to six photos or clips gliding past (or stopping at each), sideways or upwards.',
   defaultDurationMs: 6000,
   defaultTransition: 'fade',
   posterMs: 1200,
@@ -108,7 +126,7 @@ export const carouselTemplate = defineTemplate({
     // Filled slots in order; with none filled, three placeholders show what the scene does.
     const filled = Array.from({ length: CAROUSEL_SLOTS }, (_, i) => i + 1).filter((n) => String(v[`media${n}`] ?? '') !== '');
     const slots = filled.length > 0 ? filled : [1, 2, 3];
-    const cards = carouselCards(direction, slots.length, carouselProgress(t, durationMs), W, H);
+    const cards = carouselCards(direction, slots.length, carouselStripPosition(String(v.movement), t, durationMs, slots.length), W, H);
 
     cards.forEach((card, i) => {
       // Skip cards entirely off screen.

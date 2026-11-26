@@ -212,6 +212,11 @@ One music track per story, in sync in the preview and mixed into the export.
 - Moving a scene (Move earlier / later, drag, Alt+←/→) keeps it selected and in the preview.
 - Scene cards in the strip all have the same height; long names are cut to two lines.
 
+## Photo carousel upgrades (M12)
+
+- **Movement:** *Smooth glide* (as before) or *Stop at each photo*: the strip pauses on each photo
+  or clip, like the text carousel (the scene's length is shared equally between them).
+
 ## Storage (M8)
 
 Everything is stored in this browser. A warning appears on the Projects page and in the editor when

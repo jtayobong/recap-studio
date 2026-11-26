@@ -1,4 +1,5 @@
 import { isolated, withAlpha, type Ctx2D, type Theme } from '../context';
+import { easeInOutCubic, progress } from '../easing';
 import type { Rect } from '../media';
 import { cssFont, fitSingleLine } from '../text';
 
@@ -86,6 +87,26 @@ export function carouselCard(direction: CarouselDirection, width: number, height
   return direction === 'left'
     ? { width: width * 0.72, height: height * 0.56 }
     : { width: width * 0.84, height: height * 0.4 };
+}
+
+/** Longest move from one card to the next in a step-and-pause strip; shorter when beats are short. */
+const STEP_MOVE_MAX_MS = 650;
+/** Share of a beat spent moving at most (the rest the card holds still). */
+const STEP_MOVE_SHARE = 0.35;
+
+/**
+ * Step-and-pause strip position at scene-local time `t`, in cards: 0 = first card centred,
+ * `count - 1` = last. The scene is split into one equal beat per card; each card holds still for
+ * most of its beat and the strip moves on to the next card at the end of it. The last card holds
+ * to the end. Shared by the text carousel and the photo carousel's "Stop at each photo".
+ */
+export function stepPosition(t: number, durationMs: number, count: number): number {
+  if (count <= 1 || durationMs <= 0) return 0;
+  const beat = durationMs / count;
+  const moveMs = Math.min(STEP_MOVE_MAX_MS, beat * STEP_MOVE_SHARE);
+  const index = Math.min(count - 1, Math.max(0, Math.floor(t / beat)));
+  const moving = index < count - 1 ? easeInOutCubic(progress(t - index * beat, beat - moveMs, moveMs)) : 0;
+  return index + moving;
 }
 
 /** width ÷ height of a rect, for the focus picker's crop outline. */
