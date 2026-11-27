@@ -1,6 +1,6 @@
 [package]
 name = "recap-studio"
-version = "0.9.0"
+version = "0.9.1"
 description = "Recap Studio desktop app: the web app in a native window (WebView2)"
 edition = "2024"
 rust-version = "1.90"
