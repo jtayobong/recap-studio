@@ -45,8 +45,8 @@ describe('style presets', () => {
     expect(getFontPair('nope').id).toBe(DEFAULT_FONT_PAIR_ID);
   });
 
-  it('offers 10 palettes and 3 font pairs (M7)', () => {
-    expect(PALETTES).toHaveLength(10);
+  it('offers 15 palettes (10 from M7, 5 fiesta from M12.3) and 3 font pairs', () => {
+    expect(PALETTES).toHaveLength(15);
     expect(FONT_PAIRS).toHaveLength(3);
   });
 });

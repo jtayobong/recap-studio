@@ -115,6 +115,52 @@ export const PALETTES: readonly Palette[] = [
     accent: '#00e5ff',
     text: '#f5f5ff',
   },
+  // Fiesta palettes (M12.3): Filipino fiesta colours, from street bunting to parol lanterns.
+  {
+    id: 'banderitas',
+    name: 'Banderitas',
+    background: '#fff4d6',
+    surface: '#ffe3a3',
+    primary: '#e4007c',
+    accent: '#0098d8',
+    text: '#2a0f1e',
+  },
+  {
+    id: 'parol-night',
+    name: 'Parol Night',
+    background: '#140a3a',
+    surface: '#24145e',
+    primary: '#ffcc00',
+    accent: '#ff3b6b',
+    text: '#fff8e7',
+  },
+  {
+    id: 'sinag',
+    name: 'Sinag',
+    background: '#0038a8',
+    surface: '#1a4fc0',
+    primary: '#fcd116',
+    accent: '#ff5a6e',
+    text: '#ffffff',
+  },
+  {
+    id: 'mango-ube',
+    name: 'Mango Ube',
+    background: '#4b1d6b',
+    surface: '#63308a',
+    primary: '#ffc72c',
+    accent: '#3fd0a4',
+    text: '#fff6e8',
+  },
+  {
+    id: 'jeepney',
+    name: 'Jeepney',
+    background: '#d7262e',
+    surface: '#e0303f',
+    primary: '#ffd400',
+    accent: '#0a1f5c',
+    text: '#fffaf0',
+  },
 ];
 
 export const FONT_PAIRS: readonly FontPair[] = [
