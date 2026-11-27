@@ -130,6 +130,20 @@ unchanged. `npm run check`, `npm run test:e2e` and `npm run test:e2e:prod` pass.
   scene to `layout: 'full'`, so old projects render exactly as before (portrait baseline identical
   with photo scenes on Full screen; the baseline now pins them to it). Decision D42.
 
+## M12.7: banderitas strings along the top edge
+
+- The drifting banderitas pieces looked odd. Previews of three layouts (overhead strings, top and
+  bottom, straight criss-cross) were shown in 9:16 and 16:9; the user picked overhead. In real
+  scenes the overhead strings crossed titles and lists (Top 5, carousels, worst in 16:9), so,
+  with the user, they became **edge only** and **fainter**.
+- `garlandStrings`: one string along the top edge for Subtle; Lively weaves a second one into the
+  same band, running the other way. Each droops in scallops between invisible posts
+  (`garlandY`); flags (`garlandFlags`) travel along it forever on story time, each keeping its
+  colour (primary, accent, text in turn), with a slight sway. Flag tips stay above 6 % (9:16) /
+  7.5 % (16:9) of the height (`garlandBottom`, tested), where templates start their titles.
+- Opacity 0.4 (Subtle) / 0.5 (Lively): a little clearer than the drifting shapes, still soft.
+  Parols, suns and stars keep drifting; Geometric is unchanged.
+
 ## Progress
 
 - Design record written (this file).

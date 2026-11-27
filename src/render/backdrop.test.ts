@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { BackgroundMotion, BackgroundShapes } from '../domain/project';
 import { getFontPair, getPalette } from '../domain/stylePresets';
-import { backdropShapes, fillBackground, motionAmount } from './backdrop';
+import { backdropShapes, fillBackground, garlandBottom, garlandFlags, garlandStrings, garlandY, motionAmount } from './backdrop';
 import type { Theme } from './context';
 import { renderFrame } from './renderFrame';
 import { createScene } from './templates/registry';
@@ -87,35 +87,80 @@ describe('background motion', () => {
     }
   });
 
-  describe('fiesta shapes (M12.3)', () => {
+  describe('fiesta shapes (M12.3, strings of banderitas since M12.7)', () => {
     const kinds = (shapes?: BackgroundShapes, level: 'subtle' | 'lively' = 'lively') =>
       new Set(backdropShapes(1080, 1920, 5000, theme(level, shapes)).map((s) => s.kind));
 
-    it('fiesta draws banderitas, parols, suns and stars instead of the geometric shapes', () => {
-      expect(kinds('fiesta')).toEqual(new Set(['banderitas', 'parol', 'sun', 'star']));
-      expect(kinds('fiesta', 'subtle')).toEqual(new Set(['banderitas', 'parol', 'sun', 'star', 'dot']));
+    it('fiesta drifts parols, suns and stars instead of the geometric shapes', () => {
+      expect(kinds('fiesta')).toEqual(new Set(['parol', 'sun', 'star']));
+      expect(kinds('fiesta', 'subtle')).toEqual(new Set(['parol', 'sun', 'star', 'dot']));
       expect(kinds('geometric')).toEqual(new Set(['disc', 'ring', 'square', 'dots']));
       expect(kinds(undefined)).toEqual(kinds('geometric')); // missing = geometric
     });
 
-    it('hanging shapes sway gently around upright; banderitas flags take turns in the palette colours', () => {
+    it('the parol sways gently around upright', () => {
       for (let t = 0; t < 60_000; t += 1700) {
         for (const shape of backdropShapes(1080, 1920, t, theme('lively', 'fiesta'))) {
-          if (shape.kind === 'banderitas' || shape.kind === 'parol') expect(Math.abs(shape.rotation)).toBeLessThanOrEqual(0.14);
+          if (shape.kind === 'parol') expect(Math.abs(shape.rotation)).toBeLessThanOrEqual(0.14);
         }
       }
-      const string = backdropShapes(1080, 1920, 0, theme('subtle', 'fiesta')).find((s) => s.kind === 'banderitas')!;
-      const palette = getPalette('neon-pulse');
-      expect(string.colors).toHaveLength(4);
-      for (const c of string.colors!) expect([palette.primary, palette.accent, palette.text]).toContain(c);
-      expect(new Set(string.colors).size).toBeGreaterThan(1);
     });
 
-    it('draws every fiesta shape with plain path calls', () => {
+    it('strings of banderitas run along the top edge: 1 for Subtle, 2 for Lively, none for Geometric or Off', () => {
+      expect(garlandStrings(1080, 1920, theme('subtle', 'fiesta'))).toHaveLength(1);
+      expect(garlandStrings(1080, 1920, theme('lively', 'fiesta'))).toHaveLength(2);
+      expect(garlandStrings(1080, 1920, theme('lively', 'geometric'))).toEqual([]);
+      expect(garlandStrings(1080, 1920, theme('off', 'fiesta'))).toEqual([]);
+      // Even the flag tips stay above where templates start their titles (about 6–7 % down).
+      for (const [w, h, limit] of [[1080, 1920, 0.06], [1920, 1080, 0.075]] as const) {
+        for (const string of garlandStrings(w, h, theme('lively', 'fiesta'))) expect(garlandBottom(string)).toBeLessThan(h * limit);
+      }
+    });
+
+    it('each string droops in scallops between posts', () => {
+      const [string] = garlandStrings(1080, 1920, theme('subtle', 'fiesta'));
+      expect(garlandY(string!, 0)).toBeCloseTo(string!.y); // at a post
+      expect(garlandY(string!, string!.period / 2)).toBeCloseTo(string!.y + string!.sag); // the lowest point
+      expect(garlandY(string!, string!.period)).toBeCloseTo(string!.y); // the next post
+    });
+
+    it('flags cover the whole width, travel along the string, and loop forever', () => {
+      const t = theme('lively', 'fiesta');
+      const [first, second] = garlandStrings(1080, 1920, t);
+      for (const ms of [0, 12_345, 3_600_000]) {
+        const flags = garlandFlags(first!, 1080, 1920, ms, t);
+        expect(flags[0]!.left).toBeLessThanOrEqual(0);
+        expect(flags.at(-1)!.right).toBeGreaterThan(1080 - 1080 * 0.08);
+        expect(flags.length).toBeLessThan(30);
+      }
+      // Moving: the first string to the right, the second to the left, smoothly between frames.
+      const shift = (string: typeof first, ms: number) => garlandFlags(string!, 1080, 1920, ms + 100, t)[3]!.left - garlandFlags(string!, 1080, 1920, ms, t)[3]!.left;
+      expect(shift(first, 5000)).toBeGreaterThan(0);
+      expect(shift(second, 5000)).toBeLessThan(0);
+      expect(Math.abs(shift(first, 5000))).toBeLessThan(25);
+    });
+
+    it('flags take turns in the palette colours, and each keeps its colour as it moves', () => {
+      const t = theme('subtle', 'fiesta');
+      const palette = getPalette('neon-pulse');
+      const [string] = garlandStrings(1080, 1920, t);
+      const flags = garlandFlags(string!, 1080, 1920, 1000, t);
+      expect(new Set(flags.map((f) => f.color))).toEqual(new Set([palette.primary, palette.accent, palette.text]));
+      expect(flags[1]!.color).not.toBe(flags[0]!.color);
+      // 1/30 s later the same flag (moved a little) has the same colour.
+      const later = garlandFlags(string!, 1080, 1920, 1000 + 1000 / 30, t);
+      const near = later.find((f) => Math.abs(f.left - flags[3]!.left) < 10)!;
+      expect(near.color).toBe(flags[3]!.color);
+    });
+
+    it('draws the strings with plain path calls, a little clearer than the drifting shapes but soft', () => {
       const { ctx, calls } = createMockContext();
       fillBackground(ctx, frame, theme('lively', 'fiesta'));
       const methods = new Set(calls.map((c) => c.method));
-      for (const m of ['quadraticCurveTo', 'lineTo', 'arc', 'fill', 'stroke']) expect(methods).toContain(m);
+      for (const m of ['lineTo', 'arc', 'fill', 'stroke', 'closePath']) expect(methods).toContain(m);
+      const alphas = calls.filter((c) => c.method === 'fill').map((c) => c.state.globalAlpha);
+      expect(Math.max(...alphas)).toBeCloseTo(0.5);
+      expect(Math.min(...alphas)).toBeCloseTo(0.26);
     });
   });
 });
