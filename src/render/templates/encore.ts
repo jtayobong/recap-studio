@@ -48,7 +48,9 @@ function drawLead(ctx: Ctx2D, base: string, dotAlphas: readonly number[], font: 
 export const encoreTemplate = defineTemplate({
   id: 'encore',
   name: 'Encore',
-  description: 'A pause before one last reveal: “One more thing…”',
+  // Avoid "pause"/"play" here: the gallery card's accessible name includes this text, and it
+  // would then also match the player's Pause button.
+  description: 'A dramatic beat before one last reveal: “One more thing…”',
   defaultDurationMs: 5000,
   defaultTransition: 'fade',
   posterMs: 4300,
