@@ -117,6 +117,19 @@ unchanged. `npm run check`, `npm run test:e2e` and `npm run test:e2e:prod` pass.
   motion, which is what makes the moment. *Story colours* uses the palette (reveal in the primary
   colour) and the story's background motion. Decision D41.
 
+## M12.6: framed Photo / Video
+
+- The user wanted solo photos and clips not to fill the whole screen. Photo / Video gained a
+  *Layout* field: *Framed* (with padding) or *Full screen*.
+- Framed (`framedCard`): portrait, a card 86 % × 70 % of the frame near the top, the caption centred
+  in the space below it on the background (no band); landscape, a card 58 % × 84 % on the left and
+  the caption in a column on the right. Without a caption the card is centred. Rounded corners,
+  settles in from 96 %. Ken Burns zoom, fit and focus work inside the card; the focus picker shows
+  the card's shape (`focus.aspect` on `layout`).
+- New scenes start Framed (the field's default). Schema v7 migrates every existing Photo / Video
+  scene to `layout: 'full'`, so old projects render exactly as before (portrait baseline identical
+  with photo scenes on Full screen; the baseline now pins them to it). Decision D42.
+
 ## Progress
 
 - Design record written (this file).

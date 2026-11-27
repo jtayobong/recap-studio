@@ -105,11 +105,16 @@ async function photoSceneWith(page: Page, files: { name: string; mimeType: strin
   await page.getByRole('dialog', { name: 'Choose photo or clip' }).getByRole('button', { name: choose }).click();
 }
 
-test('a photo fills the preview and the scene thumbnail; "show all" letterboxes it', { tag: '@dev' }, async ({ page }) => {
+test('a framed photo sits inside the frame; full screen fills the preview and the scene thumbnail; "show all" letterboxes it', { tag: '@dev' }, async ({ page }) => {
   await page.goto('/');
   const green = await solidImage(page, '#00ff00', 1600, 900);
   await photoSceneWith(page, [{ name: 'green.png', mimeType: 'image/png', buffer: green }], 'green.png');
   await seek(page, 2000);
+
+  // Framed (the default since M12.6): the photo in the middle, the background around it.
+  await expect.poll(async () => dominant(await previewPixel(page, 0.5, 0.5))).toBe('green');
+  expect(dominant(await previewPixel(page, 0.5, 0.02))).not.toBe('green');
+  await inspector(page).getByLabel('Layout').selectOption('full');
 
   // Cover: the whole frame is the photo.
   await expect.poll(async () => dominant(await previewPixel(page, 0.5, 0.5))).toBe('green');

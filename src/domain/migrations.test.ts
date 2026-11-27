@@ -52,10 +52,25 @@ describe('migrateProject', () => {
   });
 });
 
+/**
+ * v7 adds `layout: 'full'` to every old Photo / Video scene (checked in its own test); the older
+ * steps' "nothing else changes" checks look past it.
+ */
+function dropPhotoLayout<T extends { scenes?: unknown }>(project: T): T {
+  if (!Array.isArray(project.scenes)) return project;
+  const scenes = project.scenes.map((scene: { templateId?: string; fields?: Record<string, unknown> }) => {
+    if (scene.templateId !== 'photo' || !scene.fields) return scene;
+    const fields = { ...scene.fields };
+    delete fields.layout;
+    return { ...scene, fields };
+  });
+  return { ...project, scenes };
+}
+
 describe('real migrations', () => {
   it('v1 → current: a music track gets fade toggles (fade out on, fade in off); nothing else changes', async () => {
     const v1 = (await import('./fixtures/project-v1.json')).default as Record<string, unknown>;
-    const migrated = migrateProject(structuredClone(v1));
+    const migrated = dropPhotoLayout(migrateProject(structuredClone(v1)));
     expect(migrated.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
     expect(migrated.audio).toEqual({
       assetId: '2da05e70-8c65-4e2a-9f2d-4b9b9f3b2c33',
@@ -103,7 +118,7 @@ describe('real migrations', () => {
     const migrated = migrateProject(structuredClone(v3));
     expect(migrated.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
     expect(migrated.style).toEqual({ paletteId: 'citrus-pop', fontPairId: 'heavy-grotesk', backgroundMotion: 'off', backgroundShapes: 'geometric' });
-    expect({ ...migrated, schemaVersion: 3, style: v3.style }).toEqual(v3);
+    expect({ ...dropPhotoLayout(migrated), schemaVersion: 3, style: v3.style }).toEqual(v3);
   });
 
   it('v1 → current also ends with background motion off', async () => {
@@ -121,12 +136,12 @@ describe('real migrations', () => {
     const migrated = migrateProject(structuredClone(v4));
     expect(migrated.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
     expect(migrated.style).toEqual({ paletteId: 'citrus-pop', fontPairId: 'heavy-grotesk', backgroundMotion: 'lively', backgroundShapes: 'geometric' });
-    expect({ ...migrated, schemaVersion: 4, style: v4.style }).toEqual(v4);
+    expect({ ...dropPhotoLayout(migrated), schemaVersion: 4, style: v4.style }).toEqual(v4);
   });
 
   it('v5 → v6: only the version changes; the music still starts with the story', async () => {
     const v5 = (await import('./fixtures/project-v5.json')).default as Record<string, unknown>;
-    const migrated = migrateProject(structuredClone(v5));
+    const migrated = MIGRATIONS[5]!(structuredClone(v5));
     expect(migrated.schemaVersion).toBe(6);
     expect(migrated.audio).not.toHaveProperty('startSceneId');
     expect({ ...migrated, schemaVersion: 5 }).toEqual(v5);
@@ -137,6 +152,28 @@ describe('real migrations', () => {
     const scene = { id: 's', templateId: 'title', durationMs: 3000, fields: {}, transitionIn: 'cut' };
     const audio = { assetId: 'a', offsetMs: 0, volume: 1, fadeIn: false, fadeOut: true, startSceneId: 's' };
     expect(migrateProject({ ...project, scenes: [scene], audio }).audio?.startSceneId).toBe('s');
+  });
+
+  it('v6 → v7: existing Photo / Video scenes keep the full-screen layout; nothing else changes', async () => {
+    const v6 = (await import('./fixtures/project-v6.json')).default as Record<string, unknown> & { scenes: { templateId: string; fields: Record<string, unknown> }[] };
+    const migrated = migrateProject(structuredClone(v6));
+    expect(migrated.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+    const photos = migrated.scenes.filter((s) => s.templateId === 'photo');
+    expect(photos).toHaveLength(2);
+    for (const photo of photos) expect(photo.fields.layout).toBe('full');
+    // Everything else is untouched.
+    const unlayout = { ...migrated, schemaVersion: 6, scenes: migrated.scenes.map((s) => ({ ...s, fields: Object.fromEntries(Object.entries(s.fields).filter(([k]) => k !== 'layout')) })) };
+    expect(unlayout).toEqual(v6);
+  });
+
+  it('v1 → current: photo scenes from any old version end up full screen', async () => {
+    const v1 = (await import('./fixtures/project-v1.json')).default as Record<string, unknown>;
+    for (const scene of migrateProject(structuredClone(v1)).scenes) if (scene.templateId === 'photo') expect(scene.fields.layout).toBe('full');
+  });
+
+  it('new photo scenes start framed', async () => {
+    const { createScene } = await import('../render/templates/registry');
+    expect(createScene('photo').fields.layout).toBe('framed');
   });
 
   it('new projects start with geometric shapes; fiesta can be chosen', () => {

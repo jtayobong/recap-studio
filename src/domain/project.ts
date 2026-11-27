@@ -9,7 +9,7 @@ import { DEFAULT_FONT_PAIR_ID, DEFAULT_PALETTE_ID } from './stylePresets';
  * Bump CURRENT_SCHEMA_VERSION and add a migration in ./migrations.ts whenever the
  * stored shape changes.
  */
-export const CURRENT_SCHEMA_VERSION = 6;
+export const CURRENT_SCHEMA_VERSION = 7;
 
 export const PROJECT_NAME_MAX = 100;
 export const MAX_SCENES = 200;

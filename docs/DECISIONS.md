@@ -371,3 +371,12 @@ the palette colour would undo that. It is an explicit per-scene choice (the defa
 template); *Story colours* goes through `fillBackground` like every other template. Scene timing is
 in shares of the scene length rather than milliseconds, so the dots and the reveal keep their
 rhythm when the user shortens or lengthens the scene.
+
+### D42. Photo / Video defaults to Framed; old scenes are migrated to Full screen (schema v7)
+The user wanted solo photos and clips padded rather than full screen (M12.6). A field's default is
+also what `resolveFields` uses for a scene that doesn't have the field, so making *Framed* the
+default alone would have reframed every existing photo scene. Instead the default is Framed (new
+scenes) and the v6 → v7 migration writes `layout: 'full'` into every existing Photo / Video scene,
+so old projects keep their look; the portrait baseline pins photo scenes to Full screen, which is
+the output it protects. This is the first migration that edits template fields inside scenes; it
+only adds the key where it's missing and touches nothing else.

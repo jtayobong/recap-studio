@@ -46,6 +46,20 @@ export const MIGRATIONS: Readonly<Record<number, Migration>> = {
    * "saved by a newer version" instead of silently dropping the setting.
    */
   5: (raw) => ({ ...raw, schemaVersion: 6 }),
+  /**
+   * v6 → v7 (M12.6): Photo / Video scenes gained a Layout field whose default is the new Framed
+   * look. Existing photo scenes keep the full-screen layout they were made with.
+   */
+  6: (raw) => {
+    const next: RawProject = { ...raw, schemaVersion: 7 };
+    if (Array.isArray(raw.scenes)) {
+      next.scenes = raw.scenes.map((scene: unknown) => {
+        if (!isPlainObject(scene) || scene.templateId !== 'photo' || !isPlainObject(scene.fields) || 'layout' in scene.fields) return scene;
+        return { ...scene, fields: { ...scene.fields, layout: 'full' } };
+      });
+    }
+    return next;
+  },
 };
 
 export class ProjectDataError extends Error {

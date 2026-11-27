@@ -1,9 +1,9 @@
-import { withAlpha } from '../context';
+import { isolated, withAlpha, type Ctx2D, type FrameInfo, type Theme } from '../context';
 import { easeInOutCubic, easeOutCubic, lerp, progress } from '../easing';
-import { drawMedia } from '../media';
+import { drawMedia, type Rect } from '../media';
 import { cssFont, fitText } from '../text';
 import { isLandscape, unitOf } from '../layout';
-import { drawMediaPlaceholder } from './mediaLayout';
+import { aspectOf, clipRounded, drawMediaPlaceholder, REFERENCE_SIZES } from './mediaLayout';
 import { clipSoundFields } from './soundFields';
 import { fillBackground } from '../backdrop';
 import { defineTemplate } from './types';
@@ -11,7 +11,27 @@ import { defineTemplate } from './types';
 const ACCEPT = ['image', 'video'] as const;
 
 /**
- * Full-bleed photo or video clip with an optional caption.
+ * The card a framed photo sits in (M12.6), with room for the caption: below it in portrait, in a
+ * column to its right in landscape. Without a caption the card is centred.
+ */
+export function framedCard(width: number, height: number, hasCaption: boolean): Rect {
+  if (width > height) {
+    const card = { width: width * 0.58, height: height * 0.84 };
+    return { ...card, x: hasCaption ? width * 0.05 : (width - card.width) / 2, y: (height - card.height) / 2 };
+  }
+  const card = { width: width * 0.86, height: height * 0.7 };
+  return { ...card, x: (width - card.width) / 2, y: hasCaption ? height * 0.07 : (height - card.height) / 2 };
+}
+
+/** Crop shape of the framed card per frame shape, for the focus picker. */
+const framedAspect = (shape: keyof typeof REFERENCE_SIZES) => {
+  const { width, height } = REFERENCE_SIZES[shape];
+  return { framed: aspectOf(framedCard(width, height, true)) };
+};
+
+/**
+ * A photo or video clip with an optional caption: full-bleed, or framed in a rounded card with
+ * the background around it (M12.6).
  *
  * Video clips play from their start with the scene and hold their last frame if the scene is
  * longer. When cropped (cover), the focus point keeps the important part in frame and the slow
@@ -20,7 +40,7 @@ const ACCEPT = ['image', 'video'] as const;
 export const photoTemplate = defineTemplate({
   id: 'photo',
   name: 'Photo / Video',
-  description: 'A full-screen photo or clip with a caption.',
+  description: 'A photo or clip, framed or full screen, with a caption.',
   defaultDurationMs: 4000,
   defaultTransition: 'fade',
   posterMs: 900,
@@ -30,7 +50,21 @@ export const photoTemplate = defineTemplate({
       label: 'Photo or clip',
       default: '',
       accept: ACCEPT,
-      focus: { x: 'focusX', y: 'focusY', fit: 'fit' },
+      focus: {
+        x: 'focusX',
+        y: 'focusY',
+        fit: 'fit',
+        aspect: { field: 'layout', byShape: { portrait: framedAspect('portrait'), landscape: framedAspect('landscape') } },
+      },
+    },
+    layout: {
+      kind: 'choice',
+      label: 'Layout',
+      default: 'framed',
+      options: [
+        { value: 'framed', label: 'Framed (with padding)' },
+        { value: 'full', label: 'Full screen' },
+      ],
     },
     focusX: { kind: 'number', label: 'Focus across', default: 0.5, min: 0, max: 1, step: 0.01 },
     focusY: { kind: 'number', label: 'Focus down', default: 0.5, min: 0, max: 1, step: 0.01 },
@@ -41,7 +75,7 @@ export const photoTemplate = defineTemplate({
       label: 'Fit',
       default: 'cover',
       options: [
-        { value: 'cover', label: 'Fill the screen (crop)' },
+        { value: 'cover', label: 'Fill (crop)' },
         { value: 'contain', label: 'Show all (letterbox)' },
       ],
     },
@@ -69,6 +103,12 @@ export const photoTemplate = defineTemplate({
 
     fillBackground(ctx, frame, theme);
 
+    const caption = values.caption.trim();
+    if (values.layout !== 'full') {
+      renderFramed(ctx, frame, values, theme, caption);
+      return;
+    }
+
     const media = values.media ? frame.media.frame(values.media, t) : undefined;
     if (media && (ACCEPT as readonly string[]).includes(media.kind)) {
       drawMedia(ctx, media, { x: 0, y: 0, width: W, height: H }, {
@@ -84,7 +124,6 @@ export const photoTemplate = defineTemplate({
     }
 
     // Caption on a soft band at the bottom; slides up after the media settles.
-    const caption = values.caption.trim();
     if (!caption) return;
     const body = { family: fonts.body, weight: 800 };
     const fitted = fitText(ctx, caption, {
@@ -115,6 +154,78 @@ export const photoTemplate = defineTemplate({
     });
   },
 });
+
+interface FramedValues {
+  media: string;
+  focusX: number;
+  focusY: number;
+  fit: string;
+  motion: string;
+}
+
+/**
+ * Framed layout: the media in a rounded card that settles in, the background (and its motion)
+ * around it, and the caption on the background: under the card in portrait, beside it in
+ * landscape.
+ */
+function renderFramed(ctx: Ctx2D, frame: FrameInfo, values: FramedValues, theme: Theme, caption: string): void {
+  const { palette, fonts } = theme;
+  const { width: W, height: H, localMs: t } = frame;
+  const u = unitOf(frame);
+  const wide = isLandscape(frame);
+  const card = framedCard(W, H, caption !== '');
+
+  // The card settles in from slightly smaller.
+  const settle = easeOutCubic(progress(t, 0, 600));
+  const scale = lerp(0.96, 1, settle);
+  const cx = card.x + card.width / 2;
+  const cy = card.y + card.height / 2;
+  isolated(ctx, () => {
+    ctx.translate(cx, cy);
+    ctx.scale(scale, scale);
+    ctx.translate(-cx, -cy);
+    clipRounded(ctx, card, u * 0.035);
+    const media = values.media ? frame.media.frame(values.media, t) : undefined;
+    if (media && (ACCEPT as readonly string[]).includes(media.kind)) {
+      drawMedia(ctx, media, card, {
+        fit: values.fit === 'contain' ? 'contain' : 'cover',
+        focusX: values.focusX,
+        focusY: values.focusY,
+        zoom: kenBurnsZoom(values.motion, t, frame.durationMs),
+        backdropTint: palette.background,
+        backdropTintAlpha: 0.7,
+      });
+    } else {
+      drawMediaPlaceholder(ctx, card, theme, 'Add a photo or clip');
+    }
+  });
+
+  if (!caption) return;
+  const body = { family: fonts.body, weight: 800 };
+  const area = wide
+    ? { x: card.x + card.width + W * 0.04, maxWidth: W - (card.x + card.width + W * 0.04) - W * 0.05, maxHeight: H * 0.7, lines: 6 }
+    : { x: card.x, maxWidth: card.width, maxHeight: H - (card.y + card.height) - H * 0.07, lines: 3 };
+  const fitted = fitText(ctx, caption, {
+    font: body,
+    maxWidth: area.maxWidth,
+    maxHeight: area.maxHeight,
+    maxSize: u * 0.075,
+    minSize: u * 0.04,
+    lineHeight: 1.15,
+    maxLines: area.lines,
+  });
+  const blockHeight = fitted.lines.length * fitted.lineHeightPx;
+  // Portrait: centred in the space under the card. Landscape: centred beside it.
+  const top = wide ? (H - blockHeight) / 2 : card.y + card.height + (H - card.y - card.height - blockHeight) / 2;
+  const enter = easeOutCubic(progress(t, 350, 550));
+  withAlpha(ctx, enter, () => {
+    ctx.font = cssFont(body, fitted.sizePx);
+    ctx.fillStyle = palette.text;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    fitted.lines.forEach((line, i) => ctx.fillText(line, area.x, top + fitted.sizePx * 0.9 + i * fitted.lineHeightPx + (1 - enter) * u * 0.02));
+  });
+}
 
 /** How far the Ken Burns motion zooms over a whole scene. */
 export const KEN_BURNS_MAX_ZOOM = 1.12;

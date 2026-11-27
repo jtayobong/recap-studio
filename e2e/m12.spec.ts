@@ -146,3 +146,17 @@ test('Encore scene: "One more thing…" with an optional reveal, black stage or 
   await expect(inspector(page).getByLabel('Reveal (optional)')).toHaveValue('We got a dog');
   await expect(inspector(page).getByLabel('Look')).toHaveValue('story');
 });
+
+test('Photo / Video starts framed; Full screen is one choice away (M12.6)', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'New project' }).first().click();
+  await page.getByRole('dialog', { name: 'New project' }).getByRole('button', { name: 'Create project' }).click();
+  await expect(page).toHaveURL(/\/project\/[\w-]+$/);
+  await page.getByRole('button', { name: /^\+ Photo \/ Video / }).click();
+  const layout = inspector(page).getByLabel('Layout');
+  await expect(layout).toHaveValue('framed');
+  await layout.selectOption({ label: 'Full screen' });
+  await expect(layout).toHaveValue('full');
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(layout).toHaveValue('framed');
+});

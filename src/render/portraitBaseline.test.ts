@@ -36,7 +36,11 @@ function portraitFingerprints(): Record<string, string> {
   for (const template of TEMPLATES) {
     for (const paletteId of ['neon-pulse', 'mint-riot']) {
       for (const t of [0, 300, 800, 1500, 2600, 3900]) {
-        const scene = { ...createScene(template.id, 'x'), transitionIn: 'cut' as Transition };
+        const created = createScene(template.id, 'x');
+        // Existing Photo / Video scenes migrate to the full-screen layout (v7, M12.6); that is the
+        // output this guard protects. The newer Framed default is covered by render.test.ts.
+        const fields = template.id === 'photo' ? { ...created.fields, layout: 'full' } : created.fields;
+        const scene = { ...created, fields, transitionIn: 'cut' as Transition };
         out[`${template.id}/${paletteId}/${t}`] = hashCalls([scene], paletteId, t);
         out[`${template.id}/${paletteId}/${t}/media`] = hashCalls([withMedia(scene)], paletteId, t, media);
       }

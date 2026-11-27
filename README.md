@@ -225,6 +225,10 @@ One music track per story, in sync in the preview and mixed into the export.
 - **Add photos…** (carousel inspector): pick several photos or clips from the library, in the order
   they should appear, and they fill the next empty slots in one undoable step.
 - **Subtle background motion** also has a few single small dots drifting between the shapes.
+- **Framed photos** (M12.6): Photo / Video scenes have a *Layout*: *Framed* (the default for new
+  scenes: the photo or clip in a rounded card with padding, the caption under it in 9:16 or beside
+  it in 16:9, the background showing around it) or *Full screen* (as before). Scenes made before
+  M12.6 keep Full screen.
 - **Encore** (M12.5): a dramatic pause before one last reveal. *One more thing…* fades in on a
   black stage, its dots appearing one by one, then gives way to an optional reveal headline and
   small line. *Look*: *Black stage* (pure black, white text, no background motion) or *Story
