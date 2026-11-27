@@ -15,6 +15,7 @@ export function themeFor(project: RenderableProject): Theme {
     palette: getPalette(project.style.paletteId),
     fonts: getFontPair(project.style.fontPairId),
     motion: project.style.backgroundMotion,
+    shapes: project.style.backgroundShapes,
   };
 }
 

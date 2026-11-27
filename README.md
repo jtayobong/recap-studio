@@ -186,7 +186,7 @@ One music track per story, in sync in the preview and mixed into the export.
   seven scenes each with placeholder text and empty photo slots, ready to make your own.
 - **Templates:** Title, Big Number, Top 5, Compare, Photo / Video, Photo grid (2–4 photos),
   Photo carousel (up to 12 since M12, scrolling sideways or upwards) and Outro.
-- **Style:** 10 palettes and 3 font pairs (Heavy Grotesk, Editorial Serif, Typewriter Mono; fonts
+- **Style:** 10 palettes (15 since M12.3) and 3 font pairs (Heavy Grotesk, Editorial Serif, Typewriter Mono; fonts
   already on your computer) in the project panel.
 - **Transitions:** cut, fade, slide up, push left, zoom, wipe and flash; the first scene
   transitions in from the background.
@@ -223,6 +223,10 @@ One music track per story, in sync in the preview and mixed into the export.
 - **Add photos…** (carousel inspector): pick several photos or clips from the library, in the order
   they should appear, and they fill the next empty slots in one undoable step.
 - **Subtle background motion** also has a few single small dots drifting between the shapes.
+- **Fiesta** (M12.3): five palettes in Filipino fiesta colours (*Banderitas*, *Parol Night*,
+  *Sinag*, *Mango Ube*, *Jeepney*) and a *Background shapes* setting next to Background motion:
+  *Geometric* (as before) or *Fiesta* (banderitas, parol stars, suns and stars). Older projects
+  keep the geometric shapes.
 - **No title, centred strip** (M12.2): a photo or text carousel without a title centres its cards
   in the frame.
 - **Photo grid: Slow zoom** (M12.1) can be turned off, so the photos hold still (on by default, as

@@ -34,6 +34,12 @@ export const MIGRATIONS: Readonly<Record<number, Migration>> = {
     if (isPlainObject(raw.style)) next.style = { ...raw.style, backgroundMotion: 'off' };
     return next;
   },
+  /** v4 → v5 (M12.3): background shape style. Existing projects keep the geometric shapes. */
+  4: (raw) => {
+    const next: RawProject = { ...raw, schemaVersion: 5 };
+    if (isPlainObject(raw.style)) next.style = { ...raw.style, backgroundShapes: 'geometric' };
+    return next;
+  },
 };
 
 export class ProjectDataError extends Error {

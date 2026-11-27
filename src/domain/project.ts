@@ -9,7 +9,7 @@ import { DEFAULT_FONT_PAIR_ID, DEFAULT_PALETTE_ID } from './stylePresets';
  * Bump CURRENT_SCHEMA_VERSION and add a migration in ./migrations.ts whenever the
  * stored shape changes.
  */
-export const CURRENT_SCHEMA_VERSION = 4;
+export const CURRENT_SCHEMA_VERSION = 5;
 
 export const PROJECT_NAME_MAX = 100;
 export const MAX_SCENES = 200;
@@ -26,10 +26,18 @@ export const FormatSchema = z.object({
 export const BackgroundMotionSchema = z.enum(['off', 'subtle', 'lively']);
 export const DEFAULT_BACKGROUND_MOTION: BackgroundMotion = 'subtle';
 
+/**
+ * Which shapes the background motion draws (M12.3, schema v5): the original geometric ones, or
+ * Filipino fiesta ones (banderitas, parol stars, suns). Older projects migrate to `geometric`.
+ */
+export const BackgroundShapesSchema = z.enum(['geometric', 'fiesta']);
+export const DEFAULT_BACKGROUND_SHAPES: BackgroundShapes = 'geometric';
+
 export const StyleSchema = z.object({
   paletteId: z.string().min(1),
   fontPairId: z.string().min(1),
   backgroundMotion: BackgroundMotionSchema,
+  backgroundShapes: BackgroundShapesSchema,
 });
 
 /** Scene entrance transitions. v3 (M7) added zoom, wipe, push (left) and flash. */
@@ -77,6 +85,7 @@ export const ProjectSchema = z.object({
 export type Format = z.infer<typeof FormatSchema>;
 export type Style = z.infer<typeof StyleSchema>;
 export type BackgroundMotion = z.infer<typeof BackgroundMotionSchema>;
+export type BackgroundShapes = z.infer<typeof BackgroundShapesSchema>;
 export type Transition = z.infer<typeof TransitionSchema>;
 export type Scene = z.infer<typeof SceneSchema>;
 export type AudioTrack = z.infer<typeof AudioTrackSchema>;
@@ -126,6 +135,7 @@ export interface NewProjectInput {
   paletteId?: string;
   fontPairId?: string;
   backgroundMotion?: BackgroundMotion;
+  backgroundShapes?: BackgroundShapes;
 }
 
 export function createProject(
@@ -147,6 +157,7 @@ export function createProject(
       paletteId: input.paletteId ?? DEFAULT_PALETTE_ID,
       fontPairId: input.fontPairId ?? DEFAULT_FONT_PAIR_ID,
       backgroundMotion: input.backgroundMotion ?? DEFAULT_BACKGROUND_MOTION,
+      backgroundShapes: input.backgroundShapes ?? DEFAULT_BACKGROUND_SHAPES,
     },
     scenes: [],
     createdAt: now,

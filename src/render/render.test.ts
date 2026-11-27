@@ -57,7 +57,7 @@ const LANDSCAPE: RenderableProject['format'] = { width: 1920, height: 1080, fps:
 
 const project = (scenes: Scene[], paletteId = 'neon-pulse', format = PORTRAIT, backgroundMotion: BackgroundMotion = 'off'): RenderableProject => ({
   format,
-  style: { paletteId, fontPairId: 'heavy-grotesk', backgroundMotion },
+  style: { paletteId, fontPairId: 'heavy-grotesk', backgroundMotion, backgroundShapes: 'geometric' },
   scenes,
 });
 

@@ -43,7 +43,7 @@ templates or sample content.
 | 60 fps export (Export dialog option, D35) | ✅ done |
 | M10 Text carousel, section divider, ducking controls | ✅ done |
 | M11 Background motion, Text scene, strip fixes | ✅ done |
-| M12 Photo carousel upgrades, background dots | ✅ done |
+| M12 Photo carousel upgrades, background dots (M12.1–12.3: grid zoom switch, centred strip, fiesta palettes and shapes) | ✅ done |
 
 The original roadmap is complete, and so are landscape output, the desktop app and 60 fps export
 (records in `docs/NEXT-M9.md`, which also lists the remaining candidates).
@@ -120,7 +120,7 @@ src/
                 usePlaybackShortcuts.ts, PreviewMusic.tsx + musicSync.ts (music follows the playhead)
   components/   UI pieces (SceneStrip, SceneInspector, FieldEditor, TemplateGallery, SceneThumbnail,
                 MediaLibrary, AssetTile, MediaSlotField, FocusPicker, ExportControl, ExportDialog,
-                MusicSection, FormatPicker, MediaSequenceSection,
+                MusicSection, FormatPicker, MediaSequenceSection, MotionPicker, ShapesPicker,
                 Modal, ConfirmDialog, ProjectCard, …)
   export/       exportStory.ts (main-thread API: snapshot, target, assets, worker), export.worker.ts,
                 encodeStory.ts (plan pass + frame loop → Mediabunny, interleaved music),

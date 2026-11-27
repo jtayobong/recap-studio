@@ -27,7 +27,7 @@ function withMedia(scene: Scene): Scene {
 
 function hashCalls(scenes: Scene[], paletteId: string, timeMs: number, resolver?: MediaResolver): string {
   const { ctx, calls } = createMockContext();
-  renderFrame(ctx, { format: { width: 1080, height: 1920, fps: 30 }, style: { paletteId, fontPairId: 'heavy-grotesk', backgroundMotion: 'off' as const }, scenes }, timeMs, resolver);
+  renderFrame(ctx, { format: { width: 1080, height: 1920, fps: 30 }, style: { paletteId, fontPairId: 'heavy-grotesk', backgroundMotion: 'off' as const, backgroundShapes: 'geometric' as const }, scenes }, timeMs, resolver);
   return createHash('sha256').update(JSON.stringify(calls)).digest('hex').slice(0, 16);
 }
 

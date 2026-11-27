@@ -77,3 +77,53 @@ test('carousel Movement and Photo fit options are in the inspector', async ({ pa
   await inspector(page).getByLabel('Photo fit').selectOption({ label: 'Show whole photo' });
   await expect(inspector(page).getByLabel('Photo fit')).toHaveValue('contain');
 });
+
+test('fiesta: new palettes are offered, and the Shapes choice is saved (M12.3)', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'New project' }).first().click();
+  const dialog = page.getByRole('dialog', { name: 'New project' });
+  await dialog.getByText('Parol Night').click();
+  await dialog.getByRole('button', { name: 'Create project' }).click();
+  await expect(page).toHaveURL(/\/project\/[\w-]+$/);
+  await expect(page.getByRole('radio', { name: 'Parol Night' })).toBeChecked();
+
+  const shapes = page.getByRole('group', { name: 'Background shapes' });
+  await expect(shapes.getByRole('radio', { name: 'Geometric' })).toBeChecked();
+  await shapes.getByText('Fiesta').click();
+  await expect(shapes.getByRole('radio', { name: 'Fiesta' })).toBeChecked();
+  await expect(page.getByRole('status').filter({ hasText: 'All changes saved' })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('group', { name: 'Background shapes' }).getByRole('radio', { name: 'Fiesta' })).toBeChecked();
+
+  // With motion off there are no shapes to pick.
+  await page.getByRole('group', { name: 'Background motion' }).getByText('Off').click();
+  await expect(page.getByRole('group', { name: 'Background shapes' }).getByRole('radio', { name: 'Fiesta' })).toBeDisabled();
+});
+
+test('export: fiesta shapes match the preview frame for frame, in both shapes (M12.3)', { tag: '@dev' }, async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.goto('/system');
+  const reports = await page.evaluate(async () => {
+    const load = (path: string) => import(path);
+    const db = await load('/src/db/index.ts');
+    const exporter = await load('/src/export/exportStory.ts');
+    const inspect = await load('/src/export/testing/inspectExport.ts');
+    const registry = await load('/src/render/templates/registry.ts');
+    const project = await db.projectRepository.create({ name: 'M12.3 export', paletteId: 'banderitas' });
+    const scenes = [registry.createScene('section'), registry.createScene('big-number')].map((s) => ({ ...s, durationMs: 3000, transitionIn: 'cut' as const }));
+    const out: Record<string, unknown> = {};
+    for (const [shape, width, height] of [['portrait', 1080, 1920], ['landscape', 1920, 1080]] as const) {
+      const style = { ...project.style, backgroundMotion: 'lively', backgroundShapes: 'fiesta' };
+      const saved = await db.projectRepository.save({ ...project, style, format: { ...project.format, width, height }, scenes });
+      const file = await exporter.exportStory(saved, db.assetRepository);
+      out[shape] = await inspect.inspectExport(file.blob, saved, [400, 1800, 3300, 5200]);
+    }
+    return out as Record<string, { frameDiffs: { timeMs: number; meanAbsDiff: number; badPixelShare: number }[] }>;
+  });
+  for (const [shape, report] of Object.entries(reports)) {
+    for (const diff of report.frameDiffs) {
+      expect(diff.meanAbsDiff, `${shape} at ${diff.timeMs} ms`).toBeLessThan(4);
+      expect(diff.badPixelShare, `${shape} at ${diff.timeMs} ms`).toBeLessThan(0.005);
+    }
+  }
+});

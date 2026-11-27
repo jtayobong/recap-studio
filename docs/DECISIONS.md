@@ -339,3 +339,14 @@ is tedious, a template can declare its ordered slots (`mediaSequence`) and the i
 visible when the scene needs to be longer. Rejected: growing the scene length automatically (the
 model doesn't know whether the user set the length themselves) and multi-dragging library tiles
 (no keyboard path; the picker has one).
+
+### D39. Fiesta shapes are a story setting next to background motion (schema v5)
+The user asked for background shapes in a Filipino fiesta style (M12.3). Three ways were weighed
+with the user: a separate *Background shapes* setting (chosen), tying fiesta shapes to the fiesta
+palettes automatically (no schema change, but no way to mix a fiesta palette with geometric shapes
+or the reverse), and mixing fiesta shapes into every story (would change every existing export with
+motion on). `style.backgroundShapes` (`geometric` / `fiesta`) is schema v5; the v4 → v5 migration
+sets `geometric`, so old projects render exactly as before, and new projects also start on
+Geometric. The fiesta shapes reuse the same drift, counts, levels and single dots (`render/backdrop.ts`
+picks the shape kind per index), so only the look changes, not how busy the background is; the
+hanging ones (banderitas, parol) sway around upright instead of spinning, as real ones would.

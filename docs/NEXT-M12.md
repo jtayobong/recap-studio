@@ -74,6 +74,23 @@ unchanged. `npm run check`, `npm run test:e2e` and `npm run test:e2e:prod` pass.
   shapes. The text carousel had the same offset (also for its vertical progress dots) and gets the
   same fix. Titled scenes are unchanged (portrait baseline identical).
 
+## M12.3: fiesta palettes and shapes
+
+- **Five palettes** leaning towards Filipino fiesta colours: *Banderitas* (cream, magenta,
+  turquoise), *Parol Night* (indigo, lantern gold, pink), *Sinag* (royal blue, sun yellow, coral
+  red), *Mango Ube* (ube, mango, pandan) and *Jeepney* (red, chrome yellow, navy). Sinag's red and
+  Jeepney's sky-blue accent were too close to their backgrounds (1.7:1, the palette test asks for
+  2:1), so Sinag uses a lighter coral red and Jeepney a navy accent.
+- **Background shapes** (user decision: a story setting, option A): `style.backgroundShapes`,
+  `'geometric' | 'fiesta'`, schema v5. Existing projects migrate to `geometric` and look exactly as
+  before; new projects also start on Geometric. *Fiesta* swaps the four geometric shapes for a
+  string of banderitas, a parol (star in a ring with two tails), an eight-ray sun and a star; the
+  hanging ones (banderitas, parol) sway around upright instead of spinning. Same drift, count and
+  single dots as Geometric. The picker sits under *Background motion* and is disabled when motion
+  is off. Decision D39.
+- Fixed in passing: the palette picker keyed its swatches by colour, so Mono Ink (primary = text =
+  `#111111`) logged a React duplicate-key warning.
+
 ## Progress
 
 - Design record written (this file).

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { BackgroundMotion } from '../domain/project';
+import type { BackgroundMotion, BackgroundShapes } from '../domain/project';
 import { getFontPair, getPalette } from '../domain/stylePresets';
 import { backdropShapes, fillBackground, motionAmount } from './backdrop';
 import type { Theme } from './context';
@@ -7,7 +7,12 @@ import { renderFrame } from './renderFrame';
 import { createScene } from './templates/registry';
 import { createMockContext } from './testing/mockContext';
 
-const theme = (motion?: BackgroundMotion): Theme => ({ palette: getPalette('neon-pulse'), fonts: getFontPair('heavy-grotesk'), motion });
+const theme = (motion?: BackgroundMotion, shapes?: BackgroundShapes): Theme => ({
+  palette: getPalette('neon-pulse'),
+  fonts: getFontPair('heavy-grotesk'),
+  motion,
+  shapes,
+});
 const frame = { width: 1080, height: 1920, localMs: 500, storyMs: 4500 };
 
 describe('background motion', () => {
@@ -64,7 +69,7 @@ describe('background motion', () => {
 
   it('follows story time, so the layer carries on across a scene change', () => {
     const scenes = [createScene('title', 'a'), { ...createScene('section', 'b'), transitionIn: 'cut' as const }];
-    const style = { paletteId: 'neon-pulse', fontPairId: 'heavy-grotesk', backgroundMotion: 'subtle' as const };
+    const style = { paletteId: 'neon-pulse', fontPairId: 'heavy-grotesk', backgroundMotion: 'subtle' as const, backgroundShapes: 'geometric' as const };
     const format = { width: 1080, height: 1920, fps: 30 as const };
     // Arcs drawn by the backdrop just before and just after the cut are nearly in the same place.
     const arcs = (t: number) => {
@@ -80,5 +85,37 @@ describe('background motion', () => {
       expect(Math.abs(before[i]![0]! - after[i]![0]!)).toBeLessThan(2);
       expect(Math.abs(before[i]![1]! - after[i]![1]!)).toBeLessThan(2);
     }
+  });
+
+  describe('fiesta shapes (M12.3)', () => {
+    const kinds = (shapes?: BackgroundShapes, level: 'subtle' | 'lively' = 'lively') =>
+      new Set(backdropShapes(1080, 1920, 5000, theme(level, shapes)).map((s) => s.kind));
+
+    it('fiesta draws banderitas, parols, suns and stars instead of the geometric shapes', () => {
+      expect(kinds('fiesta')).toEqual(new Set(['banderitas', 'parol', 'sun', 'star']));
+      expect(kinds('fiesta', 'subtle')).toEqual(new Set(['banderitas', 'parol', 'sun', 'star', 'dot']));
+      expect(kinds('geometric')).toEqual(new Set(['disc', 'ring', 'square', 'dots']));
+      expect(kinds(undefined)).toEqual(kinds('geometric')); // missing = geometric
+    });
+
+    it('hanging shapes sway gently around upright; banderitas flags take turns in the palette colours', () => {
+      for (let t = 0; t < 60_000; t += 1700) {
+        for (const shape of backdropShapes(1080, 1920, t, theme('lively', 'fiesta'))) {
+          if (shape.kind === 'banderitas' || shape.kind === 'parol') expect(Math.abs(shape.rotation)).toBeLessThanOrEqual(0.14);
+        }
+      }
+      const string = backdropShapes(1080, 1920, 0, theme('subtle', 'fiesta')).find((s) => s.kind === 'banderitas')!;
+      const palette = getPalette('neon-pulse');
+      expect(string.colors).toHaveLength(4);
+      for (const c of string.colors!) expect([palette.primary, palette.accent, palette.text]).toContain(c);
+      expect(new Set(string.colors).size).toBeGreaterThan(1);
+    });
+
+    it('draws every fiesta shape with plain path calls', () => {
+      const { ctx, calls } = createMockContext();
+      fillBackground(ctx, frame, theme('lively', 'fiesta'));
+      const methods = new Set(calls.map((c) => c.method));
+      for (const m of ['quadraticCurveTo', 'lineTo', 'arc', 'fill', 'stroke']) expect(methods).toContain(m);
+    });
   });
 });

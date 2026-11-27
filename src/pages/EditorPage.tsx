@@ -3,6 +3,7 @@ import { Link, useBlocker, useParams } from 'react-router';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { ExportControl } from '../components/ExportControl';
 import { MotionPicker } from '../components/MotionPicker';
+import { ShapesPicker } from '../components/ShapesPicker';
 import { FontPicker } from '../components/FontPicker';
 import { FormatPicker } from '../components/FormatPicker';
 import { MediaLibrary } from '../components/MediaLibrary';
@@ -218,6 +219,14 @@ function ProjectPanel({ project, durationMs }: { project: Project; durationMs: n
         value={project.style.backgroundMotion}
         onChange={(backgroundMotion) =>
           update((p) => (p.style.backgroundMotion === backgroundMotion ? p : { ...p, style: { ...p.style, backgroundMotion } }))
+        }
+      />
+
+      <ShapesPicker
+        value={project.style.backgroundShapes}
+        disabled={project.style.backgroundMotion === 'off'}
+        onChange={(backgroundShapes) =>
+          update((p) => (p.style.backgroundShapes === backgroundShapes ? p : { ...p, style: { ...p.style, backgroundShapes } }))
         }
       />
 

@@ -39,8 +39,14 @@ export function motionAmount(theme: Theme): number {
   }
 }
 
-type ShapeKind = 'disc' | 'ring' | 'square' | 'dots' | 'dot';
-const KINDS: readonly ShapeKind[] = ['disc', 'ring', 'square', 'dots'];
+type GeometricKind = 'disc' | 'ring' | 'square' | 'dots';
+/** Fiesta shapes (M12.3): a string of banderitas, a parol star lantern, an eight-ray sun, a star. */
+type FiestaKind = 'banderitas' | 'parol' | 'sun' | 'star';
+type ShapeKind = GeometricKind | FiestaKind | 'dot';
+const KINDS: readonly GeometricKind[] = ['disc', 'ring', 'square', 'dots'];
+const FIESTA_KINDS: readonly FiestaKind[] = ['banderitas', 'parol', 'sun', 'star'];
+/** Shapes that hang (banderitas, parol) sway gently instead of spinning. */
+const HANGING: ReadonlySet<ShapeKind> = new Set(['banderitas', 'parol']);
 
 export interface BackdropShape {
   kind: ShapeKind;
@@ -50,6 +56,8 @@ export interface BackdropShape {
   size: number;
   rotation: number;
   color: string;
+  /** Colours of the flags on a string of banderitas, in order. */
+  colors?: readonly string[];
 }
 
 const rand = (index: number, salt: number) => seededRandom(index * 7919 + salt * 104729 + 17);
@@ -83,12 +91,20 @@ export function backdropShapes(width: number, height: number, storyMs: number, t
   const u = Math.min(width, height);
   const seconds = storyMs / 1000;
   const colors = [theme.palette.primary, theme.palette.accent, theme.palette.text, theme.palette.primary];
+  const fiesta = theme.shapes === 'fiesta';
   const shapes = Array.from({ length: level.count }, (_, i): BackdropShape => {
-    const kind = KINDS[i % KINDS.length] as ShapeKind;
+    const kind: ShapeKind = fiesta ? (FIESTA_KINDS[i % FIESTA_KINDS.length] as FiestaKind) : (KINDS[i % KINDS.length] as GeometricKind);
     const size = u * (0.035 + rand(i, 1) * (kind === 'dots' ? 0.03 : 0.09));
     const { x, y } = drift(i, size, 1, width, height, seconds, level);
     const spin = (rand(i, 8) - 0.5) * 0.6 * level.speed;
-    return { kind, x, y, size, rotation: rand(i, 9) * Math.PI + spin * seconds, color: colors[i % colors.length] as string };
+    const color = colors[i % colors.length] as string;
+    if (HANGING.has(kind)) {
+      // Hanging shapes sway a little around upright instead of turning over.
+      const sway = Math.sin(seconds * (0.8 + rand(i, 10) * 0.6) * level.speed + rand(i, 9) * 6.28) * 0.14;
+      const flags = kind === 'banderitas' ? [0, 1, 2, 3].map((f) => colors[(i + f) % 3] as string) : undefined;
+      return { kind, x, y, size, rotation: sway, color, colors: flags };
+    }
+    return { kind, x, y, size, rotation: rand(i, 9) * Math.PI + spin * seconds, color };
   });
   // Single dots: small, a little slower than the shapes, in the accent and text colours.
   const singles = Array.from({ length: level.singles }, (_, i): BackdropShape => {
@@ -130,8 +146,96 @@ function drawShape(ctx: Ctx2D, shape: BackdropShape, u: number): void {
           ctx.fill();
         }
         return;
+      case 'banderitas':
+        drawBanderitas(ctx, shape, u);
+        return;
+      case 'parol':
+        drawParol(ctx, shape.size, u);
+        return;
+      case 'sun':
+        drawSun(ctx, shape.size);
+        return;
+      case 'star':
+        starPath(ctx, shape.size, shape.size * 0.45);
+        ctx.fill();
+        return;
     }
   });
+}
+
+/** A five-point star path centred on 0,0, point up. */
+function starPath(ctx: Ctx2D, outer: number, inner: number): void {
+  ctx.beginPath();
+  for (let p = 0; p < 10; p += 1) {
+    const r = p % 2 === 0 ? outer : inner;
+    const a = -Math.PI / 2 + (p * Math.PI) / 5;
+    if (p === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+    else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+  }
+  ctx.closePath();
+}
+
+/** A sagging string with four triangular flags hanging from it. */
+function drawBanderitas(ctx: Ctx2D, shape: BackdropShape, u: number): void {
+  const half = shape.size * 2;
+  const sag = shape.size * 0.35;
+  ctx.lineWidth = Math.max(1, u * 0.004);
+  ctx.beginPath();
+  ctx.moveTo(-half, 0);
+  ctx.quadraticCurveTo(0, sag * 2, half, 0);
+  ctx.stroke();
+  const flags = shape.colors ?? [shape.color];
+  const count = 4;
+  const flagWidth = (half * 2) / count;
+  for (let f = 0; f < count; f += 1) {
+    const left = -half + f * flagWidth + flagWidth * 0.1;
+    const right = left + flagWidth * 0.8;
+    // Height of the string at x (the same curve, as a parabola).
+    const yAt = (x: number) => sag * (1 - (x / half) ** 2);
+    ctx.fillStyle = flags[f % flags.length] as string;
+    ctx.beginPath();
+    ctx.moveTo(left, yAt(left));
+    ctx.lineTo(right, yAt(right));
+    ctx.lineTo((left + right) / 2, yAt((left + right) / 2) + flagWidth * 0.95);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+/** A parol: a five-point star inside a ring, with two tails below. */
+function drawParol(ctx: Ctx2D, size: number, u: number): void {
+  ctx.lineWidth = Math.max(1, u * 0.008);
+  ctx.beginPath();
+  ctx.arc(0, 0, size, 0, Math.PI * 2);
+  ctx.stroke();
+  starPath(ctx, size * 0.82, size * 0.36);
+  ctx.fill();
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(side * size * 0.3, size * 0.95);
+    ctx.lineTo(side * size * 0.45, size * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(side * size * 0.45, size * 2, size * 0.1, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+/** A sun: a disc with eight pointed rays. */
+function drawSun(ctx: Ctx2D, size: number): void {
+  ctx.beginPath();
+  ctx.arc(0, 0, size * 0.42, 0, Math.PI * 2);
+  ctx.fill();
+  for (let r = 0; r < 8; r += 1) {
+    const a = (r * Math.PI) / 4;
+    const side = Math.PI / 22;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a - side) * size * 0.55, Math.sin(a - side) * size * 0.55);
+    ctx.lineTo(Math.cos(a) * size, Math.sin(a) * size);
+    ctx.lineTo(Math.cos(a + side) * size * 0.55, Math.sin(a + side) * size * 0.55);
+    ctx.closePath();
+    ctx.fill();
+  }
 }
 
 /** Draw only the moving shapes (no fill). */

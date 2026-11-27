@@ -102,7 +102,7 @@ describe('real migrations', () => {
     const v3 = (await import('./fixtures/project-v3.json')).default as Record<string, unknown>;
     const migrated = migrateProject(structuredClone(v3));
     expect(migrated.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
-    expect(migrated.style).toEqual({ paletteId: 'citrus-pop', fontPairId: 'heavy-grotesk', backgroundMotion: 'off' });
+    expect(migrated.style).toEqual({ paletteId: 'citrus-pop', fontPairId: 'heavy-grotesk', backgroundMotion: 'off', backgroundShapes: 'geometric' });
     expect({ ...migrated, schemaVersion: 3, style: v3.style }).toEqual(v3);
   });
 
@@ -114,6 +114,19 @@ describe('real migrations', () => {
   it('new projects start with subtle background motion', () => {
     expect(createProject({ name: 'New' }).style.backgroundMotion).toBe('subtle');
     expect(createProject({ name: 'New', backgroundMotion: 'lively' }).style.backgroundMotion).toBe('lively');
+  });
+
+  it('v4 → v5: existing projects keep the geometric shapes (and their motion level); nothing else changes', async () => {
+    const v4 = (await import('./fixtures/project-v4.json')).default as Record<string, unknown>;
+    const migrated = migrateProject(structuredClone(v4));
+    expect(migrated.schemaVersion).toBe(5);
+    expect(migrated.style).toEqual({ paletteId: 'citrus-pop', fontPairId: 'heavy-grotesk', backgroundMotion: 'lively', backgroundShapes: 'geometric' });
+    expect({ ...migrated, schemaVersion: 4, style: v4.style }).toEqual(v4);
+  });
+
+  it('new projects start with geometric shapes; fiesta can be chosen', () => {
+    expect(createProject({ name: 'New' }).style.backgroundShapes).toBe('geometric');
+    expect(createProject({ name: 'New', backgroundShapes: 'fiesta' }).style.backgroundShapes).toBe('fiesta');
   });
 
   it('v3 accepts the new transition kinds', () => {

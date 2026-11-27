@@ -1,4 +1,4 @@
-import type { BackgroundMotion } from '../domain/project';
+import type { BackgroundMotion, BackgroundShapes } from '../domain/project';
 import type { FontPair, Palette } from '../domain/stylePresets';
 import type { MediaResolver } from './media';
 
@@ -10,6 +10,8 @@ export interface Theme {
   fonts: FontPair;
   /** Background motion level (M11); missing means off. */
   motion?: BackgroundMotion;
+  /** Which shapes the background motion draws (M12.3); missing means geometric. */
+  shapes?: BackgroundShapes;
 }
 
 /** Everything a template needs to know about the frame being drawn. */
