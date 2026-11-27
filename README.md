@@ -223,6 +223,8 @@ One music track per story, in sync in the preview and mixed into the export.
 - **Add photos…** (carousel inspector): pick several photos or clips from the library, in the order
   they should appear, and they fill the next empty slots in one undoable step.
 - **Subtle background motion** also has a few single small dots drifting between the shapes.
+- **No title, centred strip** (M12.2): a photo or text carousel without a title centres its cards
+  in the frame.
 - **Photo grid: Slow zoom** (M12.1) can be turned off, so the photos hold still (on by default, as
   before).
 

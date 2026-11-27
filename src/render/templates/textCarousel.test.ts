@@ -63,6 +63,17 @@ describe('textCarouselCards', () => {
     expect(upwards[1]!.y).toBeGreaterThan(upwards[0]!.y);
     expect(new Set(upwards.map((c) => c.x)).size).toBe(1);
   });
+
+  it('centres the strip vertically when there is no title (M12.2), lower with one', () => {
+    for (const [w, h] of [[1080, 1920], [1920, 1080]] as const) {
+      for (const direction of ['left', 'up'] as const) {
+        const [untitled] = textCarouselCards(direction, 3, 0, w, h, false);
+        const [titled] = textCarouselCards(direction, 3, 0, w, h);
+        expect(untitled!.y + untitled!.height / 2).toBeCloseTo(h / 2);
+        expect(titled!.y).toBeGreaterThan(untitled!.y);
+      }
+    }
+  });
 });
 
 describe('Text carousel', () => {

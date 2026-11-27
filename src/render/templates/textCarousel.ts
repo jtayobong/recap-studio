@@ -56,18 +56,25 @@ export function textCarouselPosition(t: number, durationMs: number, count: numbe
   return entering + stepPosition(t, durationMs, count);
 }
 
-/** Where the centred card's middle sits, as a share of the frame height. */
-const stripCentreY = (wide: boolean) => (wide ? 0.58 : 0.53);
+/** Where the centred card's middle sits, as a share of the frame height (centred with no title). */
+const stripCentreY = (wide: boolean, titled = true) => (!titled ? 0.5 : wide ? 0.58 : 0.53);
 
 /** Card rects at strip position `position` (in cards), in card order. */
-export function textCarouselCards(direction: CarouselDirection, count: number, position: number, width: number, height: number): Rect[] {
+export function textCarouselCards(
+  direction: CarouselDirection,
+  count: number,
+  position: number,
+  width: number,
+  height: number,
+  titled = true,
+): Rect[] {
   const wide = width > height;
   const base = carouselCard(direction, width, height);
   // Text needs less height than a photo: vertical cards are a bit shorter, so more of the
   // neighbours show; horizontal ones keep the photo carousel's shape.
   const card = direction === 'up' ? { width: base.width, height: base.height * (wide ? 0.8 : 0.75) } : base;
   const gap = Math.min(width, height) * 0.05;
-  const centreY = stripCentreY(wide);
+  const centreY = stripCentreY(wide, titled);
   const step = (direction === 'left' ? card.width : card.height) + gap;
   return Array.from({ length: count }, (_, i) => {
     const offset = (i - position) * step;
@@ -114,7 +121,8 @@ export const textCarouselTemplate = defineTemplate({
     const cards = filled.length > 0 ? filled : [1, 2, 3].map((n) => ({ headline: `Highlight ${n}`, detail: '' }));
     const sample = filled.length === 0;
     const position = textCarouselPosition(t, durationMs, cards.length);
-    const rects = textCarouselCards(direction, cards.length, position, W, H);
+    const title = String(v.title ?? '').trim();
+    const rects = textCarouselCards(direction, cards.length, position, W, H, title !== '');
     const fadeIn = easeOutCubic(progress(t, 0, TEXT_CAROUSEL_ENTER_MS));
 
     withAlpha(ctx, fadeIn, () => {
@@ -135,7 +143,7 @@ export const textCarouselTemplate = defineTemplate({
       const at = (i: number) =>
         direction === 'left'
           ? { x: W / 2 - run / 2 + i * spacing, y: wide ? H * 0.94 : H * 0.9 }
-          : { x: W - (wide ? W * 0.035 : W * 0.04), y: H * stripCentreY(wide) - run / 2 + i * spacing };
+          : { x: W - (wide ? W * 0.035 : W * 0.04), y: H * stripCentreY(wide, title !== '') - run / 2 + i * spacing };
       cards.forEach((_, i) => {
         const near = 1 - Math.min(1, Math.abs(i - position));
         const { x, y } = at(i);
@@ -148,7 +156,6 @@ export const textCarouselTemplate = defineTemplate({
       });
     }
 
-    const title = String(v.title ?? '').trim();
     if (title) {
       const font = { family: fonts.display, weight: 900 };
       const fitted = fitText(ctx, title, {

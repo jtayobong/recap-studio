@@ -91,15 +91,23 @@ export function carouselStripPosition(movement: string, t: number, durationMs: n
 
 /**
  * Card rects for `count` cards at strip position `p` (0–1), in slot order. The strip moves from the
- * first card centred to the last card centred, left or up.
+ * first card centred to the last card centred, left or up. With a title the strip sits a little
+ * lower to leave it room; without one (`titled: false`) it is centred in the frame.
  */
-export function carouselCards(direction: CarouselDirection, count: number, p: number, width: number, height: number): Rect[] {
+export function carouselCards(
+  direction: CarouselDirection,
+  count: number,
+  p: number,
+  width: number,
+  height: number,
+  titled = true,
+): Rect[] {
   const card = carouselCard(direction, width, height);
   const along = direction === 'left' ? card.width : card.height;
   const gap = Math.min(width, height) * 0.05;
   // Card centre down the frame: lower in landscape, where the title takes a bigger share.
   const wide = width > height;
-  const centreY = wide ? 0.58 : direction === 'left' ? 0.52 : 0.55;
+  const centreY = !titled ? 0.5 : wide ? 0.58 : direction === 'left' ? 0.52 : 0.55;
   const step = along + gap;
   const travel = Math.max(0, count - 1) * step * p;
   return Array.from({ length: count }, (_, i) => {
@@ -136,7 +144,9 @@ export const carouselTemplate = defineTemplate({
     // Filled slots in order; with none filled, three placeholders show what the scene does.
     const filled = Array.from({ length: CAROUSEL_SLOTS }, (_, i) => i + 1).filter((n) => String(v[`media${n}`] ?? '') !== '');
     const slots = filled.length > 0 ? filled : [1, 2, 3];
-    const cards = carouselCards(direction, slots.length, carouselStripPosition(String(v.movement), t, durationMs, slots.length), W, H);
+    const title = String(v.title ?? '').trim();
+    const position = carouselStripPosition(String(v.movement), t, durationMs, slots.length);
+    const cards = carouselCards(direction, slots.length, position, W, H, title !== '');
 
     cards.forEach((card, i) => {
       // Skip cards entirely off screen.
@@ -160,7 +170,6 @@ export const carouselTemplate = defineTemplate({
       });
     });
 
-    const title = String(v.title ?? '').trim();
     if (title) {
       const font = { family: fonts.display, weight: 900 };
       const fitted = fitText(ctx, title, {

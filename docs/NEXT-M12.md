@@ -66,6 +66,14 @@ unchanged. `npm run check`, `npm run test:e2e` and `npm run test:e2e:prod` pass.
   change: a `slowZoom` boolean field on the Photo grid, on by default, so existing grids render
   exactly as before (portrait baseline unchanged). Off draws every cell at zoom 1.
 
+## M12.2: carousel strip centred without a title
+
+- With an empty title, the photo carousel's strip still sat lower (at 52–58 % of the height) to
+  leave room for a title that wasn't there. `carouselCards` and `textCarouselCards` take a `titled`
+  flag: without a title the centred card is centred in the frame (50 %), in both directions and
+  shapes. The text carousel had the same offset (also for its vertical progress dots) and gets the
+  same fix. Titled scenes are unchanged (portrait baseline identical).
+
 ## Progress
 
 - Design record written (this file).

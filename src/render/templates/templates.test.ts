@@ -173,6 +173,22 @@ describe('Photo carousel', () => {
     expect(up[2]!.y + up[2]!.height / 2).toBeCloseTo(1920 * 0.55);
   });
 
+  it('centres the strip vertically when there is no title (M12.2)', async () => {
+    const { carouselCards } = await import('./carousel');
+    for (const [w, h] of [[1080, 1920], [1920, 1080]] as const) {
+      for (const direction of ['left', 'up'] as const) {
+        const [untitled] = carouselCards(direction, 3, 0, w, h, false);
+        const [titled] = carouselCards(direction, 3, 0, w, h);
+        expect(untitled!.y + untitled!.height / 2).toBeCloseTo(h / 2);
+        expect(titled!.y).toBeGreaterThan(untitled!.y);
+      }
+    }
+    // The template uses it: an empty title draws the placeholder cards centred.
+    const mock = draw('carousel', { title: '' }, 0, 6000);
+    const card = mock.calls.find((c) => c.method === 'fillRect' && (c.args[3] as number) > 900);
+    expect((card!.args[1] as number) + (card!.args[3] as number) / 2).toBeCloseTo(960);
+  });
+
   it('in landscape, keeps cards below the title and inside the frame height, the next one peeking in', async () => {
     const { carouselCards } = await import('./carousel');
     for (const direction of ['left', 'up'] as const) {
