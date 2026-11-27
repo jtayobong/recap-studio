@@ -127,3 +127,22 @@ test('export: fiesta shapes match the preview frame for frame, in both shapes (M
     }
   }
 });
+
+test('Encore scene: "One more thing…" with an optional reveal, black stage or story colours (M12.5)', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'New project' }).first().click();
+  await page.getByRole('dialog', { name: 'New project' }).getByRole('button', { name: 'Create project' }).click();
+  await expect(page).toHaveURL(/\/project\/[\w-]+$/);
+  await page.getByRole('button', { name: /^\+ Encore / }).click();
+  await expect(inspector(page).getByRole('heading', { name: 'Scene 1 · Encore' })).toBeVisible();
+  await expect(inspector(page).getByLabel('Look')).toHaveValue('stage');
+  await expect(inspector(page).getByLabel('First line')).toHaveValue('One more thing…');
+  await expect(inspector(page).getByLabel('Reveal (optional)')).toHaveValue('See you in 2027');
+  await inspector(page).getByLabel('Reveal (optional)').fill('We got a dog');
+  await inspector(page).getByLabel('Look').selectOption({ label: 'Story colours' });
+  await expect(page.getByRole('status').filter({ hasText: 'All changes saved' })).toBeVisible();
+  await page.reload();
+  await page.getByRole('list', { name: 'Scenes' }).getByRole('button').first().click();
+  await expect(inspector(page).getByLabel('Reveal (optional)')).toHaveValue('We got a dog');
+  await expect(inspector(page).getByLabel('Look')).toHaveValue('story');
+});

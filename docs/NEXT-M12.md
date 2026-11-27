@@ -102,6 +102,21 @@ unchanged. `npm run check`, `npm run test:e2e` and `npm run test:e2e:prod` pass.
   (`MixPlan.music.startMs`, read only from there) start, fade in and stop identically. The song
   plays from its own start point (*Start the song at*) at the moment the scene starts. Decision D40.
 
+## M12.5: Encore scene ("One more thing…")
+
+- The user asked for a scene like the famous keynote "one more thing" slide. It's an original
+  template named *Encore* (no company names or branding, as for Wrapped): `render/templates/encore.ts`,
+  offered before Outro.
+- Fields: *Look* (Black stage / Story colours), *First line* (default "One more thing…"), *Reveal*
+  (optional, default "See you in 2027") and *Small line* (optional).
+- Beats as shares of the scene (`ENCORE_BEATS`), so a shorter or longer scene keeps its rhythm: the
+  first line fades in (6–20 %), a trailing "…" or "..." is drawn as three dots appearing one by one
+  (22–38 %), then with a reveal the line fades out (48–56 %) and the reveal grows into place
+  (58–70 %), its small line after (70–80 %). Without a reveal the line holds to the end.
+- *Black stage* deliberately skips `fillBackground`: pure black with white text and no background
+  motion, which is what makes the moment. *Story colours* uses the palette (reveal in the primary
+  colour) and the story's background motion. Decision D41.
+
 ## Progress
 
 - Design record written (this file).

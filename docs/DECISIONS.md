@@ -362,3 +362,12 @@ rules stay in one module (`domain/music.ts`) that the preview and the export mix
 required. The field is optional, but the schema still went to v6 with a version-only migration: zod
 drops unknown keys, so without the bump an older app would open the project and silently lose the
 setting on its next save.
+
+### D41. Encore's black stage skips the background motion
+Templates start with `fillBackground` so the story's background motion runs behind every scene
+(invariant 4, D37). The Encore scene (M12.5, a "one more thing…" pause) has a *Black stage* look
+that fills plain black instead: the moment works because everything stops, and drifting shapes or
+the palette colour would undo that. It is an explicit per-scene choice (the default for this
+template); *Story colours* goes through `fillBackground` like every other template. Scene timing is
+in shares of the scene length rather than milliseconds, so the dots and the reveal keep their
+rhythm when the user shortens or lengthens the scene.

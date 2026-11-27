@@ -115,7 +115,7 @@ src/
                 media.ts (MediaResolver, cover/contain geometry, drawMedia), clipSound.ts (when clips are heard),
                 backdrop.ts (background motion layer, fillBackground, motionAmount),
                 templates/ (types, registry, title, section, text, bigNumber, topList, compare, photo, photoGrid,
-                carousel, textCarousel, outro, mediaLayout, soundFields, starters), testing/mockContext.ts
+                carousel, textCarousel, encore, outro, mediaLayout, soundFields, starters), testing/mockContext.ts
   preview/      playbackStore.ts, usePlaybackClock.ts, PreviewCanvas.tsx, PlaybackControls.tsx,
                 usePlaybackShortcuts.ts, PreviewMusic.tsx + musicSync.ts (music follows the playhead)
   components/   UI pieces (SceneStrip, SceneInspector, FieldEditor, TemplateGallery, SceneThumbnail,

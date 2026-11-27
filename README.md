@@ -225,6 +225,10 @@ One music track per story, in sync in the preview and mixed into the export.
 - **Add photos…** (carousel inspector): pick several photos or clips from the library, in the order
   they should appear, and they fill the next empty slots in one undoable step.
 - **Subtle background motion** also has a few single small dots drifting between the shapes.
+- **Encore** (M12.5): a dramatic pause before one last reveal. *One more thing…* fades in on a
+  black stage, its dots appearing one by one, then gives way to an optional reveal headline and
+  small line. *Look*: *Black stage* (pure black, white text, no background motion) or *Story
+  colours*. The timing scales with the scene's length.
 - **Music starts with** (M12.4): pick the scene the music starts with (see Music).
 - **Fiesta** (M12.3): five palettes in Filipino fiesta colours (*Banderitas*, *Parol Night*,
   *Sinag*, *Mango Ube*, *Jeepney*) and a *Background shapes* setting next to Background motion:

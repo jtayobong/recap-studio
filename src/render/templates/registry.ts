@@ -4,6 +4,7 @@ import { defaultFields } from '../fields';
 import { bigNumberTemplate } from './bigNumber';
 import { carouselTemplate } from './carousel';
 import { compareTemplate } from './compare';
+import { encoreTemplate } from './encore';
 import { outroTemplate } from './outro';
 import { photoTemplate } from './photo';
 import { photoGridTemplate } from './photoGrid';
@@ -26,6 +27,7 @@ export const TEMPLATES: readonly SceneTemplate[] = [
   photoGridTemplate,
   carouselTemplate,
   textCarouselTemplate,
+  encoreTemplate,
   outroTemplate,
 ];
 
