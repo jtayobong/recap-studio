@@ -72,6 +72,7 @@ reopening restores everything.
 | M10 | Text carousel, section divider, per-scene ducking controls (`docs/NEXT-M10.md`) | Both templates render and export in both shapes; clip-sound scenes set music level and clip volume | ✅ |
 | M11 | Background motion (story setting), Text scene, move-button and strip-height fixes (`docs/NEXT-M11.md`) | Motion exports like the preview in both shapes; old projects unchanged; Text scene renders bullets and paragraphs | ✅ |
 | M12 | Photo carousel: stop at each photo, photo fit, 12 slots, Add photos…; single dots in Subtle motion (`docs/NEXT-M12.md`) | Old carousels render as before; the new options work in the preview and export | ✅ |
+| M13 | Fiesta shapes: leaves, guitars, notes, jeepneys (`docs/NEXT-M13.md`) | Evenly see-through shapes in both shapes; export matches preview; Geometric unchanged | ✅ |
 
 M5 is the riskiest milestone. The spike (canvas animation → MP4 in a worker) wasn't done during M4;
 it is the first step of M5 (`docs/NEXT-M5.md`).

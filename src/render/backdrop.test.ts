@@ -91,19 +91,83 @@ describe('background motion', () => {
     const kinds = (shapes?: BackgroundShapes, level: 'subtle' | 'lively' = 'lively') =>
       new Set(backdropShapes(1080, 1920, 5000, theme(level, shapes)).map((s) => s.kind));
 
-    it('fiesta drifts parols, suns and stars instead of the geometric shapes', () => {
-      expect(kinds('fiesta')).toEqual(new Set(['parol', 'sun', 'star']));
-      expect(kinds('fiesta', 'subtle')).toEqual(new Set(['parol', 'sun', 'star', 'dot']));
+    const shapesAt = (level: 'subtle' | 'lively', ms: number, size: [number, number] = [1080, 1920]) =>
+      backdropShapes(size[0], size[1], ms, theme(level, 'fiesta'));
+    const count = (level: 'subtle' | 'lively', kind: string) => shapesAt(level, 0).filter((s) => s.kind === kind).length;
+
+    it('fiesta drifts leaves, guitars, notes, jeepneys and the sun (M13); leaves are the most common', () => {
+      expect(kinds('fiesta')).toEqual(new Set(['leaf', 'guitar', 'note', 'notes', 'jeepney', 'sun']));
+      expect(kinds('fiesta', 'subtle')).toEqual(new Set(['leaf', 'guitar', 'note', 'jeepney', 'sun']));
       expect(kinds('geometric')).toEqual(new Set(['disc', 'ring', 'square', 'dots']));
       expect(kinds(undefined)).toEqual(kinds('geometric')); // missing = geometric
+      expect(shapesAt('subtle', 0)).toHaveLength(9);
+      expect(shapesAt('lively', 0)).toHaveLength(16);
+      for (const level of ['subtle', 'lively'] as const) {
+        const leaves = count(level, 'leaf');
+        for (const other of ['guitar', 'jeepney', 'sun']) expect(leaves).toBeGreaterThan(count(level, other));
+        expect(leaves).toBeGreaterThan(count(level, 'note') + count(level, 'notes'));
+      }
+      // Light traffic: 2 jeepneys in Subtle, 3 in Lively.
+      expect(count('subtle', 'jeepney')).toBe(2);
+      expect(count('lively', 'jeepney')).toBe(3);
     });
 
-    it('the parol sways gently around upright', () => {
-      for (let t = 0; t < 60_000; t += 1700) {
-        for (const shape of backdropShapes(1080, 1920, t, theme('lively', 'fiesta'))) {
-          if (shape.kind === 'parol') expect(Math.abs(shape.rotation)).toBeLessThanOrEqual(0.14);
-        }
+    it('jeepneys drive sideways across the lower half, facing the way they go, in both directions', () => {
+      for (const size of [[1080, 1920], [1920, 1080]] as [number, number][]) {
+        const at = (ms: number) => shapesAt('lively', ms, size).filter((s) => s.kind === 'jeepney');
+        const before = at(10_000);
+        const after = at(10_000 + 1000 / 30);
+        expect(new Set(before.map((j) => j.flip))).toEqual(new Set([1, -1]));
+        before.forEach((jeep, i) => {
+          expect(jeep.rotation).toBe(0);
+          expect(jeep.y).toBeGreaterThan(size[1] * 0.5);
+          const dx = after[i]!.x - jeep.x;
+          if (Math.abs(dx) < 50) expect(Math.sign(dx)).toBe(jeep.flip); // ignore a wrap-round
+          expect(Math.abs(after[i]!.y - jeep.y)).toBeLessThan(5); // only a little bounce
+        });
       }
+    });
+
+    it('leaves fall, notes rise, the guitar sways around upright', () => {
+      const a = shapesAt('subtle', 20_000);
+      const b = shapesAt('subtle', 20_000 + 1000 / 30);
+      a.forEach((shape, i) => {
+        const dy = b[i]!.y - shape.y;
+        if (Math.abs(dy) > 50) return; // wrapped round
+        if (shape.kind === 'leaf') expect(dy).toBeGreaterThan(0);
+        if (shape.kind === 'note' || shape.kind === 'notes') expect(dy).toBeLessThan(0);
+        if (shape.kind === 'guitar') expect(Math.abs(shape.rotation)).toBeLessThanOrEqual(0.14);
+      });
+    });
+
+    it('Lively leaves and notes are two-toned, with varying colour pairs; Subtle ones are one colour', () => {
+      const palette = getPalette('neon-pulse');
+      const all = [palette.primary, palette.accent, palette.text];
+      const lively = shapesAt('lively', 0).filter((s) => s.kind === 'leaf' || s.kind === 'note' || s.kind === 'notes');
+      for (const shape of lively) {
+        expect(all).toContain(shape.color2);
+        expect(shape.color2).not.toBe(shape.color);
+      }
+      expect(new Set(lively.map((s) => `${s.color}/${s.color2}`)).size).toBeGreaterThan(2);
+      for (const shape of shapesAt('subtle', 0)) expect(shape.color2).toBeUndefined();
+      expect(shapesAt('lively', 0).filter((s) => s.kind === 'guitar' || s.kind === 'jeepney').every((s) => s.color2 === undefined)).toBe(true);
+    });
+
+    it('each one-colour fiesta shape is filled once, so it is evenly see-through (no darker overlaps)', () => {
+      // Subtle: every fiesta shape is one colour, so one fill each.
+      const { ctx, calls } = createMockContext();
+      fillBackground(ctx, frame, theme('subtle', 'fiesta'));
+      const fills = calls.filter((c) => c.method === 'fill');
+      const strings = garlandFlags(garlandStrings(1080, 1920, theme('subtle', 'fiesta'))[0]!, 1080, 1920, frame.storyMs, theme('subtle', 'fiesta')).length;
+      expect(fills).toHaveLength(9 + strings);
+      expect(fills.slice(0, 9).every((c) => c.args[0] === 'nonzero')).toBe(true);
+      // Lively: two-tone shapes use exactly two fills, one per colour, the second one clipped.
+      const lively = createMockContext();
+      fillBackground(lively.ctx, frame, theme('lively', 'fiesta'));
+      const twoTone = shapesAt('lively', frame.storyMs).filter((s) => s.color2).length;
+      expect(lively.calls.filter((c) => c.method === 'fill' && c.args[0] === 'nonzero')).toHaveLength(16 + twoTone);
+      // One clip per note, two per leaf (one per half), plus fillBackground's own clip to its rect.
+      expect(lively.calls.filter((c) => c.method === 'clip')).toHaveLength(twoTone + count('lively', 'leaf') + 1);
     });
 
     it('strings of banderitas run along the top edge: 1 for Subtle, 2 for Lively, none for Geometric or Off', () => {

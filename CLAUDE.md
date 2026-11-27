@@ -5,6 +5,7 @@ Deeper context lives in `docs/`:
 
 - `docs/PLAN.md`: the product plan, architecture and milestone roadmap (with status)
 - `docs/DECISIONS.md`: why things are the way they are; read before changing a core choice
+- `docs/NEXT-M13.md`: the M13 design record (new Fiesta shapes: leaves, guitars, notes, jeepneys)
 - `docs/NEXT-M12.md`: the M12 design record (photo carousel upgrades, background dots)
 - `docs/NEXT-M11.md`: the M11 design record (background motion, text scene, strip fixes)
 - `docs/NEXT-M10.md`: the M10 design record (text carousel, section divider, ducking controls)
@@ -44,6 +45,7 @@ templates or sample content.
 | M10 Text carousel, section divider, ducking controls | ✅ done |
 | M11 Background motion, Text scene, strip fixes | ✅ done |
 | M12 Photo carousel upgrades, background dots (M12.1–12.3: grid zoom switch, centred strip, fiesta palettes and shapes) | ✅ done |
+| M13 Fiesta shapes: leaves, guitars, notes, jeepneys | ✅ done |
 
 The original roadmap is complete, and so are landscape output, the desktop app and 60 fps export
 (records in `docs/NEXT-M9.md`, which also lists the remaining candidates).

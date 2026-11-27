@@ -236,8 +236,10 @@ One music track per story, in sync in the preview and mixed into the export.
 - **Music starts with** (M12.4): pick the scene the music starts with (see Music).
 - **Fiesta** (M12.3): five palettes in Filipino fiesta colours (*Banderitas*, *Parol Night*,
   *Sinag*, *Mango Ube*, *Jeepney*) and a *Background shapes* setting next to Background motion:
-  *Geometric* (as before) or *Fiesta* (parol stars, suns and stars drifting, and since M12.7 soft
-  strings of banderitas running along the top edge: one for Subtle, two for Lively). Older
+  *Geometric* (as before) or *Fiesta*: since M13 falling tropical leaves, swaying guitars, rising
+  music notes, jeepneys driving across the lower half and a turning sun (in Lively the leaves and
+  notes are two-toned), plus soft strings of banderitas along the top edge (M12.7: one for Subtle,
+  two for Lively). Older
   projects keep the geometric shapes.
 - **No title, centred strip** (M12.2): a photo or text carousel without a title centres its cards
   in the frame.
