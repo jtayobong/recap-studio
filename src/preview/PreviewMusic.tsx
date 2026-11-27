@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { assetRepository } from '../db';
-import { duckGain } from '../domain/music';
+import { duckGain, musicStartMs } from '../domain/music';
 import { projectDurationMs } from '../domain/project';
 import { mediaCache } from '../media';
 import { soundSegments } from '../render/clipSound';
@@ -34,6 +34,7 @@ export function PreviewMusic() {
         track,
         songMs,
         storyMs: project ? projectDurationMs(project) : 0,
+        startMs: track && project ? musicStartMs(track, project.scenes) : 0,
         timeMs,
         playing,
         muted,

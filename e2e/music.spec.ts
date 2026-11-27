@@ -22,6 +22,31 @@ async function projectWithLibrary(page: Page, name: string) {
   await expect(library(page).getByRole('listitem')).toHaveCount(2);
 }
 
+test('the music can start with a later scene; deleting that scene starts it with the story again (M12.4)', async ({ page }) => {
+  await projectWithLibrary(page, 'Music start scene');
+  await songSlot(page).getByRole('button', { name: 'Choose…' }).click();
+  await page.getByRole('dialog', { name: 'Choose song' }).getByRole('button', { name: 'anthem.wav' }).click();
+
+  const startsWith = music(page).getByLabel('Music starts with');
+  await expect(startsWith.locator('option')).toHaveText(['Scene 1 · Title (story start)', 'Scene 2 · Big Number']);
+  await expect(startsWith).toHaveValue('');
+  await startsWith.selectOption({ label: 'Scene 2 · Big Number' });
+  await expect(music(page)).toContainText('Silent until 0:04, then plays 0:00–0:05 of the song to the end of the story.');
+
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(startsWith).toHaveValue('');
+  await page.getByRole('button', { name: 'Redo' }).click();
+  await expect(music(page)).toContainText('Silent until 0:04');
+
+  // Delete scene 2: the music starts with the story again.
+  const chips = page.getByRole('list', { name: 'Scenes' }).getByRole('button');
+  await chips.nth(1).click();
+  await inspector(page).getByRole('button', { name: 'Delete' }).click();
+  await page.keyboard.press('Escape');
+  await expect(music(page).getByLabel('Music starts with')).toHaveValue('');
+  await expect(music(page)).toContainText('for the whole story.');
+});
+
 test('choose a song, set start point, volume and fades; undo; reload; delete', async ({ page }) => {
   await projectWithLibrary(page, 'Music test');
   await expect(songSlot(page)).toContainText('Empty');

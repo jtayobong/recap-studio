@@ -1,38 +1,57 @@
-import { MUSIC_FADE_IN_MS, MUSIC_FADE_OUT_MS, type AudioTrack } from './project';
+import { MUSIC_FADE_IN_MS, MUSIC_FADE_OUT_MS, type AudioTrack, type Scene } from './project';
 
 /**
  * How the story's music plays, as pure functions of story time. The preview (an <audio> element)
  * and the export (mixed samples) both use these, so they start, stop and fade identically.
  *
- * Rules (M6 decisions, D26): the music starts with the story at `offsetMs` into the song and plays
+ * Rules (M6 decisions, D26): the music starts at `startMs` in the story (the story start, or the
+ * start of the scene picked in M12.4, see `musicStartMs`) at `offsetMs` into the song and plays
  * once; it stops when the song or the story ends, whichever is first. Fade in ramps up over the
- * first MUSIC_FADE_IN_MS of the story; fade out ramps down over the last MUSIC_FADE_OUT_MS before
- * the music stops.
+ * first MUSIC_FADE_IN_MS after the music starts; fade out ramps down over the last
+ * MUSIC_FADE_OUT_MS before it stops.
  */
 
-/** Position in the song (ms) heard at `storyTimeMs`. */
-export function songTimeMs(track: Pick<AudioTrack, 'offsetMs'>, storyTimeMs: number): number {
-  return track.offsetMs + storyTimeMs;
+/**
+ * Story time (ms) at which the music starts: the start of the scene `track.startSceneId`, or 0
+ * when it isn't set or that scene no longer exists.
+ */
+export function musicStartMs(track: Pick<AudioTrack, 'startSceneId'>, scenes: readonly Pick<Scene, 'id' | 'durationMs'>[]): number {
+  if (!track.startSceneId) return 0;
+  let cursor = 0;
+  for (const scene of scenes) {
+    if (scene.id === track.startSceneId) return cursor;
+    cursor += scene.durationMs;
+  }
+  return 0;
 }
 
-/** Story time (ms) at which the music stops. 0 if the start point is at or past the song's end. */
-export function musicEndMs(track: Pick<AudioTrack, 'offsetMs'>, storyMs: number, songMs: number): number {
-  return Math.max(0, Math.min(storyMs, songMs - track.offsetMs));
+/** Position in the song (ms) heard at `storyTimeMs` (music starting at story time `startMs`). */
+export function songTimeMs(track: Pick<AudioTrack, 'offsetMs'>, storyTimeMs: number, startMs = 0): number {
+  return track.offsetMs + storyTimeMs - startMs;
+}
+
+/**
+ * Story time (ms) at which the music stops. Equal to `startMs` (no music) if the song's start
+ * point is at or past its end, or the music would start after the story ends.
+ */
+export function musicEndMs(track: Pick<AudioTrack, 'offsetMs'>, storyMs: number, songMs: number, startMs = 0): number {
+  return Math.max(startMs, Math.min(storyMs, startMs + songMs - track.offsetMs));
 }
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 
-/** Linear gain (0–1) at story time `storyTimeMs`: volume × fade in × fade out. */
+/** Linear gain (0–1) at story time `storyTimeMs`: volume × fade in × fade out (0 outside the music). */
 export function musicGain(
   track: Pick<AudioTrack, 'offsetMs' | 'volume' | 'fadeIn' | 'fadeOut'>,
   storyTimeMs: number,
   storyMs: number,
   songMs: number,
+  startMs = 0,
 ): number {
-  const endMs = musicEndMs(track, storyMs, songMs);
-  if (storyTimeMs < 0 || storyTimeMs >= endMs) return 0;
+  const endMs = musicEndMs(track, storyMs, songMs, startMs);
+  if (storyTimeMs < startMs || storyTimeMs >= endMs) return 0;
   let gain = track.volume;
-  if (track.fadeIn) gain *= clamp01(storyTimeMs / MUSIC_FADE_IN_MS);
+  if (track.fadeIn) gain *= clamp01((storyTimeMs - startMs) / MUSIC_FADE_IN_MS);
   if (track.fadeOut) gain *= clamp01((endMs - storyTimeMs) / MUSIC_FADE_OUT_MS);
   return gain;
 }

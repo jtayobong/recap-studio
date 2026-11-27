@@ -34,6 +34,16 @@ describe('mixAudio', () => {
     expect(music.consumed).toBe(250);
   });
 
+  it('starts the music at its start time, reading the song from there (M12.4)', async () => {
+    const music = constantReader(1);
+    const { left } = await collect({ rate: 1000, endMs: 400, music: { reader: music, startMs: 150, endMs: 400, gain: () => 1 }, clips: [] });
+    expect(left).toHaveLength(400);
+    expect(left[149]).toBe(0);
+    expect(left[150]).toBe(1);
+    expect(left[399]).toBe(1);
+    expect(music.consumed).toBe(250); // only the part that is heard
+  });
+
   it('places clips at their story time, reading them from their own start, with edge fades', async () => {
     const clip = constantReader(0.8);
     const { left } = await collect({ rate: 1000, endMs: 400, clips: [{ reader: clip, startMs: 100, endMs: 300, volume: 1 }] });

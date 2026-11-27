@@ -76,7 +76,8 @@ async function openAudio(file: Blob): Promise<{ input: Input; sink: AudioSampleS
 
 export interface AudioMixInput {
   storyMs: number;
-  music?: { file: Blob; track: AudioTrack };
+  /** The music file and settings; `startMs` is where in the story it starts (`musicStartMs`). */
+  music?: { file: Blob; track: AudioTrack; startMs: number };
   /** Clips with "Keep clip sound", from `soundSegments` (already limited to the story). */
   clips: { file: Blob; segment: SoundSegment }[];
 }
@@ -104,16 +105,17 @@ export async function openAudioMix(input: AudioMixInput): Promise<OpenedMix> {
       const audio = await openAudio(input.music.file);
       if (!audio) throw new Error('the file has no audio track');
       opened.push(audio.input);
-      const { track } = input.music;
-      const endMs = musicEndMs(track, input.storyMs, audio.durationMs);
-      if (endMs <= 0) {
+      const { track, startMs } = input.music;
+      const endMs = musicEndMs(track, input.storyMs, audio.durationMs, startMs);
+      if (endMs <= startMs) {
         musicNote = 'The song’s start point is past its end, so the video has no music.';
       } else {
         const songMs = audio.durationMs;
         plan.music = {
           reader: new DecodedReader(audio.sink, track.offsetMs / 1000),
+          startMs,
           endMs,
-          gain: (t) => musicGain(track, t, input.storyMs, songMs) * duckGain(t, segments),
+          gain: (t) => musicGain(track, t, input.storyMs, songMs, startMs) * duckGain(t, segments),
         };
         plan.endMs = Math.max(plan.endMs, endMs);
       }

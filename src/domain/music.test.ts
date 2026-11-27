@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { duckGain, DUCK_LEVEL, DUCK_RAMP_MS, musicEndMs, musicGain, songTimeMs } from './music';
+import { duckGain, DUCK_LEVEL, DUCK_RAMP_MS, musicEndMs, musicGain, musicStartMs, songTimeMs } from './music';
 import { defaultAudioTrack, MUSIC_FADE_IN_MS, MUSIC_FADE_OUT_MS } from './project';
 
 const track = (overrides = {}) => ({ ...defaultAudioTrack('song'), ...overrides });
@@ -70,5 +70,36 @@ describe('duckGain', () => {
 
   it('overlapping segments duck once, not twice', () => {
     expect(duckGain(6000, [...segments, { assetId: 'b', startMs: 5500, endMs: 7000, duckLevel: DUCK_LEVEL, volume: 1 }])).toBeCloseTo(DUCK_LEVEL);
+  });
+});
+
+describe('music starting at a later scene (M12.4)', () => {
+  const scenes = [
+    { id: 'a', durationMs: 3000 },
+    { id: 'b', durationMs: 4000 },
+    { id: 'c', durationMs: 5000 },
+  ];
+
+  it('starts at the chosen scene, or the story start when unset or the scene is gone', () => {
+    expect(musicStartMs(track(), scenes)).toBe(0);
+    expect(musicStartMs(track({ startSceneId: 'a' }), scenes)).toBe(0);
+    expect(musicStartMs(track({ startSceneId: 'c' }), scenes)).toBe(7000);
+    expect(musicStartMs(track({ startSceneId: 'deleted' }), scenes)).toBe(0);
+  });
+
+  it('plays the song from its start point at that moment, silent before it', () => {
+    const t = track({ offsetMs: 45_000, fadeOut: false });
+    expect(songTimeMs(t, 9000, 7000)).toBe(47_000);
+    expect(musicGain(t, 6999, 12_000, 180_000, 7000)).toBe(0);
+    expect(musicGain(t, 7000, 12_000, 180_000, 7000)).toBe(1);
+    expect(musicEndMs(t, 12_000, 180_000, 7000)).toBe(12_000);
+  });
+
+  it('fades in from where it starts, and stops when the song runs out', () => {
+    const t = track({ fadeIn: true, fadeOut: false });
+    expect(musicGain(t, 7000 + MUSIC_FADE_IN_MS / 2, 60_000, 180_000, 7000)).toBeCloseTo(0.5);
+    expect(musicGain(t, 7000 + MUSIC_FADE_IN_MS, 60_000, 180_000, 7000)).toBe(1);
+    expect(musicEndMs(track(), 60_000, 10_000, 7000)).toBe(17_000); // a 10 s song started at 7 s
+    expect(musicEndMs(track({ offsetMs: 20_000 }), 60_000, 10_000, 7000)).toBe(7000); // nothing left to play
   });
 });

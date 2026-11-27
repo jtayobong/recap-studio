@@ -119,9 +119,24 @@ describe('real migrations', () => {
   it('v4 → v5: existing projects keep the geometric shapes (and their motion level); nothing else changes', async () => {
     const v4 = (await import('./fixtures/project-v4.json')).default as Record<string, unknown>;
     const migrated = migrateProject(structuredClone(v4));
-    expect(migrated.schemaVersion).toBe(5);
+    expect(migrated.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
     expect(migrated.style).toEqual({ paletteId: 'citrus-pop', fontPairId: 'heavy-grotesk', backgroundMotion: 'lively', backgroundShapes: 'geometric' });
     expect({ ...migrated, schemaVersion: 4, style: v4.style }).toEqual(v4);
+  });
+
+  it('v5 → v6: only the version changes; the music still starts with the story', async () => {
+    const v5 = (await import('./fixtures/project-v5.json')).default as Record<string, unknown>;
+    const migrated = migrateProject(structuredClone(v5));
+    expect(migrated.schemaVersion).toBe(6);
+    expect(migrated.audio).not.toHaveProperty('startSceneId');
+    expect({ ...migrated, schemaVersion: 5 }).toEqual(v5);
+  });
+
+  it('v6 keeps the scene the music starts with', () => {
+    const project = createProject({ name: 'M' }, { now: 1, id: 'p' });
+    const scene = { id: 's', templateId: 'title', durationMs: 3000, fields: {}, transitionIn: 'cut' };
+    const audio = { assetId: 'a', offsetMs: 0, volume: 1, fadeIn: false, fadeOut: true, startSceneId: 's' };
+    expect(migrateProject({ ...project, scenes: [scene], audio }).audio?.startSceneId).toBe('s');
   });
 
   it('new projects start with geometric shapes; fiesta can be chosen', () => {

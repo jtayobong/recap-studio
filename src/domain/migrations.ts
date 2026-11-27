@@ -40,6 +40,12 @@ export const MIGRATIONS: Readonly<Record<number, Migration>> = {
     if (isPlainObject(raw.style)) next.style = { ...raw.style, backgroundShapes: 'geometric' };
     return next;
   },
+  /**
+   * v5 → v6 (M12.4): the music can start at a later scene (`audio.startSceneId`, optional). No data
+   * changes: without it the music starts with the story as before. The bump makes an older app say
+   * "saved by a newer version" instead of silently dropping the setting.
+   */
+  5: (raw) => ({ ...raw, schemaVersion: 6 }),
 };
 
 export class ProjectDataError extends Error {

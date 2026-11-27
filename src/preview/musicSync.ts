@@ -16,6 +16,8 @@ export interface MusicSyncState {
   /** Song length (ms) once the file is loaded; undefined while loading or missing. */
   songMs: number | undefined;
   storyMs: number;
+  /** Story time at which the music starts (`musicStartMs`); 0 when omitted. */
+  startMs?: number;
   timeMs: number;
   playing: boolean;
   muted: boolean;
@@ -30,21 +32,22 @@ const START_TOLERANCE_S = 0.05;
 
 /**
  * Steer the preview's audio element to match playback: silent and paused unless the preview is
- * playing within the music's span; when starting, jump to the right place in the song; while
+ * playing within the music's span (from the scene it starts with to its end); when starting, jump to the right place in the song; while
  * playing, leave it alone unless it drifts; volume follows the fade envelope every frame.
  */
 export function syncMusic(audio: AudioLike, state: MusicSyncState): void {
   audio.muted = state.muted;
   const { track, songMs } = state;
-  const endMs = track && songMs !== undefined ? musicEndMs(track, state.storyMs, songMs) : 0;
-  const active = track !== undefined && songMs !== undefined && state.playing && state.timeMs < endMs;
+  const startMs = state.startMs ?? 0;
+  const endMs = track && songMs !== undefined ? musicEndMs(track, state.storyMs, songMs, startMs) : 0;
+  const active = track !== undefined && songMs !== undefined && state.playing && state.timeMs >= startMs && state.timeMs < endMs;
   if (!active) {
     if (!audio.paused) audio.pause();
     return;
   }
 
-  const target = songTimeMs(track, state.timeMs) / 1000;
-  audio.volume = musicGain(track, state.timeMs, state.storyMs, songMs) * (state.duck ?? 1);
+  const target = songTimeMs(track, state.timeMs, startMs) / 1000;
+  audio.volume = musicGain(track, state.timeMs, state.storyMs, songMs, startMs) * (state.duck ?? 1);
   if (audio.paused) {
     if (Math.abs(audio.currentTime - target) > START_TOLERANCE_S) audio.currentTime = target;
     // Rejections (autoplay policy, element torn down) leave the preview silent, not broken.

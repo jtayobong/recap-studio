@@ -16,8 +16,11 @@ export interface MixPlan {
   rate: number;
   /** Length of the audio in story ms (the mix ends when the last source does). */
   endMs: number;
-  /** Music: heard from story 0 to `endMs`, with a per-time gain (volume × fades × duck). */
-  music?: { reader: PcmReader; endMs: number; gain: (storyMs: number) => number };
+  /**
+   * Music: heard from `startMs` (the scene it starts with; 0 = the story start) to `endMs`, its
+   * reader starting at the song's start point there, with a per-time gain (volume × fades × duck).
+   */
+  music?: { reader: PcmReader; startMs?: number; endMs: number; gain: (storyMs: number) => number };
   /**
    * Clips with sound: each heard from `startMs` to `endMs` (its reader starts at clip time 0), at
    * `volume` (0–1, the scene's "Clip volume").
@@ -40,6 +43,7 @@ export async function* mixAudio(plan: MixPlan, blockFrames = MIX_BLOCK_FRAMES): 
   const { rate } = plan;
   const toFrame = (ms: number) => Math.round((ms * rate) / 1000);
   const total = toFrame(plan.endMs);
+  const musicStart = plan.music ? toFrame(plan.music.startMs ?? 0) : 0;
   const musicEnd = plan.music ? Math.min(total, toFrame(plan.music.endMs)) : 0;
   const clips = plan.clips.map((clip) => ({ ...clip, startFrame: toFrame(clip.startMs), endFrame: Math.min(total, toFrame(clip.endMs)) }));
 
@@ -47,13 +51,14 @@ export async function* mixAudio(plan: MixPlan, blockFrames = MIX_BLOCK_FRAMES): 
     const frames = Math.min(blockFrames, total - start);
     const out: Stereo = [new Float32Array(frames), new Float32Array(frames)];
 
-    if (plan.music && start < musicEnd) {
-      const count = Math.min(frames, musicEnd - start);
-      const [left, right] = await plan.music.reader.read(count);
-      for (let i = 0; i < count; i += 1) {
-        const gain = plan.music.gain(((start + i) * 1000) / rate);
-        out[0][i]! += left[i]! * gain;
-        out[1][i]! += right[i]! * gain;
+    const musicFrom = Math.max(start, musicStart);
+    const musicTo = Math.min(start + frames, musicEnd);
+    if (plan.music && musicFrom < musicTo) {
+      const [left, right] = await plan.music.reader.read(musicTo - musicFrom);
+      for (let f = musicFrom; f < musicTo; f += 1) {
+        const gain = plan.music.gain((f * 1000) / rate);
+        out[0][f - start]! += left[f - musicFrom]! * gain;
+        out[1][f - start]! += right[f - musicFrom]! * gain;
       }
     }
 

@@ -371,10 +371,14 @@ async function storyWithMusic(page: Page, song: Buffer, settings: Record<string,
       const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
       const project = await m.db.projectRepository.create({ name: 'With music' });
       const asset = await m.media.importer.importFile(new File([bytes], 'song.wav'), project.id);
+      const scenes = m.registry.createStarterScenes();
+      // `startScene: n` (test-only shorthand) starts the music with scene n (0-based).
+      const { startScene, ...rest } = settings as { startScene?: number };
+      const startSceneId = startScene === undefined ? undefined : scenes[startScene]!.id;
       await m.db.projectRepository.save({
         ...project,
-        scenes: m.registry.createStarterScenes(),
-        audio: { assetId: asset.id, offsetMs: 0, volume: 1, fadeIn: false, fadeOut: true, ...settings },
+        scenes,
+        audio: { assetId: asset.id, offsetMs: 0, volume: 1, fadeIn: false, fadeOut: true, ...rest, ...(startSceneId ? { startSceneId } : {}) },
       });
       return project.id;
     },
@@ -430,6 +434,25 @@ test('the music is mixed into the export: start point, volume, a timing marker a
   // The video is unchanged by adding music.
   expect(result.videoDurationS).toBeCloseTo(8.5, 1);
   expect(result.frameDiff).toBeLessThan(4);
+});
+
+test('music that starts with scene 2 is silent until then and plays the song from its start point (M12.4)', { tag: '@dev' }, async ({ page }) => {
+  // Title 3.5 s + Big Number 5 s. A 12 s tone with a silent gap at 1–2 s of the song, starting with
+  // scene 2 (3.5 s): silent for 0–3.5 s, the gap at 4.5–5.5 s of the story, then the tone again.
+  const projectId = await storyWithMusic(page, makeWav(12_000, 440, 44_100, [[1000, 2000]]), { startScene: 1, fadeOut: false });
+  const result = await exportAndMeasure(page, projectId, [
+    [0.2, 3.3], // before the music starts
+    [3.7, 4.3], // music
+    [4.7, 5.3], // the gap, 1 s after the music started
+    [6.0, 8.0], // music again
+  ]);
+  expect(result.music).toEqual({ included: true });
+  const [before, start, gap, after] = result.audio!.rms;
+  expect(before).toBeLessThan(0.001);
+  expect(start).toBeGreaterThan(0.3);
+  expect(gap).toBeLessThan(0.01);
+  expect(after).toBeGreaterThan(0.3);
+  expect(result.videoDurationS).toBeCloseTo(8.5, 1);
 });
 
 test('a song that ends before the story stops early (with fade); WebM gets Opus; fade-in starts silent', { tag: '@dev' }, async ({ page }) => {

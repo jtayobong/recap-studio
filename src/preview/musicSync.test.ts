@@ -109,3 +109,14 @@ describe('syncMusic ducking', () => {
     expect(audio.volume).toBeCloseTo(0.3);
   });
 });
+
+describe('syncMusic with a later start scene (M12.4)', () => {
+  it('stays silent before the music starts, then starts at the song start point', () => {
+    const audio = fakeAudio();
+    syncMusic(audio, state({ startMs: 5_000, timeMs: 4_000 }));
+    expect(audio.paused).toBe(true);
+    syncMusic(audio, state({ startMs: 5_000, timeMs: 6_000 }));
+    expect(audio.paused).toBe(false);
+    expect(audio.seeks).toEqual([46]); // 45 s into the song + 1 s since the music started
+  });
+});

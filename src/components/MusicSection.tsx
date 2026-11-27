@@ -2,10 +2,12 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useId, type KeyboardEvent } from 'react';
 import { assetRepository } from '../db';
 import type { Asset } from '../domain/asset';
-import { MUSIC_FADE_IN_MS, MUSIC_FADE_OUT_MS, projectDurationMs, type AudioTrack, type Project } from '../domain/project';
+import { musicStartMs } from '../domain/music';
+import { MUSIC_FADE_IN_MS, MUSIC_FADE_OUT_MS, projectDurationMs, type AudioTrack, type Project, type Scene } from '../domain/project';
 import { clearMusic, setMusic, updateMusic } from '../editor/musicActions';
 import { formatDuration } from '../lib/format';
 import type { MediaField } from '../render/fields';
+import { getTemplate } from '../render/templates/registry';
 import { MediaSlotField } from './MediaSlotField';
 
 const SONG_FIELD: MediaField = { kind: 'media', label: 'Song', default: '', accept: ['audio'] };
@@ -36,13 +38,22 @@ export function MusicSection({ project }: { project: Project }) {
         projectId={project.id}
         onChange={(assetId) => (assetId ? setMusic(assetId) : clearMusic())}
       />
-      {track && song?.kind === 'audio' && <MusicSettings track={track} song={song} storyMs={projectDurationMs(project)} />}
+      {track && song?.kind === 'audio' && <MusicSettings track={track} song={song} storyMs={projectDurationMs(project)} scenes={project.scenes} />}
     </section>
   );
 }
 
-function MusicSettings({ track, song, storyMs }: { track: AudioTrack; song: Asset; storyMs: number }) {
+/** "Scene 3 · Photo carousel" */
+const sceneLabel = (scene: Scene, index: number) => `Scene ${index + 1} · ${getTemplate(scene.templateId)?.name ?? scene.templateId}`;
+
+function MusicSettings({ track, song, storyMs, scenes }: { track: AudioTrack; song: Asset; storyMs: number; scenes: readonly Scene[] }) {
   const startId = useId();
+  const sceneId = useId();
+  // Where in the story the music starts (a missing scene means the story start).
+  const musicStart = musicStartMs(track, scenes);
+  // The first scene is the story start (''); a deleted scene also falls back to it.
+  const startScene = scenes.slice(1).some((s) => s.id === track.startSceneId) ? (track.startSceneId ?? '') : '';
+  const playMs = Math.max(0, storyMs - musicStart);
   const volumeId = useId();
   const songMs = song.durationMs ?? 0;
   // Leave at least a second of song to play.
@@ -51,13 +62,30 @@ function MusicSettings({ track, song, storyMs }: { track: AudioTrack; song: Asse
   const remainingMs = Math.max(0, songMs - startMs);
   const volumePercent = Math.round(track.volume * 100);
 
+  const span = `${formatDuration(startMs)}–${formatDuration(startMs + playMs)}`;
   const summary =
-    remainingMs >= storyMs
-      ? `Plays ${formatDuration(startMs)}–${formatDuration(startMs + storyMs)} of the song, for the whole story.`
-      : `The song ends ${formatDuration(remainingMs)} into the story; after that it’s silent.`;
+    remainingMs < playMs
+      ? `The song ends ${formatDuration(musicStart + remainingMs)} into the story; after that it’s silent.`
+      : musicStart > 0
+        ? `Silent until ${formatDuration(musicStart)}, then plays ${span} of the song to the end of the story.`
+        : `Plays ${span} of the song, for the whole story.`;
 
   return (
     <div className="music-settings">
+      <div className="field">
+        <label className="field__label" htmlFor={sceneId}>
+          Music starts with
+        </label>
+        <select id={sceneId} value={startScene} onChange={(event) => updateMusic({ startSceneId: event.target.value })}>
+          {scenes.map((scene, index) => (
+            <option key={scene.id} value={index === 0 ? '' : scene.id}>
+              {index === 0 ? `${sceneLabel(scene, index)} (story start)` : sceneLabel(scene, index)}
+            </option>
+          ))}
+          {scenes.length === 0 && <option value="">The story start</option>}
+        </select>
+      </div>
+
       <div className="field">
         <div className="field__row">
           <label className="field__label" htmlFor={startId}>

@@ -168,8 +168,10 @@ One music track per story, in sync in the preview and mixed into the export.
 
 - **Music** (project panel, with no scene selected): choose a song from the library, drag one onto
   the slot, or drop a file. Set where in the song it starts, the volume, and whether it fades in
-  (1 s) and out at the end (1.5 s). It starts with the story and plays once; if it ends early,
-  the rest is silent. All of this is undoable.
+  (1 s) and out at the end (1.5 s). It starts with the story, or with a later scene (**Music
+  starts with**, M12.4), and plays once; if it ends early, the rest is silent. The music follows
+  its scene when scenes are reordered; if that scene is deleted, it starts with the story again.
+  All of this is undoable.
 - **In the preview** the music plays along with the playhead (jumping to the right place when you
   seek), with its volume and fades. **🔊 / M** mutes the preview's sound (music and clips) only.
 - **Keep clip sound** (M8, on Photo / Video, Photo grid and carousel scenes): the clip's own sound
@@ -223,6 +225,7 @@ One music track per story, in sync in the preview and mixed into the export.
 - **Add photos…** (carousel inspector): pick several photos or clips from the library, in the order
   they should appear, and they fill the next empty slots in one undoable step.
 - **Subtle background motion** also has a few single small dots drifting between the shapes.
+- **Music starts with** (M12.4): pick the scene the music starts with (see Music).
 - **Fiesta** (M12.3): five palettes in Filipino fiesta colours (*Banderitas*, *Parol Night*,
   *Sinag*, *Mango Ube*, *Jeepney*) and a *Background shapes* setting next to Background motion:
   *Geometric* (as before) or *Fiesta* (banderitas, parol stars, suns and stars). Older projects

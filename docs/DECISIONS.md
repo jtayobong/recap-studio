@@ -350,3 +350,15 @@ sets `geometric`, so old projects render exactly as before, and new projects als
 Geometric. The fiesta shapes reuse the same drift, counts, levels and single dots (`render/backdrop.ts`
 picks the shape kind per index), so only the look changes, not how busy the background is; the
 hanging ones (banderitas, parol) sway around upright instead of spinning, as real ones would.
+
+### D40. The music can start with a chosen scene, referenced by id (schema v6)
+The user asked to choose the scene where the background music starts (M12.4). The track stores
+`startSceneId` rather than a time or a scene index, so the music follows its scene when scenes are
+reordered or earlier ones change length, the way a user thinks of it ("the music comes in with the
+Big Number"). A scene that no longer exists (deleted) means the story start, decided at read time in
+`musicStartMs`, so deleting a scene needs no extra bookkeeping and undo restores both together. The
+song still plays from its own start point (`offsetMs`) at that moment, and fade in starts there. The
+rules stay in one module (`domain/music.ts`) that the preview and the export mix both call, as D26
+required. The field is optional, but the schema still went to v6 with a version-only migration: zod
+drops unknown keys, so without the bump an older app would open the project and silently lose the
+setting on its next save.

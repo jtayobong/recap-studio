@@ -1,4 +1,5 @@
 /// <reference lib="webworker" />
+import { musicStartMs } from '../domain/music';
 import { encodeStory, type EncodeOptions, type EncodeResult } from './encodeStory';
 import type { AudioTrack } from '../domain/project';
 import { getSceneSpans, totalDurationMs } from '../render/timeline';
@@ -87,7 +88,7 @@ scope.onmessage = async (event: MessageEvent<ExportRequest>) => {
       if (!(await canEncodeAudioCodec(audioCodec))) {
         musicNote = `This browser can't encode ${audioCodec.toUpperCase()} audio, so the video has no sound.`;
       } else {
-        mix = await openAudioMix({ storyMs, music: wantsMusic ? { file: musicFile!.file, track: track! } : undefined, clips });
+        mix = await openAudioMix({ storyMs, music: wantsMusic ? { file: musicFile!.file, track: track!, startMs: musicStartMs(track!, encodeOptions.project.scenes) } : undefined, clips });
         musicNote ??= mix.musicNote;
       }
     }

@@ -13,6 +13,25 @@ beforeEach(() => {
 });
 
 describe('music actions', () => {
+  it('sets the scene the music starts with, and clears it with an empty value or an unknown scene (M12.4)', () => {
+    const project = useEditorStore.getState().project!;
+    const scenes = [
+      { id: 's1', templateId: 'title', durationMs: 3000, fields: {}, transitionIn: 'cut' as const },
+      { id: 's2', templateId: 'title', durationMs: 3000, fields: {}, transitionIn: 'cut' as const },
+    ];
+    useEditorStore.setState({ project: { ...project, scenes } });
+    setMusic('song-a');
+    updateMusic({ startSceneId: 's2' });
+    expect(audio()?.startSceneId).toBe('s2');
+    undo();
+    expect(audio()?.startSceneId).toBeUndefined();
+    updateMusic({ startSceneId: 's2' });
+    updateMusic({ startSceneId: '' });
+    expect(audio()).not.toHaveProperty('startSceneId');
+    updateMusic({ startSceneId: 'nope' });
+    expect(audio()).not.toHaveProperty('startSceneId');
+  });
+
   it('adds a track with defaults: start of the song, full volume, fade out only', () => {
     setMusic('song-a');
     expect(audio()).toEqual({ assetId: 'song-a', offsetMs: 0, volume: 1, fadeIn: false, fadeOut: true });

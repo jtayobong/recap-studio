@@ -9,7 +9,7 @@ import { DEFAULT_FONT_PAIR_ID, DEFAULT_PALETTE_ID } from './stylePresets';
  * Bump CURRENT_SCHEMA_VERSION and add a migration in ./migrations.ts whenever the
  * stored shape changes.
  */
-export const CURRENT_SCHEMA_VERSION = 5;
+export const CURRENT_SCHEMA_VERSION = 6;
 
 export const PROJECT_NAME_MAX = 100;
 export const MAX_SCENES = 200;
@@ -57,9 +57,10 @@ export const MUSIC_FADE_IN_MS = 1000;
 export const MUSIC_FADE_OUT_MS = 1500;
 
 /**
- * The story's music (one track). It always starts with the story; `offsetMs` is where in the song
+ * The story's music (one track). It starts with the story, or with the scene `startSceneId` when
+ * set (M12.4, schema v6; a missing scene means the story start); `offsetMs` is where in the song
  * playback starts ("start at 0:45"). It plays once: if the song ends before the story, the rest is
- * silent. Fades apply at the start of the story and at whichever ends first, song or story.
+ * silent. Fades apply where the music starts and at whichever ends first, song or story.
  * Schema v2 added `fadeIn`/`fadeOut`.
  */
 export const AudioTrackSchema = z.object({
@@ -68,6 +69,8 @@ export const AudioTrackSchema = z.object({
   volume: z.number().min(0).max(1),
   fadeIn: z.boolean(),
   fadeOut: z.boolean(),
+  /** The scene the music starts with; absent = the first scene (the story start). */
+  startSceneId: z.string().min(1).optional(),
 });
 
 export const ProjectSchema = z.object({

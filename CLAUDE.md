@@ -95,7 +95,7 @@ Prefer **no new dependencies**. If one is genuinely needed, say why and ask firs
 src/
   domain/       Pure model. project.ts (Zod schemas, CURRENT_SCHEMA_VERSION, createProject),
                 asset.ts (AssetSchema, supported MIME types, MEDIA_LIMITS, remapAssetIds),
-                music.ts (music timing + fade/gain rules shared by preview and export),
+                music.ts (music timing + fade/gain rules shared by preview and export, start scene),
                 migrations.ts, sceneOps.ts (pure scene-list operations), stylePresets.ts
   db/           database.ts (Dexie schema, v2), projectRepository.ts, assetRepository.ts,
                 opfsStore.ts (streaming OPFS file store), index.ts (app singletons),

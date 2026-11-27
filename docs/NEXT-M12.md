@@ -91,6 +91,17 @@ unchanged. `npm run check`, `npm run test:e2e` and `npm run test:e2e:prod` pass.
 - Fixed in passing: the palette picker keyed its swatches by colour, so Mono Ink (primary = text =
   `#111111`) logged a React duplicate-key warning.
 
+## M12.4: music starts with a chosen scene
+
+- `audio.startSceneId` (optional; schema v6, a version-only migration so an older app says "saved
+  by a newer version" instead of silently dropping it). Picked in the Music section as *Music
+  starts with* (Scene 1 = the story start, stored as no value). The music follows its scene when
+  scenes move; a deleted scene falls back to the story start.
+- `domain/music.ts` gained `musicStartMs(track, scenes)` and a `startMs` argument on
+  `songTimeMs`/`musicEndMs`/`musicGain`, so the preview (`musicSync`) and the export mix
+  (`MixPlan.music.startMs`, read only from there) start, fade in and stop identically. The song
+  plays from its own start point (*Start the song at*) at the moment the scene starts. Decision D40.
+
 ## Progress
 
 - Design record written (this file).

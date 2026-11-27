@@ -29,7 +29,10 @@ export function clearMusic(): void {
   });
 }
 
-type MusicSettings = Partial<Pick<AudioTrack, 'offsetMs' | 'volume' | 'fadeIn' | 'fadeOut'>>;
+type MusicSettings = Partial<Pick<AudioTrack, 'offsetMs' | 'volume' | 'fadeIn' | 'fadeOut'>> & {
+  /** The scene the music starts with; '' = the story start. */
+  startSceneId?: string;
+};
 
 /** Change the track's settings. Values are clamped/rounded to what the schema accepts. */
 export function updateMusic(settings: MusicSettings, coalesceKey?: string): void {
@@ -41,7 +44,12 @@ export function updateMusic(settings: MusicSettings, coalesceKey?: string): void
     if (settings.volume !== undefined) next.volume = Math.min(1, Math.max(0, Math.round(settings.volume * 100) / 100));
     if (settings.fadeIn !== undefined) next.fadeIn = settings.fadeIn;
     if (settings.fadeOut !== undefined) next.fadeOut = settings.fadeOut;
-    const changed = (Object.keys(next) as (keyof AudioTrack)[]).some((key) => next[key] !== current[key]);
+    if (settings.startSceneId !== undefined) {
+      if (settings.startSceneId && project.scenes.some((s) => s.id === settings.startSceneId)) next.startSceneId = settings.startSceneId;
+      else delete next.startSceneId;
+    }
+    const keys = new Set([...Object.keys(current), ...Object.keys(next)]) as Set<keyof AudioTrack>;
+    const changed = [...keys].some((key) => next[key] !== current[key]);
     return changed ? { ...project, audio: next } : project;
   }, coalesceKey);
 }
