@@ -22,8 +22,9 @@ export function PalettePicker({ value, onChange, legend = 'Color palette' }: Pal
               className="visually-hidden"
             />
             <span className="palette-option__swatch" aria-hidden="true">
-              {[palette.background, palette.primary, palette.accent, palette.text].map((color) => (
-                <span key={color} style={{ background: color }} />
+              {(['background', 'primary', 'accent', 'text'] as const).map((role) => (
+                // Keyed by role: a palette may use one colour twice (Mono Ink's primary and text).
+                <span key={role} style={{ background: palette[role] }} />
               ))}
             </span>
             <span className="palette-option__name">{palette.name}</span>
